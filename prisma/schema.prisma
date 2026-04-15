@@ -7,6 +7,27 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  ASSOCIACAO
+  LOJISTA
+  CONSUMIDOR
+
+  @@map("UsuarioRole")
+}
+
+model Usuario {
+  id    Int         @id @default(autoincrement()) @map("id_usuario")
+  nome  String      @map("nome_usuario") @db.VarChar(255)
+  email String      @unique @map("email_usuario") @db.VarChar(255)
+  senha String      @map("senha_usuario") @db.VarChar(255)
+  role  Role        @map("role")
+  ativo Boolean     @default(true) @map("ativo")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("usuario")
+}
+
 model Rua {
   id   Int    @id @default(autoincrement()) @map("id_rua")
   nome String @db.VarChar(255) @map("nome_rua")
