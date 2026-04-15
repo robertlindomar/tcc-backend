@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { tratarAsync } from "../../shared/utils/tratarAsync";
-import { makeRuaController } from "./factory/makeRuaController";
+import { makeEstadoController } from "./factory/makeEstadoController";
 
-export function RuaRoutes() {
+export function EstadoRoutes() {
     const router = Router();
-    const controller = makeRuaController();
+    const controller = makeEstadoController();
 
     router.get("/", tratarAsync(controller.listar.bind(controller)));
     router.get("/:id", tratarAsync(controller.buscar.bind(controller)));

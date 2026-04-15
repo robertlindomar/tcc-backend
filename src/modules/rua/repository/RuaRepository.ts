@@ -17,8 +17,8 @@ export class RuaRepository {
             return new Rua({
                 id: novaRua.id,
                 nome: novaRua.nome,
-                data_criacao: novaRua.dataCriacao,
-                data_atualizacao: novaRua.dataAtualizacao,
+                dataCriacao: novaRua.dataCriacao,
+                dataAtualizacao: novaRua.dataAtualizacao,
             });
         } catch (error) {
             throw new AppError('Erro ao criar rua', 500);
@@ -33,8 +33,8 @@ export class RuaRepository {
                     new Rua({
                         id: rua.id,
                         nome: rua.nome,
-                        data_criacao: rua.dataCriacao,
-                        data_atualizacao: rua.dataAtualizacao,
+                        dataCriacao: rua.dataCriacao,
+                        dataAtualizacao: rua.dataAtualizacao,
                     }),
             );
         } catch (error) {
@@ -53,8 +53,8 @@ export class RuaRepository {
             return new Rua({
                 id: rua.id,
                 nome: rua.nome,
-                data_criacao: rua.dataCriacao,
-                data_atualizacao: rua.dataAtualizacao,
+                dataCriacao: rua.dataCriacao,
+                dataAtualizacao: rua.dataAtualizacao,
             });
         } catch (error) {
             throw new AppError('Erro ao buscar rua por ID', 500);
@@ -67,8 +67,8 @@ export class RuaRepository {
             return new Rua({    
                 id: rua.id,
                 nome: rua.nome,
-                data_criacao: rua.dataCriacao,
-                data_atualizacao: rua.dataAtualizacao,
+                dataCriacao: rua.dataCriacao,
+                dataAtualizacao: rua.dataAtualizacao,
             });
         } catch (error) {
             throw new AppError('Erro ao atualizar rua', 500);

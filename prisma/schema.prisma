@@ -15,3 +15,30 @@ model Rua {
 
   @@map("rua")
 }
+
+model Estado {
+  id   Int    @id @default(autoincrement()) @map("id_estado")
+  nome String @db.VarChar(255) @map("nome_estado")
+  dataCriacao DateTime @default(now()) @map("data_criacao") @db.Date
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao") @db.Date
+
+  @@map("estado")
+}
+
+model Cidade {
+  id   Int    @id @default(autoincrement()) @map("id_cidade")
+  nome String @db.VarChar(255) @map("nome_cidade")
+  dataCriacao DateTime @default(now()) @map("data_criacao") @db.Date
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao") @db.Date
+
+  @@map("cidade")
+}
+
+model Bairro {
+  id   Int    @id @default(autoincrement()) @map("id_bairro")
+  nome String @db.VarChar(255) @map("nome_bairro")
+  dataCriacao DateTime @default(now()) @map("data_criacao") @db.Date
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao") @db.Date
+
+  @@map("bairro")
+}
