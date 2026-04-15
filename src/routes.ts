@@ -1,5 +1,6 @@
 // src/routes.ts
 import { Router } from "express";
+import { BairroRoutes } from "./modules/bairro/routes";
 import { CidadeRoutes } from "./modules/cidade/routes";
 import { EstadoRoutes } from "./modules/estado/routes";
 import { RuaRoutes } from "./modules/rua/routes";
@@ -10,6 +11,7 @@ export function routes() {
     router.use("/rua", RuaRoutes());
     router.use("/estado", EstadoRoutes());
     router.use("/cidade", CidadeRoutes());
+    router.use("/bairro", BairroRoutes());
 
     return router;
 }
