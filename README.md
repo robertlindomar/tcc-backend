@@ -1,117 +1,39 @@
-# Arquitetura Modular e Limpa
+# TCC API
 
-Este é um projeto backend desenvolvido com Node.js, Express, TypeScript e Prisma, seguindo uma arquitetura modular e limpa.
+API REST em **Node.js**, **Express** e **Prisma** (PostgreSQL), organizada por modulos em `src/modules/<recurso>/`.
 
-## Arquitetura do Projeto
+## Requisitos
 
-```
-src/
-├── modules/                    # Módulos da aplicação
-│   ├── categoria/             # Módulo de Categorias
-│   │   ├── controllers/       # Controladores
-│   │   │   └── CategoriaController.ts
-│   │   ├── dtos/             # Objetos de Transferência de Dados
-│   │   │   ├── CategoriaRequest.ts
-│   │   │   └── CategoriaResponse.ts
-│   │   ├── models/           # Modelos de domínio
-│   │   │   └── Categoria.ts
-│   │   ├── repositories/     # Camada de acesso a dados
-│   │   │   └── CategoriaRepository.ts
-│   │   ├── services/         # Lógica de negócios
-│   │   │   └── CategoriaService.ts
-│   │   └── routes.ts         # Rotas do módulo
-│
-├── shared/                    # Recursos compartilhados
-│   ├── database/             # Configurações do banco de dados
-│   ├── middlewares/          # Middlewares da aplicação
-│   └── utils/                # Utilitários
-│
-├── routes.ts                 # Roteador principal
-└── server.ts                 # Ponto de entrada da aplicação
-```
+- Node.js 18+
+- PostgreSQL acessivel via `DATABASE_URL` no arquivo `.env`
 
-## Estrutura Modular
+## Configuracao
 
-O projeto segue uma arquitetura modular, onde cada funcionalidade é encapsulada em seu próprio módulo. Cada módulo contém:
+1. Copie `.env` com `DATABASE_URL=postgresql://usuario:senha@localhost:5432/sua_base`
+2. Instale dependencias: `npm install`
+3. Aplique migracoes: `npx prisma migrate dev`
+4. O client Prisma e gerado no `postinstall` ou com: `npm run db:generate`
 
-### 1. Controllers
-- Responsáveis por receber as requisições HTTP
-- Validam os dados de entrada
-- Chamam os serviços apropriados
-- Formatam as respostas
+## Scripts
 
-### 2. DTOs (Data Transfer Objects)
-- Definem a estrutura dos dados de entrada e saída
-- Garantem a tipagem correta dos dados
-- Separam a representação dos dados da lógica de negócios
+| Comando | Descricao |
+|--------|------------|
+| `npm run dev` | Sobe o servidor com `tsx watch` em `src/server.ts` |
+| `npm run db:generate` | Regenera o client Prisma |
 
-### 3. Models
-- Representam as entidades do domínio
-- Definem a estrutura dos dados
-- São independentes da camada de persistência
+## Endpoints (prefixo na raiz da app)
 
-### 4. Repositories
-- Responsáveis pelo acesso aos dados
-- Encapsulam a lógica de persistência
-- Utilizam o Prisma para operações no banco de dados
+O servidor monta as rotas em `src/routes.ts`:
 
-### 5. Services
-- Contêm a lógica de negócios
-- Coordenam as operações entre repositories
-- Implementam as regras de negócio
+| Prefixo | Recurso |
+|---------|---------|
+| `/rua` | Ruas |
+| `/estado` | Estados |
+| `/cidade` | Cidades |
+| `/bairro` | Bairros |
 
-### 6. Routes
-- Definem os endpoints da API
-- Mapeiam URLs para controllers
-- Gerenciam middlewares específicos do módulo
+Cada modulo expoe CRUD basico: `GET /`, `GET /:id`, `POST /`, `PUT /:id`, `DELETE /:id` (corpo JSON com `{ "nome": "..." }` onde aplicavel).
 
-## Tratamento de Erros
+## Tratamento de erros
 
-O projeto implementa um tratamento de erros robusto para garantir respostas claras e seguras em caso de falhas:
-
-- **Classe `AppError`**: Centraliza a criação de erros personalizados, permitindo definir mensagens e códigos de status HTTP específicos.
-- **Middleware global de erros**: Todas as exceções não tratadas são capturadas por um middleware dedicado, que formata e retorna a resposta adequada ao cliente.
-- **Mensagens descritivas**: Os erros retornam mensagens claras, facilitando o entendimento do problema tanto para desenvolvedores quanto para consumidores da API.
-- **Códigos de status apropriados**: Cada erro retorna o código HTTP correspondente (por exemplo, 400 para erros de validação, 404 para não encontrado, 500 para erros internos).
-- **Tratamento em cada camada**: Controllers, services e repositories lançam exceções específicas quando necessário, garantindo que falhas sejam propagadas corretamente.
-
-
-
-
-## Como Executar
-
-1. Clone o repositório
-2. Instale as dependências:
-   ```bash
-   npm install
-   ```
-3. Configure as variáveis de ambiente:
-   ```bash
-   cp .env.example .env
-   ```
-4. Execute as migrações do banco de dados:
-   ```bash
-   npx prisma migrate dev
-   ```
-5. Inicie o servidor:
-   ```bash
-   npm run dev
-   ```
-
-## Endpoints da API
-
-### Categorias
-
-- `POST /categoria` - Criar uma nova categoria
-- `GET /categoria` - Listar todas as categorias
-- `GET /categoria/:id` - Buscar categoria por ID
-- `PUT /categoria/:id` - Atualizar categoria
-- `DELETE /categoria/:id` - Deletar categoria
-
-## Contribuição
-
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
-3. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
-4. Push para a branch (`git push origin feature/nova-feature`)
-5. Abra um Pull Request 
+Respostas de erro JSON: `{ "error": "mensagem" }`. Erros de dominio usam `AppError` com codigo HTTP adequado; demais retornam 500.
