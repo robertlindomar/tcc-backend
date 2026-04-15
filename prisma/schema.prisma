@@ -1,0 +1,17 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Rua {
+  id   Int    @id @default(autoincrement()) @map("id_rua")
+  nome String @db.VarChar(255) @map("nome_rua")
+  dataCriacao DateTime @default(now()) @map("data_criacao") @db.Date
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao") @db.Date
+
+  @@map("rua")
+}
