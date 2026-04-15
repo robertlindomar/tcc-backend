@@ -1,0 +1,1013 @@
+{
+	"info": {
+		"name": "TCC-API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000"
+		},
+		{
+			"key": "usuarioId",
+			"value": ""
+		},
+		{
+			"key": "estadoId",
+			"value": ""
+		},
+		{
+			"key": "cidadeId",
+			"value": ""
+		},
+		{
+			"key": "bairroId",
+			"value": ""
+		},
+		{
+			"key": "ruaId",
+			"value": ""
+		}
+	],
+	"item": [
+		{
+			"name": "Usuario",
+			"item": [
+				{
+					"name": "Criar Usuario",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201', () => pm.response.to.have.status(201));",
+									"",
+									"const body = pm.response.json();",
+									"",
+									"pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
+									"pm.test('Retorna nome correto', () => pm.expect(body.nome).to.eql('João Silva'));",
+									"pm.test('Retorna email correto', () => pm.expect(body.email).to.eql('joao@email.com'));",
+									"pm.test('Retorna role correto', () => pm.expect(body.role).to.eql('CONSUMIDOR'));",
+									"pm.test('Retorna ativo true', () => pm.expect(body.ativo).to.be.true);",
+									"pm.test('Nao retorna senha', () => pm.expect(body.senha).to.be.undefined);",
+									"pm.test('Retorna createdAt', () => pm.expect(body.createdAt).to.be.a('string'));",
+									"pm.test('Retorna updatedAt', () => pm.expect(body.updatedAt).to.be.a('string'));",
+									"",
+									"pm.collectionVariables.set('usuarioId', body.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"João Silva\",\n  \"email\": \"joao@email.com\",\n  \"senha\": \"123456\",\n  \"role\": \"CONSUMIDOR\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/usuario",
+							"host": ["{{baseUrl}}"],
+							"path": ["usuario"]
+						}
+					}
+				},
+				{
+					"name": "Criar Usuario - Email Duplicado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 400 email duplicado', () => pm.response.to.have.status(400));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Retorna mensagem de erro', () => pm.expect(body.error).to.include('Email'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Outro Nome\",\n  \"email\": \"joao@email.com\",\n  \"senha\": \"654321\",\n  \"role\": \"LOJISTA\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/usuario",
+							"host": ["{{baseUrl}}"],
+							"path": ["usuario"]
+						}
+					}
+				},
+				{
+					"name": "Criar Usuario - Role Invalida",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 400 role invalida', () => pm.response.to.have.status(400));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Retorna mensagem de erro', () => pm.expect(body.error).to.include('Role'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Maria\",\n  \"email\": \"maria@email.com\",\n  \"senha\": \"123456\",\n  \"role\": \"INVALIDA\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/usuario",
+							"host": ["{{baseUrl}}"],
+							"path": ["usuario"]
+						}
+					}
+				},
+				{
+					"name": "Listar Usuarios",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));",
+									"pm.test('Array nao vazio', () => pm.expect(body.length).to.be.greaterThan(0));",
+									"pm.test('Nenhum item contem senha', () => body.forEach(u => pm.expect(u.senha).to.be.undefined));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/usuario",
+							"host": ["{{baseUrl}}"],
+							"path": ["usuario"]
+						}
+					}
+				},
+				{
+					"name": "Buscar Usuario por ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"const body = pm.response.json();",
+									"const id = pm.collectionVariables.get('usuarioId');",
+									"pm.test('ID correto', () => pm.expect(body.id).to.eql(Number(id)));",
+									"pm.test('Tem campos obrigatorios', () => {",
+									"    pm.expect(body).to.have.property('nome');",
+									"    pm.expect(body).to.have.property('email');",
+									"    pm.expect(body).to.have.property('role');",
+									"    pm.expect(body).to.have.property('ativo');",
+									"});",
+									"pm.test('Nao retorna senha', () => pm.expect(body.senha).to.be.undefined);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/usuario/{{usuarioId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["usuario", "{{usuarioId}}"]
+						}
+					}
+				},
+				{
+					"name": "Buscar Usuario - ID Inexistente",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 404', () => pm.response.to.have.status(404));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Retorna mensagem de erro', () => pm.expect(body.error).to.be.a('string'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/usuario/999999",
+							"host": ["{{baseUrl}}"],
+							"path": ["usuario", "999999"]
+						}
+					}
+				},
+				{
+					"name": "Buscar Usuario - ID Invalido",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 400', () => pm.response.to.have.status(400));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Retorna mensagem de erro', () => pm.expect(body.error).to.include('ID'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/usuario/abc",
+							"host": ["{{baseUrl}}"],
+							"path": ["usuario", "abc"]
+						}
+					}
+				},
+				{
+					"name": "Atualizar Usuario",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Nome atualizado', () => pm.expect(body.nome).to.eql('João Silva Atualizado'));",
+									"pm.test('Email atualizado', () => pm.expect(body.email).to.eql('joao.novo@email.com'));",
+									"pm.test('Nao retorna senha', () => pm.expect(body.senha).to.be.undefined);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"João Silva Atualizado\",\n  \"email\": \"joao.novo@email.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/usuario/{{usuarioId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["usuario", "{{usuarioId}}"]
+						}
+					}
+				},
+				{
+					"name": "Deletar Usuario",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 204', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{baseUrl}}/usuario/{{usuarioId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["usuario", "{{usuarioId}}"]
+						}
+					}
+				},
+				{
+					"name": "Buscar Usuario Deletado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 404 apos deletar', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/usuario/{{usuarioId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["usuario", "{{usuarioId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Estado",
+			"item": [
+				{
+					"name": "Criar Estado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201', () => pm.response.to.have.status(201));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
+									"pm.test('Retorna nome correto', () => pm.expect(body.nome).to.eql('São Paulo'));",
+									"pm.test('Retorna dataCriacao', () => pm.expect(body.dataCriacao).to.be.a('string'));",
+									"pm.test('Retorna dataAtualizacao', () => pm.expect(body.dataAtualizacao).to.be.a('string'));",
+									"",
+									"pm.collectionVariables.set('estadoId', body.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"São Paulo\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/estado",
+							"host": ["{{baseUrl}}"],
+							"path": ["estado"]
+						}
+					}
+				},
+				{
+					"name": "Listar Estados",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));",
+									"pm.test('Array nao vazio', () => pm.expect(body.length).to.be.greaterThan(0));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/estado",
+							"host": ["{{baseUrl}}"],
+							"path": ["estado"]
+						}
+					}
+				},
+				{
+					"name": "Buscar Estado por ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"const body = pm.response.json();",
+									"const id = pm.collectionVariables.get('estadoId');",
+									"pm.test('ID correto', () => pm.expect(body.id).to.eql(Number(id)));",
+									"pm.test('Tem nome', () => pm.expect(body).to.have.property('nome'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/estado/{{estadoId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["estado", "{{estadoId}}"]
+						}
+					}
+				},
+				{
+					"name": "Atualizar Estado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Nome atualizado', () => pm.expect(body.nome).to.eql('Rio de Janeiro'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Rio de Janeiro\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/estado/{{estadoId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["estado", "{{estadoId}}"]
+						}
+					}
+				},
+				{
+					"name": "Deletar Estado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 204', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{baseUrl}}/estado/{{estadoId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["estado", "{{estadoId}}"]
+						}
+					}
+				},
+				{
+					"name": "Buscar Estado Deletado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 404 apos deletar', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/estado/{{estadoId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["estado", "{{estadoId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Cidade",
+			"item": [
+				{
+					"name": "Criar Cidade",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201', () => pm.response.to.have.status(201));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
+									"pm.test('Retorna nome correto', () => pm.expect(body.nome).to.eql('Campinas'));",
+									"",
+									"pm.collectionVariables.set('cidadeId', body.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Campinas\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cidade",
+							"host": ["{{baseUrl}}"],
+							"path": ["cidade"]
+						}
+					}
+				},
+				{
+					"name": "Listar Cidades",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));",
+									"pm.test('Array nao vazio', () => pm.expect(body.length).to.be.greaterThan(0));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/cidade",
+							"host": ["{{baseUrl}}"],
+							"path": ["cidade"]
+						}
+					}
+				},
+				{
+					"name": "Buscar Cidade por ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"const body = pm.response.json();",
+									"const id = pm.collectionVariables.get('cidadeId');",
+									"pm.test('ID correto', () => pm.expect(body.id).to.eql(Number(id)));",
+									"pm.test('Tem nome', () => pm.expect(body).to.have.property('nome'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/cidade/{{cidadeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["cidade", "{{cidadeId}}"]
+						}
+					}
+				},
+				{
+					"name": "Atualizar Cidade",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Nome atualizado', () => pm.expect(body.nome).to.eql('Santos'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Santos\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cidade/{{cidadeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["cidade", "{{cidadeId}}"]
+						}
+					}
+				},
+				{
+					"name": "Deletar Cidade",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 204', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{baseUrl}}/cidade/{{cidadeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["cidade", "{{cidadeId}}"]
+						}
+					}
+				},
+				{
+					"name": "Buscar Cidade Deletada",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 404 apos deletar', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/cidade/{{cidadeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["cidade", "{{cidadeId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Bairro",
+			"item": [
+				{
+					"name": "Criar Bairro",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201', () => pm.response.to.have.status(201));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
+									"pm.test('Retorna nome correto', () => pm.expect(body.nome).to.eql('Centro'));",
+									"",
+									"pm.collectionVariables.set('bairroId', body.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Centro\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/bairro",
+							"host": ["{{baseUrl}}"],
+							"path": ["bairro"]
+						}
+					}
+				},
+				{
+					"name": "Listar Bairros",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));",
+									"pm.test('Array nao vazio', () => pm.expect(body.length).to.be.greaterThan(0));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/bairro",
+							"host": ["{{baseUrl}}"],
+							"path": ["bairro"]
+						}
+					}
+				},
+				{
+					"name": "Buscar Bairro por ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"const body = pm.response.json();",
+									"const id = pm.collectionVariables.get('bairroId');",
+									"pm.test('ID correto', () => pm.expect(body.id).to.eql(Number(id)));",
+									"pm.test('Tem nome', () => pm.expect(body).to.have.property('nome'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/bairro/{{bairroId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["bairro", "{{bairroId}}"]
+						}
+					}
+				},
+				{
+					"name": "Atualizar Bairro",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Nome atualizado', () => pm.expect(body.nome).to.eql('Jardim Europa'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Jardim Europa\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/bairro/{{bairroId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["bairro", "{{bairroId}}"]
+						}
+					}
+				},
+				{
+					"name": "Deletar Bairro",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 204', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{baseUrl}}/bairro/{{bairroId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["bairro", "{{bairroId}}"]
+						}
+					}
+				},
+				{
+					"name": "Buscar Bairro Deletado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 404 apos deletar', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/bairro/{{bairroId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["bairro", "{{bairroId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Rua",
+			"item": [
+				{
+					"name": "Criar Rua",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201', () => pm.response.to.have.status(201));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
+									"pm.test('Retorna nome correto', () => pm.expect(body.nome).to.eql('Rua Augusta'));",
+									"",
+									"pm.collectionVariables.set('ruaId', body.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Rua Augusta\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/rua",
+							"host": ["{{baseUrl}}"],
+							"path": ["rua"]
+						}
+					}
+				},
+				{
+					"name": "Listar Ruas",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));",
+									"pm.test('Array nao vazio', () => pm.expect(body.length).to.be.greaterThan(0));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/rua",
+							"host": ["{{baseUrl}}"],
+							"path": ["rua"]
+						}
+					}
+				},
+				{
+					"name": "Buscar Rua por ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"const body = pm.response.json();",
+									"const id = pm.collectionVariables.get('ruaId');",
+									"pm.test('ID correto', () => pm.expect(body.id).to.eql(Number(id)));",
+									"pm.test('Tem nome', () => pm.expect(body).to.have.property('nome'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/rua/{{ruaId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["rua", "{{ruaId}}"]
+						}
+					}
+				},
+				{
+					"name": "Atualizar Rua",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Nome atualizado', () => pm.expect(body.nome).to.eql('Avenida Paulista'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Avenida Paulista\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/rua/{{ruaId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["rua", "{{ruaId}}"]
+						}
+					}
+				},
+				{
+					"name": "Deletar Rua",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 204', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{baseUrl}}/rua/{{ruaId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["rua", "{{ruaId}}"]
+						}
+					}
+				},
+				{
+					"name": "Buscar Rua Deletada",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 404 apos deletar', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/rua/{{ruaId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["rua", "{{ruaId}}"]
+						}
+					}
+				}
+			]
+		}
+	]
+}
