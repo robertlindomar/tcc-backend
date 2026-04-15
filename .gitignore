@@ -4,3 +4,6 @@ node_modules
 .teste.txt
 
 /src/generated/prisma
+
+# Regras locais do Cursor (opcional no repositorio)
+.cursor/rules/
