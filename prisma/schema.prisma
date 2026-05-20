@@ -16,50 +16,100 @@ enum Role {
 }
 
 model Usuario {
-  id    Int         @id @default(autoincrement()) @map("id_usuario")
-  nome  String      @map("nome_usuario") @db.VarChar(255)
-  email String      @unique @map("email_usuario") @db.VarChar(255)
-  senha String      @map("senha_usuario") @db.VarChar(255)
-  role  Role        @map("role")
-  ativo Boolean     @default(true) @map("ativo")
+  id        Int      @id @default(autoincrement()) @map("id_usuario")
+  nome      String   @map("nome_usuario") @db.VarChar(255)
+  email     String   @unique @map("email_usuario") @db.VarChar(255)
+  senha     String   @map("senha_usuario") @db.VarChar(255)
+  role      Role     @map("role")
+  ativo     Boolean  @default(true) @map("ativo")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
+  endereco Endereco?
 
   @@map("usuario")
 }
 
+model Endereco {
+  id Int @id @default(autoincrement()) @map("id_endereco")
+
+  cep    String  @db.VarChar(9)
+  numero String? @db.VarChar(20)
+
+  usuarioId Int     @unique @map("id_usuario")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  ruaId Int @map("id_rua")
+  rua   Rua @relation(fields: [ruaId], references: [id])
+
+  bairroId Int    @map("id_bairro")
+  bairro   Bairro @relation(fields: [bairroId], references: [id])
+
+  cidadeId Int    @map("id_cidade")
+  cidade   Cidade @relation(fields: [cidadeId], references: [id])
+
+  estadoId Int    @map("id_estado")
+  estado   Estado @relation(fields: [estadoId], references: [id])
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  @@map("endereco")
+}
+
 model Rua {
   id   Int    @id @default(autoincrement()) @map("id_rua")
-  nome String @db.VarChar(255) @map("nome_rua")
-  dataCriacao DateTime @default(now()) @map("data_criacao") @db.Date
-  dataAtualizacao DateTime @updatedAt @map("data_atualizacao") @db.Date
+  nome String @map("nome_rua") @db.VarChar(255)
+
+  enderecos Endereco[]
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
   @@map("rua")
 }
 
 model Estado {
   id   Int    @id @default(autoincrement()) @map("id_estado")
-  nome String @db.VarChar(255) @map("nome_estado")
-  dataCriacao DateTime @default(now()) @map("data_criacao") @db.Date
-  dataAtualizacao DateTime @updatedAt @map("data_atualizacao") @db.Date
+  nome String @map("nome_estado") @db.VarChar(255)
+  uf   String @db.VarChar(2)
+
+  cidades   Cidade[]
+  enderecos Endereco[]
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
   @@map("estado")
 }
 
 model Cidade {
   id   Int    @id @default(autoincrement()) @map("id_cidade")
-  nome String @db.VarChar(255) @map("nome_cidade")
-  dataCriacao DateTime @default(now()) @map("data_criacao") @db.Date
-  dataAtualizacao DateTime @updatedAt @map("data_atualizacao") @db.Date
+  nome String @map("nome_cidade") @db.VarChar(255)
+
+  estadoId Int    @map("id_estado")
+  estado   Estado @relation(fields: [estadoId], references: [id])
+
+  bairros   Bairro[]
+  enderecos Endereco[]
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
   @@map("cidade")
 }
 
 model Bairro {
   id   Int    @id @default(autoincrement()) @map("id_bairro")
-  nome String @db.VarChar(255) @map("nome_bairro")
-  dataCriacao DateTime @default(now()) @map("data_criacao") @db.Date
-  dataAtualizacao DateTime @updatedAt @map("data_atualizacao") @db.Date
+  nome String @map("nome_bairro") @db.VarChar(255)
+
+  cidadeId Int    @map("id_cidade")
+  cidade   Cidade @relation(fields: [cidadeId], references: [id])
+
+  enderecos Endereco[]
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
   @@map("bairro")
 }

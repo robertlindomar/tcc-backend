@@ -27,6 +27,10 @@
 		{
 			"key": "ruaId",
 			"value": ""
+		},
+		{
+			"key": "enderecoId",
+			"value": ""
 		}
 	],
 	"item": [
@@ -1004,6 +1008,182 @@
 							"raw": "{{baseUrl}}/rua/{{ruaId}}",
 							"host": ["{{baseUrl}}"],
 							"path": ["rua", "{{ruaId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Endereco",
+			"item": [
+				{
+					"name": "Criar Endereco",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201', () => pm.response.to.have.status(201));",
+									"",
+									"const body = pm.response.json();",
+									"pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
+									"pm.test('Retorna cep formatado', () => pm.expect(body.cep).to.match(/^\\d{5}-\\d{3}$/));",
+									"pm.test('Retorna estado com uf', () => pm.expect(body.estado.uf).to.eql('SP'));",
+									"pm.test('Retorna rua', () => pm.expect(body.rua.nome).to.be.a('string'));",
+									"",
+									"pm.collectionVariables.set('enderecoId', body.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"cep\": \"15777362\",\n  \"numero\": \"100\",\n  \"usuarioId\": {{usuarioId}}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/endereco",
+							"host": ["{{baseUrl}}"],
+							"path": ["endereco"]
+						}
+					}
+				},
+				{
+					"name": "Criar Endereco - Usuario Ja Possui",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 400', () => pm.response.to.have.status(400));",
+									"const body = pm.response.json();",
+									"pm.test('Mensagem de erro', () => pm.expect(body.error).to.include('endereco'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"cep\": \"15777362\",\n  \"numero\": \"200\",\n  \"usuarioId\": {{usuarioId}}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/endereco",
+							"host": ["{{baseUrl}}"],
+							"path": ["endereco"]
+						}
+					}
+				},
+				{
+					"name": "Buscar Endereco por Usuario",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"const body = pm.response.json();",
+									"pm.test('Retorna usuarioId correto', () => pm.expect(body.usuarioId).to.eql(Number(pm.collectionVariables.get('usuarioId'))));",
+									"pm.test('Retorna cidade', () => pm.expect(body.cidade).to.have.property('nome'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/endereco/usuario/{{usuarioId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["endereco", "usuario", "{{usuarioId}}"]
+						}
+					}
+				},
+				{
+					"name": "Atualizar Endereco",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"const body = pm.response.json();",
+									"pm.test('Numero atualizado', () => pm.expect(body.numero).to.eql('250'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"numero\": \"250\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/endereco/{{enderecoId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["endereco", "{{enderecoId}}"]
+						}
+					}
+				},
+				{
+					"name": "Deletar Endereco",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 204', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{baseUrl}}/endereco/{{enderecoId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["endereco", "{{enderecoId}}"]
+						}
+					}
+				},
+				{
+					"name": "Buscar Endereco Deletado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 404 apos deletar', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/endereco/usuario/{{usuarioId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["endereco", "usuario", "{{usuarioId}}"]
 						}
 					}
 				}
