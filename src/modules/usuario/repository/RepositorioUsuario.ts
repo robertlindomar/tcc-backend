@@ -1,9 +1,9 @@
 import { PrismaClient } from "../../../generated/prisma/client";
-import { AppError } from "../../../shared/errors/AppError";
+import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { Role } from "../../auth/enum/Role";
 import { Usuario } from "../model/Usuario";
 
-export class UsuarioRepository {
+export class RepositorioUsuario {
     private readonly prisma: PrismaClient;
 
     constructor(prisma: PrismaClient) {
@@ -32,7 +32,7 @@ export class UsuarioRepository {
                 updatedAt: criado.updatedAt,
             });
         } catch {
-            throw new AppError("Erro ao criar usuario", 500);
+            throw new ErroAplicacao("Erro ao criar usuario", 500);
         }
     }
 
@@ -53,7 +53,7 @@ export class UsuarioRepository {
                     }),
             );
         } catch {
-            throw new AppError("Erro ao listar usuarios", 500);
+            throw new ErroAplicacao("Erro ao listar usuarios", 500);
         }
     }
 
@@ -76,7 +76,7 @@ export class UsuarioRepository {
                 updatedAt: u.updatedAt,
             });
         } catch {
-            throw new AppError("Erro ao buscar usuario por ID", 500);
+            throw new ErroAplicacao("Erro ao buscar usuario por ID", 500);
         }
     }
 
@@ -99,7 +99,7 @@ export class UsuarioRepository {
                 updatedAt: u.updatedAt,
             });
         } catch {
-            throw new AppError("Erro ao buscar usuario por email", 500);
+            throw new ErroAplicacao("Erro ao buscar usuario por email", 500);
         }
     }
 
@@ -121,7 +121,7 @@ export class UsuarioRepository {
                 updatedAt: u.updatedAt,
             });
         } catch {
-            throw new AppError("Erro ao atualizar usuario", 500);
+            throw new ErroAplicacao("Erro ao atualizar usuario", 500);
         }
     }
 
@@ -129,7 +129,7 @@ export class UsuarioRepository {
         try {
             await this.prisma.usuario.delete({ where: { id } });
         } catch {
-            throw new AppError("Erro ao deletar usuario", 500);
+            throw new ErroAplicacao("Erro ao deletar usuario", 500);
         }
     }
 }

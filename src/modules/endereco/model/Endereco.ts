@@ -1,4 +1,4 @@
-import { AppError } from "../../../shared/errors/AppError";
+import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 
 type EnderecoProps = {
     id: number;
@@ -18,11 +18,11 @@ export class Endereco {
 
     constructor(props: EnderecoProps) {
         if (!props.cep.trim()) {
-            throw new AppError("CEP do endereco é obrigatório");
+            throw new ErroAplicacao("CEP do endereco é obrigatório");
         }
 
         if (!Number.isInteger(props.usuarioId) || props.usuarioId <= 0) {
-            throw new AppError("ID do usuario invalido");
+            throw new ErroAplicacao("ID do usuario invalido");
         }
 
         this.props = props;

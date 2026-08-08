@@ -1,40 +1,43 @@
 import { PrismaClient } from "../../../generated/prisma/client";
-import { AppError } from "../../../shared/errors/AppError";
-import { ViaCepClient } from "../../../shared/infra/ViaCepClient";
-import { UpdateEnderecoDTO } from "../dto/UpdateEnderecoDTO";
-import { EnderecoResponse } from "../dtos/EnderecoResponse";
-import { EnderecoRepository } from "../repository/EnderecoRepository";
+import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { ClienteViaCep } from "../../../shared/infra/ClienteViaCep";
+import { DTOAtualizarEndereco } from "../dto/DTOAtualizarEndereco";
+import { RespostaEndereco } from "../dtos/RespostaEndereco";
+import { RepositorioEndereco } from "../repository/RepositorioEndereco";
 import { normalizarCep, parseId } from "../utils/enderecoUtils";
 import { resolverGeografiaViaCep } from "./resolverGeografiaViaCep";
 
-export class UpdateEnderecoService {
+export class ServicoAtualizarEndereco {
     constructor(
         private readonly prisma: PrismaClient,
-        private readonly enderecoRepository: EnderecoRepository,
-        private readonly viaCepClient: ViaCepClient,
+        private readonly repositorioEndereco: RepositorioEndereco,
+        private readonly clienteViaCep: ClienteViaCep,
     ) {}
 
-    async executar(idParam: string, dto: UpdateEnderecoDTO): Promise<EnderecoResponse> {
+    async executar(
+        idParam: string,
+        dto: DTOAtualizarEndereco,
+    ): Promise<RespostaEndereco> {
         const id = parseId(idParam, "ID do endereco invalido");
 
-        const enderecoAtual = await this.enderecoRepository.buscarPorId(id);
+        const enderecoAtual = await this.repositorioEndereco.buscarPorId(id);
 
         if (!enderecoAtual) {
-            throw new AppError("Endereco nao encontrado", 404);
+            throw new ErroAplicacao("Endereco nao encontrado", 404);
         }
 
         if (!dto.cep && dto.numero === undefined) {
-            throw new AppError("Informe ao menos um campo para atualizar");
+            throw new ErroAplicacao("Informe ao menos um campo para atualizar");
         }
 
         if (dto.cep) {
             const cep = normalizarCep(dto.cep);
-            const dadosViaCep = await this.viaCepClient.buscarPorCep(cep);
+            const dadosViaCep = await this.clienteViaCep.buscarPorCep(cep);
 
             return this.prisma.$transaction(async (tx) => {
                 const geografia = await resolverGeografiaViaCep(dadosViaCep, tx);
 
-                return this.enderecoRepository.atualizar(
+                return this.repositorioEndereco.atualizar(
                     id,
                     {
                         cep,
@@ -49,7 +52,7 @@ export class UpdateEnderecoService {
             });
         }
 
-        return this.enderecoRepository.atualizar(id, {
+        return this.repositorioEndereco.atualizar(id, {
             cep: enderecoAtual.cep,
             numero: dto.numero !== undefined ? dto.numero : enderecoAtual.numero,
             ruaId: enderecoAtual.rua.id,

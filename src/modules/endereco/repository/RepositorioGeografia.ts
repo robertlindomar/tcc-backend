@@ -1,9 +1,14 @@
 import { PrismaClient } from "../../../generated/prisma/client";
-import { AppError } from "../../../shared/errors/AppError";
+import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 
-type ClientePrisma = PrismaClient | Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">;
+type ClientePrisma =
+    | PrismaClient
+    | Omit<
+          PrismaClient,
+          "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends"
+      >;
 
-export class GeografiaRepository {
+export class RepositorioGeografia {
     constructor(private readonly prisma: ClientePrisma) {}
 
     async buscarOuCriarEstado(nome: string, uf: string) {
@@ -20,7 +25,7 @@ export class GeografiaRepository {
                 data: { nome, uf },
             });
         } catch {
-            throw new AppError("Erro ao salvar estado", 500);
+            throw new ErroAplicacao("Erro ao salvar estado", 500);
         }
     }
 
@@ -38,7 +43,7 @@ export class GeografiaRepository {
                 data: { nome, estadoId },
             });
         } catch {
-            throw new AppError("Erro ao salvar cidade", 500);
+            throw new ErroAplicacao("Erro ao salvar cidade", 500);
         }
     }
 
@@ -56,7 +61,7 @@ export class GeografiaRepository {
                 data: { nome, cidadeId },
             });
         } catch {
-            throw new AppError("Erro ao salvar bairro", 500);
+            throw new ErroAplicacao("Erro ao salvar bairro", 500);
         }
     }
 
@@ -74,7 +79,7 @@ export class GeografiaRepository {
                 data: { nome },
             });
         } catch {
-            throw new AppError("Erro ao salvar rua", 500);
+            throw new ErroAplicacao("Erro ao salvar rua", 500);
         }
     }
 }

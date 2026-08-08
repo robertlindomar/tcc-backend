@@ -1,4 +1,4 @@
-export interface CreateEnderecoDTO {
+export interface DTOCriarEndereco {
     cep: string;
     numero?: string;
     usuarioId: number;

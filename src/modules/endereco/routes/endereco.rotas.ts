@@ -1,10 +1,13 @@
 import { Router } from "express";
+import { garantirAutenticado } from "../../../shared/middlewares/garantirAutenticado";
 import { tratarAsync } from "../../../shared/utils/tratarAsync";
-import { makeEnderecoController } from "../factory/makeEnderecoController";
+import { criarControladorEndereco } from "../factory/criarControladorEndereco";
 
-export function EnderecoRoutes() {
+export function RotasEndereco() {
     const router = Router();
-    const controller = makeEnderecoController();
+    const controller = criarControladorEndereco();
+
+    router.use(garantirAutenticado);
 
     router.post("/", tratarAsync(controller.criar.bind(controller)));
     router.get(

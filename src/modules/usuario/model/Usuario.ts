@@ -1,4 +1,4 @@
-import { AppError } from "../../../shared/errors/AppError";
+import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { Role } from "../../auth/enum/Role";
 
 type UsuarioProps = {
@@ -17,15 +17,15 @@ export class Usuario {
 
     constructor(props: UsuarioProps) {
         if (!props.nome.trim()) {
-            throw new AppError("Nome do usuario é obrigatório");
+            throw new ErroAplicacao("Nome do usuario é obrigatório");
         }
 
         if (!props.email.trim()) {
-            throw new AppError("Email do usuario é obrigatório");
+            throw new ErroAplicacao("Email do usuario é obrigatório");
         }
 
         if (!props.senha.trim()) {
-            throw new AppError("Senha do usuario é obrigatória");
+            throw new ErroAplicacao("Senha do usuario é obrigatória");
         }
 
         this.props = props;

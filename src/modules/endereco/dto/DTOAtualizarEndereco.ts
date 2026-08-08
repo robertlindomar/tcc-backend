@@ -1,4 +1,4 @@
-export interface UpdateEnderecoDTO {
+export interface DTOAtualizarEndereco {
     cep?: string;
     numero?: string;
 }

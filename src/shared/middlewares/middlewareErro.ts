@@ -1,8 +1,8 @@
 import { ErrorRequestHandler } from "express";
-import { AppError } from "../errors/AppError";
+import { ErroAplicacao } from "../erros/ErroAplicacao";
 
 export const middlewareErro: ErrorRequestHandler = (err, req, res, next) => {
-    if (err instanceof AppError) {
+    if (err instanceof ErroAplicacao) {
         res.status(err.statusCode).json({ error: err.message });
         return;
     }

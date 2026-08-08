@@ -1,8 +1,8 @@
-import { RespostaViaCep } from "../../../shared/infra/ViaCepClient";
-import { GeografiaRepository } from "../repository/GeografiaRepository";
+import { RespostaViaCep } from "../../../shared/infra/ClienteViaCep";
+import { RepositorioGeografia } from "../repository/RepositorioGeografia";
 import { resolverNomeRua } from "../utils/enderecoUtils";
 
-type ClientePrisma = ConstructorParameters<typeof GeografiaRepository>[0];
+type ClientePrisma = ConstructorParameters<typeof RepositorioGeografia>[0];
 
 export type GeografiaResolvida = {
     estadoId: number;
@@ -15,24 +15,24 @@ export async function resolverGeografiaViaCep(
     dadosViaCep: RespostaViaCep,
     cliente: ClientePrisma,
 ): Promise<GeografiaResolvida> {
-    const geografiaRepository = new GeografiaRepository(cliente);
+    const repositorioGeografia = new RepositorioGeografia(cliente);
 
-    const estado = await geografiaRepository.buscarOuCriarEstado(
+    const estado = await repositorioGeografia.buscarOuCriarEstado(
         dadosViaCep.estado,
         dadosViaCep.uf,
     );
 
-    const cidade = await geografiaRepository.buscarOuCriarCidade(
+    const cidade = await repositorioGeografia.buscarOuCriarCidade(
         dadosViaCep.localidade,
         estado.id,
     );
 
-    const bairro = await geografiaRepository.buscarOuCriarBairro(
+    const bairro = await repositorioGeografia.buscarOuCriarBairro(
         dadosViaCep.bairro,
         cidade.id,
     );
 
-    const rua = await geografiaRepository.buscarOuCriarRua(
+    const rua = await repositorioGeografia.buscarOuCriarRua(
         resolverNomeRua(dadosViaCep.logradouro),
     );
 

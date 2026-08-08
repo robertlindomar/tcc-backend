@@ -1,21 +1,21 @@
 import { PrismaClient } from "../../../generated/prisma/client";
-import { AppError } from "../../../shared/errors/AppError";
-import { ViaCepClient } from "../../../shared/infra/ViaCepClient";
-import { CreateEnderecoDTO } from "../dto/CreateEnderecoDTO";
-import { EnderecoResponse } from "../dtos/EnderecoResponse";
+import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { ClienteViaCep } from "../../../shared/infra/ClienteViaCep";
+import { DTOCriarEndereco } from "../dto/DTOCriarEndereco";
+import { RespostaEndereco } from "../dtos/RespostaEndereco";
 import { Endereco } from "../model/Endereco";
-import { EnderecoRepository } from "../repository/EnderecoRepository";
+import { RepositorioEndereco } from "../repository/RepositorioEndereco";
 import { normalizarCep } from "../utils/enderecoUtils";
 import { resolverGeografiaViaCep } from "./resolverGeografiaViaCep";
 
-export class CreateEnderecoService {
+export class ServicoCriarEndereco {
     constructor(
         private readonly prisma: PrismaClient,
-        private readonly enderecoRepository: EnderecoRepository,
-        private readonly viaCepClient: ViaCepClient,
+        private readonly repositorioEndereco: RepositorioEndereco,
+        private readonly clienteViaCep: ClienteViaCep,
     ) {}
 
-    async executar(dto: CreateEnderecoDTO): Promise<EnderecoResponse> {
+    async executar(dto: DTOCriarEndereco): Promise<RespostaEndereco> {
         const cep = normalizarCep(dto.cep);
 
         const usuario = await this.prisma.usuario.findUnique({
@@ -23,16 +23,18 @@ export class CreateEnderecoService {
         });
 
         if (!usuario) {
-            throw new AppError("Usuario nao encontrado", 404);
+            throw new ErroAplicacao("Usuario nao encontrado", 404);
         }
 
-        const jaPossuiEndereco = await this.enderecoRepository.existePorUsuarioId(dto.usuarioId);
+        const jaPossuiEndereco = await this.repositorioEndereco.existePorUsuarioId(
+            dto.usuarioId,
+        );
 
         if (jaPossuiEndereco) {
-            throw new AppError("Usuario ja possui endereco");
+            throw new ErroAplicacao("Usuario ja possui endereco");
         }
 
-        const dadosViaCep = await this.viaCepClient.buscarPorCep(cep);
+        const dadosViaCep = await this.clienteViaCep.buscarPorCep(cep);
 
         return this.prisma.$transaction(async (tx) => {
             const geografia = await resolverGeografiaViaCep(dadosViaCep, tx);
@@ -50,7 +52,7 @@ export class CreateEnderecoService {
                 dataAtualizacao: new Date(),
             });
 
-            return this.enderecoRepository.criar(endereco, tx);
+            return this.repositorioEndereco.criar(endereco, tx);
         });
     }
 }

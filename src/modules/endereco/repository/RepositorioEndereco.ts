@@ -1,9 +1,14 @@
 import { PrismaClient } from "../../../generated/prisma/client";
-import { AppError } from "../../../shared/errors/AppError";
-import { EnderecoResponse } from "../dtos/EnderecoResponse";
+import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { RespostaEndereco } from "../dtos/RespostaEndereco";
 import { Endereco } from "../model/Endereco";
 
-type ClientePrisma = PrismaClient | Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">;
+type ClientePrisma =
+    | PrismaClient
+    | Omit<
+          PrismaClient,
+          "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends"
+      >;
 
 const includeRelacoes = {
     rua: true,
@@ -29,13 +34,13 @@ type EnderecoComRelacoes = {
     estado: { id: number; nome: string; uf: string };
 };
 
-export class EnderecoRepository {
+export class RepositorioEndereco {
     constructor(private readonly prisma: ClientePrisma) {}
 
     async criar(
         endereco: Endereco,
         cliente: ClientePrisma = this.prisma,
-    ): Promise<EnderecoResponse> {
+    ): Promise<RespostaEndereco> {
         try {
             const criado = await cliente.endereco.create({
                 data: {
@@ -50,9 +55,9 @@ export class EnderecoRepository {
                 include: includeRelacoes,
             });
 
-            return this.toResponse(criado);
+            return this.paraResposta(criado);
         } catch {
-            throw new AppError("Erro ao criar endereco", 500);
+            throw new ErroAplicacao("Erro ao criar endereco", 500);
         }
     }
 
@@ -67,7 +72,7 @@ export class EnderecoRepository {
             estadoId: number;
         },
         cliente: ClientePrisma = this.prisma,
-    ): Promise<EnderecoResponse> {
+    ): Promise<RespostaEndereco> {
         try {
             const atualizado = await cliente.endereco.update({
                 where: { id },
@@ -75,13 +80,13 @@ export class EnderecoRepository {
                 include: includeRelacoes,
             });
 
-            return this.toResponse(atualizado);
+            return this.paraResposta(atualizado);
         } catch {
-            throw new AppError("Erro ao atualizar endereco", 500);
+            throw new ErroAplicacao("Erro ao atualizar endereco", 500);
         }
     }
 
-    async buscarPorId(id: number): Promise<EnderecoResponse | null> {
+    async buscarPorId(id: number): Promise<RespostaEndereco | null> {
         try {
             const endereco = await this.prisma.endereco.findUnique({
                 where: { id },
@@ -92,13 +97,13 @@ export class EnderecoRepository {
                 return null;
             }
 
-            return this.toResponse(endereco);
+            return this.paraResposta(endereco);
         } catch {
-            throw new AppError("Erro ao buscar endereco por ID", 500);
+            throw new ErroAplicacao("Erro ao buscar endereco por ID", 500);
         }
     }
 
-    async buscarPorUsuarioId(usuarioId: number): Promise<EnderecoResponse | null> {
+    async buscarPorUsuarioId(usuarioId: number): Promise<RespostaEndereco | null> {
         try {
             const endereco = await this.prisma.endereco.findUnique({
                 where: { usuarioId },
@@ -109,9 +114,9 @@ export class EnderecoRepository {
                 return null;
             }
 
-            return this.toResponse(endereco);
+            return this.paraResposta(endereco);
         } catch {
-            throw new AppError("Erro ao buscar endereco por usuario", 500);
+            throw new ErroAplicacao("Erro ao buscar endereco por usuario", 500);
         }
     }
 
@@ -124,7 +129,7 @@ export class EnderecoRepository {
 
             return endereco !== null;
         } catch {
-            throw new AppError("Erro ao verificar endereco do usuario", 500);
+            throw new ErroAplicacao("Erro ao verificar endereco do usuario", 500);
         }
     }
 
@@ -132,11 +137,11 @@ export class EnderecoRepository {
         try {
             await this.prisma.endereco.delete({ where: { id } });
         } catch {
-            throw new AppError("Erro ao deletar endereco", 500);
+            throw new ErroAplicacao("Erro ao deletar endereco", 500);
         }
     }
 
-    private toResponse(endereco: EnderecoComRelacoes): EnderecoResponse {
+    private paraResposta(endereco: EnderecoComRelacoes): RespostaEndereco {
         return {
             id: endereco.id,
             cep: endereco.cep,

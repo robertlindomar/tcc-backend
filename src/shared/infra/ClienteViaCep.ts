@@ -1,4 +1,4 @@
-import { AppError } from "../errors/AppError";
+import { ErroAplicacao } from "../erros/ErroAplicacao";
 
 export type RespostaViaCep = {
     cep: string;
@@ -11,38 +11,38 @@ export type RespostaViaCep = {
     erro?: boolean;
 };
 
-export class ViaCepClient {
+export class ClienteViaCep {
     private static readonly BASE_URL = "https://viacep.com.br/ws";
 
     async buscarPorCep(cep: string): Promise<RespostaViaCep> {
         const cepSomenteDigitos = cep.replace(/\D/g, "");
 
         if (cepSomenteDigitos.length !== 8) {
-            throw new AppError("CEP invalido");
+            throw new ErroAplicacao("CEP invalido");
         }
 
         try {
             const response = await fetch(
-                `${ViaCepClient.BASE_URL}/${cepSomenteDigitos}/json/`,
+                `${ClienteViaCep.BASE_URL}/${cepSomenteDigitos}/json/`,
             );
 
             if (!response.ok) {
-                throw new AppError("Erro ao consultar CEP", 502);
+                throw new ErroAplicacao("Erro ao consultar CEP", 502);
             }
 
             const dados = (await response.json()) as RespostaViaCep;
 
             if (dados.erro || !dados.uf || !dados.localidade) {
-                throw new AppError("CEP nao encontrado", 404);
+                throw new ErroAplicacao("CEP nao encontrado", 404);
             }
 
             return dados;
         } catch (error) {
-            if (error instanceof AppError) {
+            if (error instanceof ErroAplicacao) {
                 throw error;
             }
 
-            throw new AppError("Erro ao consultar CEP", 502);
+            throw new ErroAplicacao("Erro ao consultar CEP", 502);
         }
     }
 }

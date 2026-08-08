@@ -1,4 +1,4 @@
-export interface EnderecoResponse {
+export interface RespostaEndereco {
     id: number;
     cep: string;
     numero: string | null;

@@ -1,6 +1,6 @@
 import { Role } from "../../auth/enum/Role";
 
-export interface UsuarioResponse {
+export interface RespostaUsuario {
     id: number;
     nome: string;
     email: string;

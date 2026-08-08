@@ -1,4 +1,4 @@
-export interface CriarUsuarioRequest {
+export interface RequisicaoCriarUsuario {
     nome: string;
     email: string;
     senha: string;
