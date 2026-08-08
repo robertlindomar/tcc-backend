@@ -1,1193 +1,3843 @@
 {
-	"info": {
-		"name": "TCC-API",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"variable": [
-		{
-			"key": "baseUrl",
-			"value": "http://localhost:3000"
-		},
-		{
-			"key": "usuarioId",
-			"value": ""
-		},
-		{
-			"key": "estadoId",
-			"value": ""
-		},
-		{
-			"key": "cidadeId",
-			"value": ""
-		},
-		{
-			"key": "bairroId",
-			"value": ""
-		},
-		{
-			"key": "ruaId",
-			"value": ""
-		},
-		{
-			"key": "enderecoId",
-			"value": ""
-		}
-	],
-	"item": [
-		{
-			"name": "Usuario",
-			"item": [
-				{
-					"name": "Criar Usuario",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 201', () => pm.response.to.have.status(201));",
-									"",
-									"const body = pm.response.json();",
-									"",
-									"pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
-									"pm.test('Retorna nome correto', () => pm.expect(body.nome).to.eql('João Silva'));",
-									"pm.test('Retorna email correto', () => pm.expect(body.email).to.eql('joao@email.com'));",
-									"pm.test('Retorna role correto', () => pm.expect(body.role).to.eql('CONSUMIDOR'));",
-									"pm.test('Retorna ativo true', () => pm.expect(body.ativo).to.be.true);",
-									"pm.test('Nao retorna senha', () => pm.expect(body.senha).to.be.undefined);",
-									"pm.test('Retorna createdAt', () => pm.expect(body.createdAt).to.be.a('string'));",
-									"pm.test('Retorna updatedAt', () => pm.expect(body.updatedAt).to.be.a('string'));",
-									"",
-									"pm.collectionVariables.set('usuarioId', body.id);"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \"João Silva\",\n  \"email\": \"joao@email.com\",\n  \"senha\": \"123456\",\n  \"role\": \"CONSUMIDOR\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/usuario",
-							"host": ["{{baseUrl}}"],
-							"path": ["usuario"]
-						}
-					}
-				},
-				{
-					"name": "Criar Usuario - Email Duplicado",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 400 email duplicado', () => pm.response.to.have.status(400));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Retorna mensagem de erro', () => pm.expect(body.error).to.include('Email'));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \"Outro Nome\",\n  \"email\": \"joao@email.com\",\n  \"senha\": \"654321\",\n  \"role\": \"LOJISTA\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/usuario",
-							"host": ["{{baseUrl}}"],
-							"path": ["usuario"]
-						}
-					}
-				},
-				{
-					"name": "Criar Usuario - Role Invalida",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 400 role invalida', () => pm.response.to.have.status(400));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Retorna mensagem de erro', () => pm.expect(body.error).to.include('Role'));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \"Maria\",\n  \"email\": \"maria@email.com\",\n  \"senha\": \"123456\",\n  \"role\": \"INVALIDA\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/usuario",
-							"host": ["{{baseUrl}}"],
-							"path": ["usuario"]
-						}
-					}
-				},
-				{
-					"name": "Listar Usuarios",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));",
-									"pm.test('Array nao vazio', () => pm.expect(body.length).to.be.greaterThan(0));",
-									"pm.test('Nenhum item contem senha', () => body.forEach(u => pm.expect(u.senha).to.be.undefined));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/usuario",
-							"host": ["{{baseUrl}}"],
-							"path": ["usuario"]
-						}
-					}
-				},
-				{
-					"name": "Buscar Usuario por ID",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"",
-									"const body = pm.response.json();",
-									"const id = pm.collectionVariables.get('usuarioId');",
-									"pm.test('ID correto', () => pm.expect(body.id).to.eql(Number(id)));",
-									"pm.test('Tem campos obrigatorios', () => {",
-									"    pm.expect(body).to.have.property('nome');",
-									"    pm.expect(body).to.have.property('email');",
-									"    pm.expect(body).to.have.property('role');",
-									"    pm.expect(body).to.have.property('ativo');",
-									"});",
-									"pm.test('Nao retorna senha', () => pm.expect(body.senha).to.be.undefined);"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/usuario/{{usuarioId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["usuario", "{{usuarioId}}"]
-						}
-					}
-				},
-				{
-					"name": "Buscar Usuario - ID Inexistente",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 404', () => pm.response.to.have.status(404));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Retorna mensagem de erro', () => pm.expect(body.error).to.be.a('string'));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/usuario/999999",
-							"host": ["{{baseUrl}}"],
-							"path": ["usuario", "999999"]
-						}
-					}
-				},
-				{
-					"name": "Buscar Usuario - ID Invalido",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 400', () => pm.response.to.have.status(400));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Retorna mensagem de erro', () => pm.expect(body.error).to.include('ID'));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/usuario/abc",
-							"host": ["{{baseUrl}}"],
-							"path": ["usuario", "abc"]
-						}
-					}
-				},
-				{
-					"name": "Atualizar Usuario",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Nome atualizado', () => pm.expect(body.nome).to.eql('João Silva Atualizado'));",
-									"pm.test('Email atualizado', () => pm.expect(body.email).to.eql('joao.novo@email.com'));",
-									"pm.test('Nao retorna senha', () => pm.expect(body.senha).to.be.undefined);"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \"João Silva Atualizado\",\n  \"email\": \"joao.novo@email.com\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/usuario/{{usuarioId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["usuario", "{{usuarioId}}"]
-						}
-					}
-				},
-				{
-					"name": "Deletar Usuario",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 204', () => pm.response.to.have.status(204));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"url": {
-							"raw": "{{baseUrl}}/usuario/{{usuarioId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["usuario", "{{usuarioId}}"]
-						}
-					}
-				},
-				{
-					"name": "Buscar Usuario Deletado",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 404 apos deletar', () => pm.response.to.have.status(404));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/usuario/{{usuarioId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["usuario", "{{usuarioId}}"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Estado",
-			"item": [
-				{
-					"name": "Criar Estado",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 201', () => pm.response.to.have.status(201));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
-									"pm.test('Retorna nome correto', () => pm.expect(body.nome).to.eql('São Paulo'));",
-									"pm.test('Retorna dataCriacao', () => pm.expect(body.dataCriacao).to.be.a('string'));",
-									"pm.test('Retorna dataAtualizacao', () => pm.expect(body.dataAtualizacao).to.be.a('string'));",
-									"",
-									"pm.collectionVariables.set('estadoId', body.id);"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \"São Paulo\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/estado",
-							"host": ["{{baseUrl}}"],
-							"path": ["estado"]
-						}
-					}
-				},
-				{
-					"name": "Listar Estados",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));",
-									"pm.test('Array nao vazio', () => pm.expect(body.length).to.be.greaterThan(0));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/estado",
-							"host": ["{{baseUrl}}"],
-							"path": ["estado"]
-						}
-					}
-				},
-				{
-					"name": "Buscar Estado por ID",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"",
-									"const body = pm.response.json();",
-									"const id = pm.collectionVariables.get('estadoId');",
-									"pm.test('ID correto', () => pm.expect(body.id).to.eql(Number(id)));",
-									"pm.test('Tem nome', () => pm.expect(body).to.have.property('nome'));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/estado/{{estadoId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["estado", "{{estadoId}}"]
-						}
-					}
-				},
-				{
-					"name": "Atualizar Estado",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Nome atualizado', () => pm.expect(body.nome).to.eql('Rio de Janeiro'));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \"Rio de Janeiro\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/estado/{{estadoId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["estado", "{{estadoId}}"]
-						}
-					}
-				},
-				{
-					"name": "Deletar Estado",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 204', () => pm.response.to.have.status(204));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"url": {
-							"raw": "{{baseUrl}}/estado/{{estadoId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["estado", "{{estadoId}}"]
-						}
-					}
-				},
-				{
-					"name": "Buscar Estado Deletado",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 404 apos deletar', () => pm.response.to.have.status(404));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/estado/{{estadoId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["estado", "{{estadoId}}"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Cidade",
-			"item": [
-				{
-					"name": "Criar Cidade",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 201', () => pm.response.to.have.status(201));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
-									"pm.test('Retorna nome correto', () => pm.expect(body.nome).to.eql('Campinas'));",
-									"",
-									"pm.collectionVariables.set('cidadeId', body.id);"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \"Campinas\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/cidade",
-							"host": ["{{baseUrl}}"],
-							"path": ["cidade"]
-						}
-					}
-				},
-				{
-					"name": "Listar Cidades",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));",
-									"pm.test('Array nao vazio', () => pm.expect(body.length).to.be.greaterThan(0));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/cidade",
-							"host": ["{{baseUrl}}"],
-							"path": ["cidade"]
-						}
-					}
-				},
-				{
-					"name": "Buscar Cidade por ID",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"",
-									"const body = pm.response.json();",
-									"const id = pm.collectionVariables.get('cidadeId');",
-									"pm.test('ID correto', () => pm.expect(body.id).to.eql(Number(id)));",
-									"pm.test('Tem nome', () => pm.expect(body).to.have.property('nome'));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/cidade/{{cidadeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["cidade", "{{cidadeId}}"]
-						}
-					}
-				},
-				{
-					"name": "Atualizar Cidade",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Nome atualizado', () => pm.expect(body.nome).to.eql('Santos'));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \"Santos\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/cidade/{{cidadeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["cidade", "{{cidadeId}}"]
-						}
-					}
-				},
-				{
-					"name": "Deletar Cidade",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 204', () => pm.response.to.have.status(204));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"url": {
-							"raw": "{{baseUrl}}/cidade/{{cidadeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["cidade", "{{cidadeId}}"]
-						}
-					}
-				},
-				{
-					"name": "Buscar Cidade Deletada",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 404 apos deletar', () => pm.response.to.have.status(404));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/cidade/{{cidadeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["cidade", "{{cidadeId}}"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Bairro",
-			"item": [
-				{
-					"name": "Criar Bairro",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 201', () => pm.response.to.have.status(201));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
-									"pm.test('Retorna nome correto', () => pm.expect(body.nome).to.eql('Centro'));",
-									"",
-									"pm.collectionVariables.set('bairroId', body.id);"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \"Centro\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/bairro",
-							"host": ["{{baseUrl}}"],
-							"path": ["bairro"]
-						}
-					}
-				},
-				{
-					"name": "Listar Bairros",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));",
-									"pm.test('Array nao vazio', () => pm.expect(body.length).to.be.greaterThan(0));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/bairro",
-							"host": ["{{baseUrl}}"],
-							"path": ["bairro"]
-						}
-					}
-				},
-				{
-					"name": "Buscar Bairro por ID",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"",
-									"const body = pm.response.json();",
-									"const id = pm.collectionVariables.get('bairroId');",
-									"pm.test('ID correto', () => pm.expect(body.id).to.eql(Number(id)));",
-									"pm.test('Tem nome', () => pm.expect(body).to.have.property('nome'));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/bairro/{{bairroId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["bairro", "{{bairroId}}"]
-						}
-					}
-				},
-				{
-					"name": "Atualizar Bairro",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Nome atualizado', () => pm.expect(body.nome).to.eql('Jardim Europa'));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \"Jardim Europa\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/bairro/{{bairroId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["bairro", "{{bairroId}}"]
-						}
-					}
-				},
-				{
-					"name": "Deletar Bairro",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 204', () => pm.response.to.have.status(204));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"url": {
-							"raw": "{{baseUrl}}/bairro/{{bairroId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["bairro", "{{bairroId}}"]
-						}
-					}
-				},
-				{
-					"name": "Buscar Bairro Deletado",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 404 apos deletar', () => pm.response.to.have.status(404));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/bairro/{{bairroId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["bairro", "{{bairroId}}"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Rua",
-			"item": [
-				{
-					"name": "Criar Rua",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 201', () => pm.response.to.have.status(201));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
-									"pm.test('Retorna nome correto', () => pm.expect(body.nome).to.eql('Rua Augusta'));",
-									"",
-									"pm.collectionVariables.set('ruaId', body.id);"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \"Rua Augusta\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/rua",
-							"host": ["{{baseUrl}}"],
-							"path": ["rua"]
-						}
-					}
-				},
-				{
-					"name": "Listar Ruas",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));",
-									"pm.test('Array nao vazio', () => pm.expect(body.length).to.be.greaterThan(0));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/rua",
-							"host": ["{{baseUrl}}"],
-							"path": ["rua"]
-						}
-					}
-				},
-				{
-					"name": "Buscar Rua por ID",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"",
-									"const body = pm.response.json();",
-									"const id = pm.collectionVariables.get('ruaId');",
-									"pm.test('ID correto', () => pm.expect(body.id).to.eql(Number(id)));",
-									"pm.test('Tem nome', () => pm.expect(body).to.have.property('nome'));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/rua/{{ruaId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["rua", "{{ruaId}}"]
-						}
-					}
-				},
-				{
-					"name": "Atualizar Rua",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Nome atualizado', () => pm.expect(body.nome).to.eql('Avenida Paulista'));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nome\": \"Avenida Paulista\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/rua/{{ruaId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["rua", "{{ruaId}}"]
-						}
-					}
-				},
-				{
-					"name": "Deletar Rua",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 204', () => pm.response.to.have.status(204));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"url": {
-							"raw": "{{baseUrl}}/rua/{{ruaId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["rua", "{{ruaId}}"]
-						}
-					}
-				},
-				{
-					"name": "Buscar Rua Deletada",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 404 apos deletar', () => pm.response.to.have.status(404));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/rua/{{ruaId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["rua", "{{ruaId}}"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Endereco",
-			"item": [
-				{
-					"name": "Criar Endereco",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 201', () => pm.response.to.have.status(201));",
-									"",
-									"const body = pm.response.json();",
-									"pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
-									"pm.test('Retorna cep formatado', () => pm.expect(body.cep).to.match(/^\\d{5}-\\d{3}$/));",
-									"pm.test('Retorna estado com uf', () => pm.expect(body.estado.uf).to.eql('SP'));",
-									"pm.test('Retorna rua', () => pm.expect(body.rua.nome).to.be.a('string'));",
-									"",
-									"pm.collectionVariables.set('enderecoId', body.id);"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"cep\": \"15777362\",\n  \"numero\": \"100\",\n  \"usuarioId\": {{usuarioId}}\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/endereco",
-							"host": ["{{baseUrl}}"],
-							"path": ["endereco"]
-						}
-					}
-				},
-				{
-					"name": "Criar Endereco - Usuario Ja Possui",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 400', () => pm.response.to.have.status(400));",
-									"const body = pm.response.json();",
-									"pm.test('Mensagem de erro', () => pm.expect(body.error).to.include('endereco'));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"cep\": \"15777362\",\n  \"numero\": \"200\",\n  \"usuarioId\": {{usuarioId}}\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/endereco",
-							"host": ["{{baseUrl}}"],
-							"path": ["endereco"]
-						}
-					}
-				},
-				{
-					"name": "Buscar Endereco por Usuario",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"const body = pm.response.json();",
-									"pm.test('Retorna usuarioId correto', () => pm.expect(body.usuarioId).to.eql(Number(pm.collectionVariables.get('usuarioId'))));",
-									"pm.test('Retorna cidade', () => pm.expect(body.cidade).to.have.property('nome'));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/endereco/usuario/{{usuarioId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["endereco", "usuario", "{{usuarioId}}"]
-						}
-					}
-				},
-				{
-					"name": "Atualizar Endereco",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 200', () => pm.response.to.have.status(200));",
-									"const body = pm.response.json();",
-									"pm.test('Numero atualizado', () => pm.expect(body.numero).to.eql('250'));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"numero\": \"250\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/endereco/{{enderecoId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["endereco", "{{enderecoId}}"]
-						}
-					}
-				},
-				{
-					"name": "Deletar Endereco",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 204', () => pm.response.to.have.status(204));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"url": {
-							"raw": "{{baseUrl}}/endereco/{{enderecoId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["endereco", "{{enderecoId}}"]
-						}
-					}
-				},
-				{
-					"name": "Buscar Endereco Deletado",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status 404 apos deletar', () => pm.response.to.have.status(404));"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/endereco/usuario/{{usuarioId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["endereco", "usuario", "{{usuarioId}}"]
-						}
-					}
-				}
-			]
-		}
-	]
+  "info": {
+    "name": "TCC-API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "usuarioId",
+      "value": ""
+    },
+    {
+      "key": "enderecoId",
+      "value": ""
+    },
+    {
+      "key": "sexoId",
+      "value": ""
+    },
+    {
+      "key": "usuarioEmail",
+      "value": ""
+    },
+    {
+      "key": "usuarioSenha",
+      "value": "123456"
+    },
+    {
+      "key": "associacaoId",
+      "value": ""
+    },
+    {
+      "key": "lojistaId",
+      "value": ""
+    },
+    {
+      "key": "consumidorId",
+      "value": ""
+    },
+    {
+      "key": "usuarioAssociacaoId",
+      "value": ""
+    },
+    {
+      "key": "usuarioLojistaId",
+      "value": ""
+    },
+    {
+      "key": "usuarioConsumidorId",
+      "value": ""
+    },
+    {
+      "key": "tokenAssociacao",
+      "value": ""
+    },
+    {
+      "key": "tokenLojista",
+      "value": ""
+    },
+    {
+      "key": "tokenConsumidor",
+      "value": ""
+    },
+    {
+      "key": "emailAssociacao",
+      "value": ""
+    },
+    {
+      "key": "emailLojista",
+      "value": ""
+    },
+    {
+      "key": "emailConsumidor",
+      "value": ""
+    },
+    {
+      "key": "produtoId",
+      "value": ""
+    },
+    {
+      "key": "promocaoId",
+      "value": ""
+    },
+    {
+      "key": "eventoId",
+      "value": ""
+    },
+    {
+      "key": "missaoId",
+      "value": ""
+    },
+    {
+      "key": "campanhaId",
+      "value": ""
+    },
+    {
+      "key": "sorteioId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Cadastro",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const email = `auth.${Date.now()}@email.com`;",
+                  "pm.collectionVariables.set('usuarioEmail', email);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
+                  "pm.test('Retorna email correto', () => pm.expect(body.email).to.eql(pm.collectionVariables.get('usuarioEmail')));",
+                  "pm.test('Retorna role correto', () => pm.expect(body.role).to.eql('CONSUMIDOR'));",
+                  "pm.test('Nao retorna senha', () => pm.expect(body.senha).to.be.undefined);",
+                  "",
+                  "pm.collectionVariables.set('usuarioId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Auth\",\n  \"email\": \"{{usuarioEmail}}\",\n  \"senha\": \"{{usuarioSenha}}\",\n  \"role\": \"CONSUMIDOR\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/cadastro",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "cadastro"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login ok",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Retorna token', () => pm.expect(body.token).to.be.a('string').and.not.empty);",
+                  "pm.test('Retorna usuario sem senha', () => {",
+                  "    pm.expect(body.usuario).to.be.an('object');",
+                  "    pm.expect(body.usuario.senha).to.be.undefined;",
+                  "    pm.expect(body.usuario.email).to.eql(pm.collectionVariables.get('usuarioEmail'));",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set('token', body.token);",
+                  "pm.collectionVariables.set('usuarioId', body.usuario.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{usuarioEmail}}\",\n  \"senha\": \"{{usuarioSenha}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login senha errada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Mensagem de credenciais', () => pm.expect(body.error).to.include('Credenciais'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{usuarioEmail}}\",\n  \"senha\": \"senha-errada\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login com token - Listar Usuarios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 com Bearer', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuario",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuario",
+      "item": [
+        {
+          "name": "Criar Usuario",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const email = `joao.${Date.now()}@email.com`;",
+                  "pm.collectionVariables.set('usuarioEmail', email);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
+                  "pm.test('Retorna nome correto', () => pm.expect(body.nome).to.eql('João Silva'));",
+                  "pm.test('Retorna email correto', () => pm.expect(body.email).to.eql(pm.collectionVariables.get('usuarioEmail')));",
+                  "pm.test('Retorna role correto', () => pm.expect(body.role).to.eql('CONSUMIDOR'));",
+                  "pm.test('Retorna ativo true', () => pm.expect(body.ativo).to.be.true);",
+                  "pm.test('Nao retorna senha', () => pm.expect(body.senha).to.be.undefined);",
+                  "pm.test('Retorna createdAt', () => pm.expect(body.createdAt).to.be.a('string'));",
+                  "pm.test('Retorna updatedAt', () => pm.expect(body.updatedAt).to.be.a('string'));",
+                  "",
+                  "pm.collectionVariables.set('usuarioId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Silva\",\n  \"email\": \"{{usuarioEmail}}\",\n  \"senha\": \"{{usuarioSenha}}\",\n  \"role\": \"CONSUMIDOR\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/usuario",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Criar Usuario - Email Duplicado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400 email duplicado', () => pm.response.to.have.status(400));",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna mensagem de erro', () => pm.expect(body.error).to.include('Email'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Outro Nome\",\n  \"email\": \"{{usuarioEmail}}\",\n  \"senha\": \"654321\",\n  \"role\": \"LOJISTA\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/usuario",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Criar Usuario - Role Invalida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400 role invalida', () => pm.response.to.have.status(400));",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna mensagem de erro', () => pm.expect(body.error).to.include('Role'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Maria\",\n  \"email\": \"maria@email.com\",\n  \"senha\": \"123456\",\n  \"role\": \"INVALIDA\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/usuario",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login apos Criar Usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna token', () => pm.expect(body.token).to.be.a('string'));",
+                  "pm.collectionVariables.set('token', body.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{usuarioEmail}}\",\n  \"senha\": \"{{usuarioSenha}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar Usuarios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('Array nao vazio', () => pm.expect(body.length).to.be.greaterThan(0));",
+                  "pm.test('Nenhum item contem senha', () => body.forEach(u => pm.expect(u.senha).to.be.undefined));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuario",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar Usuarios - Sem Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "const body = pm.response.json();",
+                  "pm.test('Mensagem de token', () => pm.expect(body.error).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/usuario",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Usuario por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "const id = pm.collectionVariables.get('usuarioId');",
+                  "pm.test('ID correto', () => pm.expect(body.id).to.eql(Number(id)));",
+                  "pm.test('Tem campos obrigatorios', () => {",
+                  "    pm.expect(body).to.have.property('nome');",
+                  "    pm.expect(body).to.have.property('email');",
+                  "    pm.expect(body).to.have.property('role');",
+                  "    pm.expect(body).to.have.property('ativo');",
+                  "});",
+                  "pm.test('Nao retorna senha', () => pm.expect(body.senha).to.be.undefined);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuario/{{usuarioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario",
+                "{{usuarioId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Usuario - ID Inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna mensagem de erro', () => pm.expect(body.error).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuario/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario",
+                "999999"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Usuario - ID Invalido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna mensagem de erro', () => pm.expect(body.error).to.include('ID'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuario/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario",
+                "abc"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Atualizar Usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Nome atualizado', () => pm.expect(body.nome).to.eql('João Silva Atualizado'));",
+                  "pm.test('Email atualizado', () => pm.expect(body.email).to.eql('joao.novo@email.com'));",
+                  "pm.test('Nao retorna senha', () => pm.expect(body.senha).to.be.undefined);",
+                  "",
+                  "pm.collectionVariables.set('usuarioEmail', body.email);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Silva Atualizado\",\n  \"email\": \"joao.novo@email.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/usuario/{{usuarioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario",
+                "{{usuarioId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Endereco",
+      "item": [
+        {
+          "name": "Criar Endereco",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
+                  "pm.test('Retorna cep formatado', () => pm.expect(body.cep).to.match(/^\\d{5}-\\d{3}$/));",
+                  "pm.test('Retorna estado com uf', () => pm.expect(body.estado.uf).to.eql('SP'));",
+                  "pm.test('Retorna rua', () => pm.expect(body.rua.nome).to.be.a('string'));",
+                  "",
+                  "pm.collectionVariables.set('enderecoId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cep\": \"15777362\",\n  \"numero\": \"100\",\n  \"usuarioId\": {{usuarioId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/endereco",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "endereco"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Criar Endereco - Usuario Ja Possui",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test('Mensagem de erro', () => pm.expect(body.error).to.include('endereco'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cep\": \"15777362\",\n  \"numero\": \"200\",\n  \"usuarioId\": {{usuarioId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/endereco",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "endereco"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Endereco por Usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna usuarioId correto', () => pm.expect(body.usuarioId).to.eql(Number(pm.collectionVariables.get('usuarioId'))));",
+                  "pm.test('Retorna cidade', () => pm.expect(body.cidade).to.have.property('nome'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/endereco/usuario/{{usuarioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "endereco",
+                "usuario",
+                "{{usuarioId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Atualizar Endereco",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Numero atualizado', () => pm.expect(body.numero).to.eql('250'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numero\": \"250\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/endereco/{{enderecoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "endereco",
+                "{{enderecoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Deletar Endereco",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/endereco/{{enderecoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "endereco",
+                "{{enderecoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Endereco Deletado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404 apos deletar', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/endereco/usuario/{{usuarioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "endereco",
+                "usuario",
+                "{{usuarioId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sexo",
+      "item": [
+        {
+          "name": "Criar Sexo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
+                  "pm.test('Retorna nome', () => pm.expect(body.nome).to.eql('Feminino'));",
+                  "pm.test('Retorna dataCriacao', () => pm.expect(body.dataCriacao).to.be.a('string'));",
+                  "pm.test('Retorna dataAtualizacao', () => pm.expect(body.dataAtualizacao).to.be.a('string'));",
+                  "",
+                  "pm.collectionVariables.set('sexoId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Feminino\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sexo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sexo"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Criar Sexo - Nome Vazio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test('Mensagem de erro', () => pm.expect(body.error).to.include('Nome'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sexo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sexo"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar Sexos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('Contem item criado', () => pm.expect(body.some(s => s.id === Number(pm.collectionVariables.get('sexoId')))).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sexo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sexo"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar Sexos - Sem Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sexo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sexo"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Sexo por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Id correto', () => pm.expect(body.id).to.eql(Number(pm.collectionVariables.get('sexoId'))));",
+                  "pm.test('Nome correto', () => pm.expect(body.nome).to.eql('Feminino'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sexo/{{sexoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sexo",
+                "{{sexoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Sexo - ID Inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sexo/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sexo",
+                "999999"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Atualizar Sexo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Nome atualizado', () => pm.expect(body.nome).to.eql('Masculino'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Masculino\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sexo/{{sexoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sexo",
+                "{{sexoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Deletar Sexo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sexo/{{sexoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sexo",
+                "{{sexoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Sexo Deletado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404 apos deletar', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sexo/{{sexoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sexo",
+                "{{sexoId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Associacao",
+      "item": [
+        {
+          "name": "Criar Associacao",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/associacao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "associacao"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeFantasia\": \"Assoc Comercio Local\",\n  \"razaoSocial\": \"Assoc Comercio Local LTDA\",\n  \"cnpj\": \"11.111.111/0001-11\",\n  \"inscricaoEstadual\": 123\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
+                  "pm.test('Status campos', () => {",
+                  "  pm.expect(body.nomeFantasia).to.be.a('string');",
+                  "  pm.expect(body.cnpj).to.be.a('string');",
+                  "  pm.expect(body.usuarioId).to.eql(Number(pm.collectionVariables.get('usuarioAssociacaoId')));",
+                  "});",
+                  "pm.collectionVariables.set('associacaoId', body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar Associacoes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/associacao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "associacao"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar Associacao por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/associacao/{{associacaoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "associacao",
+                "{{associacaoId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Id correto', () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get('associacaoId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Atualizar Associacao",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/associacao/{{associacaoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "associacao",
+                "{{associacaoId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeFantasia\": \"Assoc Comercio Atualizada\",\n  \"razaoSocial\": \"Assoc Comercio Local LTDA\",\n  \"cnpj\": \"11.111.111/0001-11\",\n  \"inscricaoEstadual\": 456\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Nome atualizado', () => pm.expect(pm.response.json().nomeFantasia).to.eql('Assoc Comercio Atualizada'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deletar Associacao",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/associacao/{{associacaoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "associacao",
+                "{{associacaoId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Lojista",
+      "item": [
+        {
+          "name": "Criar Lojista",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeFantasia\": \"Loja Exemplo\",\n  \"razaoSocial\": \"Loja Exemplo LTDA\",\n  \"cnpj\": \"22.222.222/0001-22\",\n  \"associacaoId\": {{associacaoId}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Status PENDENTE', () => pm.expect(body.status).to.eql('PENDENTE'));",
+                  "pm.test('associacaoId', () => pm.expect(body.associacaoId).to.eql(Number(pm.collectionVariables.get('associacaoId'))));",
+                  "pm.collectionVariables.set('lojistaId', body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar Lojistas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar Lojistas PENDENTE",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista?status=PENDENTE",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDENTE"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Todos PENDENTE', () => pm.expect(body.every(l => l.status === 'PENDENTE')).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar Lojista por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista/{{lojistaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista",
+                "{{lojistaId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Id correto', () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get('lojistaId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Atualizar Lojista",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista/{{lojistaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista",
+                "{{lojistaId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeFantasia\": \"Loja Exemplo Atualizada\",\n  \"razaoSocial\": \"Loja Exemplo LTDA\",\n  \"cnpj\": \"22.222.222/0001-22\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Nome atualizado', () => pm.expect(pm.response.json().nomeFantasia).to.eql('Loja Exemplo Atualizada'));",
+                  "pm.test('Status inalterado', () => pm.expect(pm.response.json().status).to.eql('PENDENTE'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Aprovar Lojista",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista/{{lojistaId}}/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista",
+                "{{lojistaId}}",
+                "aprovar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status APROVADO', () => pm.expect(pm.response.json().status).to.eql('APROVADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rejeitar Lojista",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista/{{lojistaId}}/rejeitar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista",
+                "{{lojistaId}}",
+                "rejeitar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status REJEITADO', () => pm.expect(pm.response.json().status).to.eql('REJEITADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deletar Lojista",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista/{{lojistaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista",
+                "{{lojistaId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Consumidor",
+      "item": [
+        {
+          "name": "Criar Consumidor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/consumidor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "consumidor"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cpf\": \"123.456.789-00\",\n  \"sexoId\": {{sexoId}},\n  \"lojistaId\": {{lojistaId}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('pontos default', () => pm.expect(body.pontos).to.eql(0));",
+                  "pm.test('nivel default', () => pm.expect(body.nivel).to.eql(1));",
+                  "pm.test('cpf', () => pm.expect(body.cpf).to.eql('123.456.789-00'));",
+                  "pm.collectionVariables.set('consumidorId', body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar Consumidor sem endereco",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/consumidor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "consumidor"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cpf\": \"999.999.999-99\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Mensagem endereco', () => pm.expect(pm.response.json().error).to.include('endereco'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar Consumidores",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/consumidor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "consumidor"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar Consumidor por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/consumidor/{{consumidorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "consumidor",
+                "{{consumidorId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Id correto', () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get('consumidorId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Atualizar Consumidor",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/consumidor/{{consumidorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "consumidor",
+                "{{consumidorId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cpf\": \"123.456.789-01\",\n  \"sexoId\": {{sexoId}},\n  \"lojistaId\": null\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('CPF atualizado', () => pm.expect(pm.response.json().cpf).to.eql('123.456.789-01'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deletar Consumidor",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/consumidor/{{consumidorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "consumidor",
+                "{{consumidorId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Fluxo Feliz Perfis",
+      "item": [
+        {
+          "name": "1 Cadastro Usuario ASSOCIACAO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/cadastro",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "cadastro"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"User Associacao\",\n  \"email\": \"{{emailAssociacao}}\",\n  \"senha\": \"{{usuarioSenha}}\",\n  \"role\": \"ASSOCIACAO\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const email = `assoc.${Date.now()}@email.com`;",
+                  "pm.collectionVariables.set('emailAssociacao', email);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('usuarioAssociacaoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2 Login ASSOCIACAO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailAssociacao}}\",\n  \"senha\": \"{{usuarioSenha}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('tokenAssociacao', body.token);",
+                  "pm.collectionVariables.set('token', body.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3 Criar Associacao (fluxo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/associacao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "associacao"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeFantasia\": \"Assoc Fluxo\",\n  \"razaoSocial\": \"Assoc Fluxo LTDA\",\n  \"cnpj\": \"{{$timestamp}}.00/0001-00\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('associacaoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4 Cadastro Usuario LOJISTA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/cadastro",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "cadastro"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"User Lojista\",\n  \"email\": \"{{emailLojista}}\",\n  \"senha\": \"{{usuarioSenha}}\",\n  \"role\": \"LOJISTA\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const email = `lojista.${Date.now()}@email.com`;",
+                  "pm.collectionVariables.set('emailLojista', email);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('usuarioLojistaId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5 Login LOJISTA (fluxo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailLojista}}\",\n  \"senha\": \"{{usuarioSenha}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('tokenLojista', body.token);",
+                  "pm.collectionVariables.set('token', body.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6 Criar Lojista (fluxo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeFantasia\": \"Loja Fluxo\",\n  \"razaoSocial\": \"Loja Fluxo LTDA\",\n  \"cnpj\": \"{{$timestamp}}.11/0001-11\",\n  \"associacaoId\": {{associacaoId}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('PENDENTE', () => pm.expect(pm.response.json().status).to.eql('PENDENTE'));",
+                  "pm.collectionVariables.set('lojistaId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7 Aprovar Lojista (fluxo)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista/{{lojistaId}}/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista",
+                "{{lojistaId}}",
+                "aprovar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('APROVADO', () => pm.expect(pm.response.json().status).to.eql('APROVADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8 Cadastro Usuario CONSUMIDOR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/cadastro",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "cadastro"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"User Consumidor\",\n  \"email\": \"{{emailConsumidor}}\",\n  \"senha\": \"{{usuarioSenha}}\",\n  \"role\": \"CONSUMIDOR\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const email = `cons.${Date.now()}@email.com`;",
+                  "pm.collectionVariables.set('emailConsumidor', email);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('usuarioConsumidorId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "9 Login CONSUMIDOR (fluxo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailConsumidor}}\",\n  \"senha\": \"{{usuarioSenha}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('tokenConsumidor', body.token);",
+                  "pm.collectionVariables.set('token', body.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 Criar Endereco Consumidor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/endereco",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "endereco"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cep\": \"01310-100\",\n  \"numero\": \"100\",\n  \"usuarioId\": {{usuarioConsumidorId}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 Criar Sexo (fluxo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sexo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sexo"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Feminino Fluxo\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('sexoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12 Criar Consumidor (fluxo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/consumidor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "consumidor"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cpf\": \"{{$timestamp}}\",\n  \"sexoId\": {{sexoId}},\n  \"lojistaId\": {{lojistaId}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('defaults', () => { pm.expect(body.pontos).to.eql(0); pm.expect(body.nivel).to.eql(1); });",
+                  "pm.collectionVariables.set('consumidorId', body.id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cleanup",
+      "item": [
+        {
+          "name": "Deletar Usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuario/{{usuarioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario",
+                "{{usuarioId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Usuario Deletado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404 apos deletar', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuario/{{usuarioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario",
+                "{{usuarioId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Produto",
+      "item": [
+        {
+          "name": "Criar Produto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
+                  "pm.test('valor number', () => pm.expect(body.valor).to.be.a('number'));",
+                  "pm.test('lojistaId', () => pm.expect(body.lojistaId).to.be.a('number'));",
+                  "pm.collectionVariables.set('produtoId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/produto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "produto"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Cafe Especial\",\n  \"valor\": 29.9,\n  \"categoriaId\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar Produtos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Array', () => pm.expect(body).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/produto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "produto"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Produto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Id', () => pm.expect(body.id).to.eql(Number(pm.collectionVariables.get('produtoId'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/produto/{{produtoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "produto",
+                "{{produtoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Atualizar Produto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Nome', () => pm.expect(body.nome).to.eql('Cafe Especial Premium'));",
+                  "pm.test('valor number', () => pm.expect(body.valor).to.eql(34.5));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/produto/{{produtoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "produto",
+                "{{produtoId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Cafe Especial Premium\",\n  \"valor\": 34.5\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar Produtos - Sem Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/produto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "produto"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Deletar Produto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/produto/{{produtoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "produto",
+                "{{produtoId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Promocao",
+      "item": [
+        {
+          "name": "Prep - Criar Produto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('produtoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/produto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "produto"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Produto Promo\",\n  \"valor\": 50\n}"
+            }
+          }
+        },
+        {
+          "name": "Criar Promocao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('preco number', () => pm.expect(body.preco).to.be.a('number'));",
+                  "pm.collectionVariables.set('promocaoId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/promocao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "promocao"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descricao\": \"10% off\",\n  \"preco\": 45,\n  \"produtoId\": {{produtoId}}\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar Promocoes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/promocao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "promocao"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Promocao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/promocao/{{promocaoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "promocao",
+                "{{promocaoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Atualizar Promocao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('preco', () => pm.expect(pm.response.json().preco).to.eql(40));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/promocao/{{promocaoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "promocao",
+                "{{promocaoId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"preco\": 40,\n  \"descricao\": \"20% off\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Deletar Promocao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/promocao/{{promocaoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "promocao",
+                "{{promocaoId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Evento",
+      "item": [
+        {
+          "name": "Criar Evento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('lojistaId', () => pm.expect(body.lojistaId).to.be.a('number'));",
+                  "pm.collectionVariables.set('eventoId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/evento",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "evento"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Feira Local\",\n  \"descricao\": \"Sabado na praca\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar Eventos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/evento",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "evento"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Evento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/evento/{{eventoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "evento",
+                "{{eventoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Atualizar Evento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Nome', () => pm.expect(pm.response.json().nome).to.eql('Feira Local Ampliada'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/evento/{{eventoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "evento",
+                "{{eventoId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Feira Local Ampliada\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Deletar Evento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/evento/{{eventoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "evento",
+                "{{eventoId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Missao",
+      "item": [
+        {
+          "name": "Criar Missao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('pontos', () => pm.expect(body.pontoRecompensa).to.eql(100));",
+                  "pm.collectionVariables.set('missaoId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/missao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "missao"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Compre 3 vezes\",\n  \"descricao\": \"Fidelidade\",\n  \"pontoRecompensa\": 100\n}"
+            }
+          }
+        },
+        {
+          "name": "Criar Missao - ponto default 0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('default 0', () => pm.expect(pm.response.json().pontoRecompensa).to.eql(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/missao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "missao"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Missao Default\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar Missoes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/missao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "missao"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Missao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/missao/{{missaoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "missao",
+                "{{missaoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Atualizar Missao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('pontos', () => pm.expect(pm.response.json().pontoRecompensa).to.eql(150));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/missao/{{missaoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "missao",
+                "{{missaoId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pontoRecompensa\": 150\n}"
+            }
+          }
+        },
+        {
+          "name": "Deletar Missao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/missao/{{missaoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "missao",
+                "{{missaoId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Campanha",
+      "item": [
+        {
+          "name": "Criar Campanha",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
+                  "pm.test('associacaoId', () => pm.expect(body.associacaoId).to.be.a('number'));",
+                  "pm.collectionVariables.set('campanhaId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/campanha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "campanha"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Campanha Natal\",\n  \"descricao\": \"Campanha de fim de ano\",\n  \"qrcode\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar Campanhas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/campanha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "campanha"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Campanha",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Id', () => pm.expect(body.id).to.eql(Number(pm.collectionVariables.get('campanhaId'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/campanha/{{campanhaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "campanha",
+                "{{campanhaId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Atualizar Campanha",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Nome', () => pm.expect(pm.response.json().nome).to.eql('Campanha Natal Premium'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/campanha/{{campanhaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "campanha",
+                "{{campanhaId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Campanha Natal Premium\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar Campanhas - Sem Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/campanha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "campanha"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Deletar Campanha",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/campanha/{{campanhaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "campanha",
+                "{{campanhaId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sorteio",
+      "item": [
+        {
+          "name": "Prep - Criar Campanha",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('campanhaId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/campanha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "campanha"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Campanha Sorteio\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Criar Sorteio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
+                  "pm.test('campanhaId', () => pm.expect(body.campanhaId).to.be.a('number'));",
+                  "pm.collectionVariables.set('sorteioId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sorteio",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sorteio"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campanhaId\": {{campanhaId}},\n  \"qrcode\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar Sorteios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sorteio",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sorteio"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Sorteio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Id', () => pm.expect(body.id).to.eql(Number(pm.collectionVariables.get('sorteioId'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sorteio/{{sorteioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sorteio",
+                "{{sorteioId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Atualizar Sorteio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('qrcode', () => pm.expect(pm.response.json().qrcode).to.eql('QR-SORTEIO-1'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sorteio/{{sorteioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sorteio",
+                "{{sorteioId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qrcode\": \"QR-SORTEIO-1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar Sorteios - Sem Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sorteio",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sorteio"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Deletar Sorteio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sorteio/{{sorteioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sorteio",
+                "{{sorteioId}}"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
 }
