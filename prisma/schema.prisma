@@ -25,7 +25,10 @@ model Usuario {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  endereco Endereco?
+  endereco   Endereco?
+  associacao Associacao?
+  lojista    Lojista?
+  consumidor Consumidor?
 
   @@map("usuario")
 }
@@ -112,4 +115,190 @@ model Bairro {
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
   @@map("bairro")
+}
+
+model Sexo {
+  id              Int      @id @default(autoincrement()) @map("id_sexo")
+  nome            String   @map("nome_sexo") @db.VarChar(100)
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  consumidores Consumidor[]
+
+  @@map("sexo")
+}
+
+enum StatusLojista {
+  PENDENTE
+  APROVADO
+  REJEITADO
+
+  @@map("StatusLojista")
+}
+
+model Associacao {
+  id                 Int     @id @default(autoincrement()) @map("id_associacao")
+  nomeFantasia       String  @map("nome_fantasia_associacao") @db.VarChar(255)
+  razaoSocial        String  @map("razao_social_associacao") @db.VarChar(255)
+  cnpj               String  @unique @map("cnpj_associacao") @db.VarChar(18)
+  inscricaoEstadual  Int?    @map("inscricao_estadual_associacao")
+
+  usuarioId Int     @unique @map("id_usuario")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  lojistas  Lojista[]
+  campanhas Campanha[]
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  @@map("associacao")
+}
+
+model Lojista {
+  id                Int           @id @default(autoincrement()) @map("id_lojista")
+  nomeFantasia      String        @map("nome_fantasia_lojista") @db.VarChar(255)
+  razaoSocial       String        @map("razao_social_lojista") @db.VarChar(255)
+  cnpj              String        @unique @map("cnpj_lojista") @db.VarChar(18)
+  inscricaoEstadual Int?          @map("inscricao_estadual_lojista")
+  status            StatusLojista @default(PENDENTE) @map("status")
+
+  usuarioId Int     @unique @map("id_usuario")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  associacaoId Int        @map("id_associacao")
+  associacao   Associacao @relation(fields: [associacaoId], references: [id])
+
+  consumidores Consumidor[]
+  produtos     Produto[]
+  eventos      Evento[]
+  missoes      Missao[]
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  @@index([associacaoId])
+  @@index([status])
+  @@map("lojista")
+}
+
+model Consumidor {
+  id     Int @id @default(autoincrement()) @map("id_consumidor")
+  cpf    String @unique @map("cpf_consumidor") @db.VarChar(14)
+  pontos Int    @default(0) @map("pontos_consumidor")
+  nivel  Int    @default(1) @map("nivel_consumidor")
+
+  sexoId Int?   @map("id_sexo")
+  sexo   Sexo?  @relation(fields: [sexoId], references: [id])
+
+  lojistaId Int?     @map("id_lojista")
+  lojista   Lojista? @relation(fields: [lojistaId], references: [id])
+
+  usuarioId Int     @unique @map("id_usuario")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  @@index([sexoId])
+  @@index([lojistaId])
+  @@map("consumidor")
+}
+
+model Produto {
+  id     Int     @id @default(autoincrement()) @map("id_produto")
+  nome   String  @map("nome_produto") @db.VarChar(255)
+  valor  Decimal @map("valor_produto") @db.Decimal(10, 2)
+
+  /// Sem FK no SQL (`categoria_fk`) — Integer opcional até existir tabela Categoria
+  categoriaId Int? @map("categoria_fk")
+
+  lojistaId Int     @map("id_lojista")
+  lojista   Lojista @relation(fields: [lojistaId], references: [id])
+
+  promocoes Promocao[]
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  @@index([lojistaId])
+  @@map("produto")
+}
+
+model Promocao {
+  id        Int      @id @default(autoincrement()) @map("id_promocao")
+  descricao String?  @map("descricao_promocao") @db.VarChar(500)
+  preco     Decimal  @map("preco_promocao") @db.Decimal(10, 2)
+
+  produtoId Int     @map("id_produto")
+  produto   Produto @relation(fields: [produtoId], references: [id])
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  @@index([produtoId])
+  @@map("promocao")
+}
+
+model Evento {
+  id        Int     @id @default(autoincrement()) @map("id_evento")
+  nome      String  @map("nome_evento") @db.VarChar(255)
+  descricao String? @map("descricao_evento") @db.VarChar(500)
+
+  lojistaId Int     @map("id_lojista")
+  lojista   Lojista @relation(fields: [lojistaId], references: [id])
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  @@index([lojistaId])
+  @@map("evento")
+}
+
+model Missao {
+  id              Int     @id @default(autoincrement()) @map("id_missao")
+  nome            String  @map("nome_missao") @db.VarChar(255)
+  descricao       String? @map("descricao_missao") @db.VarChar(500)
+  pontoRecompensa Int     @default(0) @map("ponto_recompensa_missao")
+
+  lojistaId Int     @map("id_lojista")
+  lojista   Lojista @relation(fields: [lojistaId], references: [id])
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  @@index([lojistaId])
+  @@map("missao")
+}
+
+model Campanha {
+  id        Int     @id @default(autoincrement()) @map("id_campanha")
+  nome      String  @map("nome_campanha") @db.VarChar(255)
+  descricao String? @map("descricao_campanha") @db.VarChar(500)
+  qrcode    String? @map("qrcode_campanha") @db.VarChar(500)
+
+  associacaoId Int        @map("id_associacao")
+  associacao   Associacao @relation(fields: [associacaoId], references: [id])
+
+  sorteios Sorteio[]
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  @@index([associacaoId])
+  @@map("campanha")
+}
+
+model Sorteio {
+  id     Int     @id @default(autoincrement()) @map("id_sorteio")
+  qrcode String? @map("qrcode_sorteio") @db.VarChar(500)
+
+  campanhaId Int      @map("id_campanha")
+  campanha   Campanha @relation(fields: [campanhaId], references: [id])
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  @@index([campanhaId])
+  @@map("sorteio")
 }
