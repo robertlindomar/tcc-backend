@@ -1,0 +1,201 @@
+import { StatusLojista } from "../../../generated/prisma/enums";
+import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { Role } from "../../auth/enum/Role";
+import { RepositorioEndereco } from "../../endereco/repository/RepositorioEndereco";
+import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista";
+import { RepositorioSexo } from "../../sexo/repository/RepositorioSexo";
+import { RepositorioUsuario } from "../../usuario/repository/RepositorioUsuario";
+import { DTOAtualizarConsumidor } from "../dto/DTOAtualizarConsumidor";
+import { DTOCriarConsumidor } from "../dto/DTOCriarConsumidor";
+import { RespostaConsumidor } from "../dtos/RespostaConsumidor";
+import { Consumidor } from "../model/Consumidor";
+import { RepositorioConsumidor } from "../repository/RepositorioConsumidor";
+
+export class ServicoConsumidor {
+    constructor(
+        private readonly repositorioConsumidor: RepositorioConsumidor,
+        private readonly repositorioUsuario: RepositorioUsuario,
+        private readonly repositorioEndereco: RepositorioEndereco,
+        private readonly repositorioSexo: RepositorioSexo,
+        private readonly repositorioLojista: RepositorioLojista,
+    ) {}
+
+    async criar(
+        usuarioId: number,
+        request: DTOCriarConsumidor,
+    ): Promise<RespostaConsumidor> {
+        const cpf = this.validarCpf(request.cpf);
+        const sexoId = await this.validarSexoOpcional(request.sexoId);
+        const lojistaId = await this.validarLojistaOpcional(request.lojistaId);
+
+        const usuario = await this.repositorioUsuario.buscar(usuarioId);
+        if (!usuario) {
+            throw new ErroAplicacao("Usuario nao encontrado", 404);
+        }
+        if (usuario.role !== Role.CONSUMIDOR) {
+            throw new ErroAplicacao("Usuario deve ter role CONSUMIDOR", 400);
+        }
+
+        const endereco = await this.repositorioEndereco.buscarPorUsuarioId(usuarioId);
+        if (!endereco) {
+            throw new ErroAplicacao("Usuario deve ter endereco", 400);
+        }
+
+        const perfilExistente = await this.repositorioConsumidor.buscarPorUsuarioId(usuarioId);
+        if (perfilExistente) {
+            throw new ErroAplicacao("Usuario ja possui perfil de consumidor", 400);
+        }
+
+        const cpfExistente = await this.repositorioConsumidor.buscarPorCpf(cpf);
+        if (cpfExistente) {
+            throw new ErroAplicacao("CPF ja cadastrado", 400);
+        }
+
+        const criado = await this.repositorioConsumidor.criar({
+            cpf,
+            usuarioId,
+            sexoId,
+            lojistaId,
+        });
+
+        return this.paraResposta(criado);
+    }
+
+    async listar(): Promise<RespostaConsumidor[]> {
+        const lista = await this.repositorioConsumidor.listar();
+        return lista.map((item) => this.paraResposta(item));
+    }
+
+    async buscar(idParam: string): Promise<RespostaConsumidor> {
+        const id = this.parseId(idParam);
+        const consumidor = await this.repositorioConsumidor.buscar(id);
+
+        if (!consumidor) {
+            throw new ErroAplicacao("Consumidor nao encontrado", 404);
+        }
+
+        return this.paraResposta(consumidor);
+    }
+
+    async atualizar(
+        idParam: string,
+        usuarioLogadoId: number,
+        request: DTOAtualizarConsumidor,
+    ): Promise<RespostaConsumidor> {
+        const id = this.parseId(idParam);
+        const existente = await this.repositorioConsumidor.buscar(id);
+
+        if (!existente) {
+            throw new ErroAplicacao("Consumidor nao encontrado", 404);
+        }
+
+        this.garantirDono(existente.usuarioId, usuarioLogadoId);
+
+        const cpf = this.validarCpf(request.cpf);
+        const sexoId = await this.validarSexoOpcional(request.sexoId);
+        const lojistaId = await this.validarLojistaOpcional(request.lojistaId);
+
+        if (cpf !== existente.cpf) {
+            const cpfExistente = await this.repositorioConsumidor.buscarPorCpf(cpf);
+            if (cpfExistente) {
+                throw new ErroAplicacao("CPF ja cadastrado", 400);
+            }
+        }
+
+        const atualizado = await this.repositorioConsumidor.atualizar(id, {
+            cpf,
+            sexoId,
+            lojistaId,
+        });
+
+        return this.paraResposta(atualizado);
+    }
+
+    async deletar(idParam: string, usuarioLogadoId: number): Promise<void> {
+        const id = this.parseId(idParam);
+        const existente = await this.repositorioConsumidor.buscar(id);
+
+        if (!existente) {
+            throw new ErroAplicacao("Consumidor nao encontrado", 404);
+        }
+
+        this.garantirDono(existente.usuarioId, usuarioLogadoId);
+
+        await this.repositorioConsumidor.deletar(id);
+    }
+
+    private garantirDono(perfilUsuarioId: number, usuarioLogadoId: number): void {
+        if (perfilUsuarioId !== usuarioLogadoId) {
+            throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+        }
+    }
+
+    private paraResposta(consumidor: Consumidor): RespostaConsumidor {
+        return {
+            id: consumidor.id,
+            cpf: consumidor.cpf,
+            pontos: consumidor.pontos,
+            nivel: consumidor.nivel,
+            sexoId: consumidor.sexoId,
+            lojistaId: consumidor.lojistaId,
+            usuarioId: consumidor.usuarioId,
+            dataCriacao: consumidor.dataCriacao,
+            dataAtualizacao: consumidor.dataAtualizacao,
+        };
+    }
+
+    private validarCpf(valor: unknown): string {
+        if (typeof valor !== "string" || !valor.trim()) {
+            throw new ErroAplicacao("CPF e obrigatorio", 400);
+        }
+        return valor.trim();
+    }
+
+    private validarIdNumerico(valor: unknown, campo: string): number {
+        const id = typeof valor === "number" ? valor : Number(valor);
+        if (!Number.isInteger(id) || id <= 0) {
+            throw new ErroAplicacao(`${campo} invalido`, 400);
+        }
+        return id;
+    }
+
+    private async validarSexoOpcional(valor: unknown): Promise<number | null> {
+        if (valor === undefined || valor === null || valor === "") {
+            return null;
+        }
+
+        const sexoId = this.validarIdNumerico(valor, "sexoId");
+        const sexo = await this.repositorioSexo.buscar(sexoId);
+        if (!sexo) {
+            throw new ErroAplicacao("Sexo nao encontrado", 404);
+        }
+
+        return sexoId;
+    }
+
+    private async validarLojistaOpcional(valor: unknown): Promise<number | null> {
+        if (valor === undefined || valor === null || valor === "") {
+            return null;
+        }
+
+        const lojistaId = this.validarIdNumerico(valor, "lojistaId");
+        const lojista = await this.repositorioLojista.buscar(lojistaId);
+        if (!lojista) {
+            throw new ErroAplicacao("Lojista nao encontrado", 404);
+        }
+
+        if (lojista.status !== StatusLojista.APROVADO) {
+            throw new ErroAplicacao("Lojista deve estar APROVADO", 400);
+        }
+
+        return lojistaId;
+    }
+
+    private parseId(idParam: string): number {
+        const id = Number(idParam);
+        if (!Number.isInteger(id) || id <= 0) {
+            throw new ErroAplicacao("ID do consumidor invalido", 400);
+        }
+        return id;
+    }
+}
