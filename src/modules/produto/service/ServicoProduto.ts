@@ -1,5 +1,6 @@
 import { resolverLojistaAprovado } from "../../../shared/authz/resolverLojistaAprovado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { RepositorioCategoria } from "../../categoria/repository/RepositorioCategoria";
 import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista";
 import { DTOAtualizarProduto } from "../dto/DTOAtualizarProduto";
 import { DTOCriarProduto } from "../dto/DTOCriarProduto";
@@ -11,6 +12,7 @@ export class ServicoProduto {
     constructor(
         private readonly repositorioProduto: RepositorioProduto,
         private readonly repositorioLojista: RepositorioLojista,
+        private readonly repositorioCategoria: RepositorioCategoria,
     ) {}
 
     async criar(usuarioId: number, request: DTOCriarProduto): Promise<RespostaProduto> {
@@ -21,7 +23,7 @@ export class ServicoProduto {
 
         const nome = this.validarNome(request.nome);
         const valor = this.validarValor(request.valor);
-        const categoriaId = this.validarCategoriaIdOpcional(request.categoriaId);
+        const categoriaId = await this.validarCategoriaIdOpcional(request.categoriaId);
 
         const criado = await this.repositorioProduto.criar({
             nome,
@@ -75,7 +77,7 @@ export class ServicoProduto {
             dados.valor = this.validarValor(request.valor);
         }
         if (request.categoriaId !== undefined) {
-            dados.categoriaId = this.validarCategoriaIdOpcional(request.categoriaId);
+            dados.categoriaId = await this.validarCategoriaIdOpcional(request.categoriaId);
         }
 
         if (Object.keys(dados).length === 0) {
@@ -133,13 +135,17 @@ export class ServicoProduto {
         return Math.round(n * 100) / 100;
     }
 
-    private validarCategoriaIdOpcional(valor: unknown): number | null {
+    private async validarCategoriaIdOpcional(valor: unknown): Promise<number | null> {
         if (valor === undefined || valor === null || valor === "") {
             return null;
         }
         const id = typeof valor === "number" ? valor : Number(valor);
         if (!Number.isInteger(id) || id <= 0) {
             throw new ErroAplicacao("categoriaId invalido", 400);
+        }
+        const categoria = await this.repositorioCategoria.buscar(id);
+        if (!categoria) {
+            throw new ErroAplicacao("Categoria nao encontrada", 404);
         }
         return id;
     }

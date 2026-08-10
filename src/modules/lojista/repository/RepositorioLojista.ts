@@ -48,6 +48,24 @@ export class RepositorioLojista {
         }
     }
 
+    async listarPorAssociacaoId(
+        associacaoId: number,
+        status?: StatusLojista,
+    ): Promise<Lojista[]> {
+        try {
+            const lista = await this.prisma.lojista.findMany({
+                where: {
+                    associacaoId,
+                    ...(status ? { status } : {}),
+                },
+                orderBy: { id: "asc" },
+            });
+            return lista.map((item) => this.paraDominio(item));
+        } catch {
+            throw new ErroAplicacao("Erro ao listar lojistas da associacao", 500);
+        }
+    }
+
     async buscar(id: number): Promise<Lojista | null> {
         try {
             const item = await this.prisma.lojista.findUnique({ where: { id } });

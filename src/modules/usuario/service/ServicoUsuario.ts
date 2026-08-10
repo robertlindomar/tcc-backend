@@ -17,6 +17,15 @@ export class ServicoUsuario {
             throw new ErroAplicacao("Role invalida");
         }
 
+        // Cadastro público (web + mobile): não cria Associação (1 associação via seed).
+        // LOJISTA e CONSUMIDOR seguem permitidos — o app mobile usa a mesma API.
+        if (request.role === Role.ASSOCIACAO) {
+            throw new ErroAplicacao(
+                "Cadastro de associacao nao permitido pela API publica",
+                403,
+            );
+        }
+
         const existente = await this.repositorioUsuario.buscarPorEmail(request.email);
         if (existente) {
             throw new ErroAplicacao("Email ja cadastrado");

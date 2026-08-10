@@ -6,11 +6,17 @@ export class ControladorAssociacao {
     constructor(private readonly servicoAssociacao: ServicoAssociacao) {}
 
     async listar(
-        _request: Request,
+        request: Request,
         response: Response,
         _next: NextFunction,
     ): Promise<void> {
-        const lista = await this.servicoAssociacao.listar();
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
+        const lista = await this.servicoAssociacao.listar({
+            id: request.usuario.id,
+            role: request.usuario.role,
+        });
         response.status(200).json(lista);
     }
 

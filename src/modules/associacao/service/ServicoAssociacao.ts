@@ -7,6 +7,11 @@ import { RespostaAssociacao } from "../dtos/RespostaAssociacao";
 import { Associacao } from "../model/Associacao";
 import { RepositorioAssociacao } from "../repository/RepositorioAssociacao";
 
+type UsuarioAutenticado = {
+    id: number;
+    role: Role;
+};
+
 export class ServicoAssociacao {
     constructor(
         private readonly repositorioAssociacao: RepositorioAssociacao,
@@ -54,9 +59,20 @@ export class ServicoAssociacao {
         return this.paraResposta(criada);
     }
 
-    async listar(): Promise<RespostaAssociacao[]> {
-        const lista = await this.repositorioAssociacao.listar();
-        return lista.map((item) => this.paraResposta(item));
+    async listar(usuarioLogado: UsuarioAutenticado): Promise<RespostaAssociacao[]> {
+        if (usuarioLogado.role === Role.ASSOCIACAO) {
+            const propria = await this.repositorioAssociacao.buscarPorUsuarioId(
+                usuarioLogado.id,
+            );
+            return propria ? [this.paraResposta(propria)] : [];
+        }
+
+        if (usuarioLogado.role === Role.LOJISTA) {
+            const lista = await this.repositorioAssociacao.listar();
+            return lista.map((item) => this.paraResposta(item));
+        }
+
+        throw new ErroAplicacao("Acesso nao autorizado para este perfil", 403);
     }
 
     async buscar(idParam: string): Promise<RespostaAssociacao> {

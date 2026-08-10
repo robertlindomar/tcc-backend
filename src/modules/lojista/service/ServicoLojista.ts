@@ -69,10 +69,43 @@ export class ServicoLojista {
         return this.paraResposta(criado);
     }
 
-    async listar(statusQuery?: string): Promise<RespostaLojista[]> {
+    async listar(
+        usuarioLogado: UsuarioAutenticado,
+        statusQuery?: string,
+    ): Promise<RespostaLojista[]> {
         const status = this.parseStatusOpcional(statusQuery);
-        const lista = await this.repositorioLojista.listar(status);
-        return lista.map((item) => this.paraResposta(item));
+
+        if (usuarioLogado.role === Role.ASSOCIACAO) {
+            const associacao = await this.repositorioAssociacao.buscarPorUsuarioId(
+                usuarioLogado.id,
+            );
+            if (!associacao) {
+                throw new ErroAplicacao(
+                    "Associacao nao encontrada para o usuario logado",
+                    404,
+                );
+            }
+            const lista = await this.repositorioLojista.listarPorAssociacaoId(
+                associacao.id,
+                status,
+            );
+            return lista.map((item) => this.paraResposta(item));
+        }
+
+        if (usuarioLogado.role === Role.LOJISTA) {
+            const proprio = await this.repositorioLojista.buscarPorUsuarioId(
+                usuarioLogado.id,
+            );
+            if (!proprio) {
+                return [];
+            }
+            if (status && proprio.status !== status) {
+                return [];
+            }
+            return [this.paraResposta(proprio)];
+        }
+
+        throw new ErroAplicacao("Acesso nao autorizado para este perfil", 403);
     }
 
     async buscar(idParam: string): Promise<RespostaLojista> {

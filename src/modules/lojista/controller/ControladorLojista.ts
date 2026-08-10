@@ -6,9 +6,15 @@ export class ControladorLojista {
     constructor(private readonly servicoLojista: ServicoLojista) {}
 
     async listar(request: Request, response: Response, _next: NextFunction): Promise<void> {
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
         const status =
             typeof request.query.status === "string" ? request.query.status : undefined;
-        const lista = await this.servicoLojista.listar(status);
+        const lista = await this.servicoLojista.listar(
+            { id: request.usuario.id, role: request.usuario.role },
+            status,
+        );
         response.status(200).json(lista);
     }
 

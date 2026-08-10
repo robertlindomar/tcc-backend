@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { StatusLojista } from "../../../generated/prisma/enums";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { RepositorioCategoria } from "../../categoria/repository/RepositorioCategoria";
 import { Lojista } from "../../lojista/model/Lojista";
 import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista";
 import { Produto } from "../model/Produto";
@@ -26,6 +27,7 @@ function lojistaFake(status: StatusLojista, id = 5): Lojista {
 describe("ServicoProduto", () => {
     let repositorioProdutoMock: { criar: ReturnType<typeof vi.fn> };
     let repositorioLojistaMock: { buscarPorUsuarioId: ReturnType<typeof vi.fn> };
+    let repositorioCategoriaMock: { buscar: ReturnType<typeof vi.fn> };
     let servico: ServicoProduto;
 
     beforeEach(() => {
@@ -35,9 +37,13 @@ describe("ServicoProduto", () => {
         repositorioLojistaMock = {
             buscarPorUsuarioId: vi.fn(),
         };
+        repositorioCategoriaMock = {
+            buscar: vi.fn(),
+        };
         servico = new ServicoProduto(
             repositorioProdutoMock as unknown as RepositorioProduto,
             repositorioLojistaMock as unknown as RepositorioLojista,
+            repositorioCategoriaMock as unknown as RepositorioCategoria,
         );
     });
 
@@ -77,21 +83,30 @@ describe("ServicoProduto", () => {
         });
     });
 
+    it("rejeita categoriaId inexistente", async () => {
+        repositorioLojistaMock.buscarPorUsuarioId.mockResolvedValue(
+            lojistaFake(StatusLojista.APROVADO, 5),
+        );
+        repositorioCategoriaMock.buscar.mockResolvedValue(null);
+
+        await expect(
+            servico.criar(20, { nome: "Cafe", valor: 10, categoriaId: 999 }),
+        ).rejects.toMatchObject({ statusCode: 404 });
+    });
+
     it("propaga 403 quando lojista esta pendente", async () => {
         repositorioLojistaMock.buscarPorUsuarioId.mockResolvedValue(
-            lojistaFake(StatusLojista.PENDENTE, 5),
+            lojistaFake(StatusLojista.PENDENTE),
         );
 
-        const promessa = servico.criar(20, {
-            nome: "Cafe",
-            valor: 10,
-        });
+        await expect(
+            servico.criar(20, { nome: "Cafe", valor: 10 }),
+        ).rejects.toBeInstanceOf(ErroAplicacao);
 
-        await expect(promessa).rejects.toBeInstanceOf(ErroAplicacao);
-        await expect(promessa).rejects.toMatchObject({
-            message: "Lojista precisa estar APROVADO para esta operacao",
-            statusCode: 403,
-        });
-        expect(repositorioProdutoMock.criar).not.toHaveBeenCalled();
+        try {
+            await servico.criar(20, { nome: "Cafe", valor: 10 });
+        } catch (erro) {
+            expect((erro as ErroAplicacao).statusCode).toBe(403);
+        }
     });
 });

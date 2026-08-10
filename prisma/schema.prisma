@@ -128,6 +128,17 @@ model Sexo {
   @@map("sexo")
 }
 
+model Categoria {
+  id              Int      @id @default(autoincrement()) @map("id_categoria")
+  nome            String   @map("nome_categoria") @db.VarChar(255)
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  produtos Produto[]
+
+  @@map("categoria")
+}
+
 enum StatusLojista {
   PENDENTE
   APROVADO
@@ -212,8 +223,8 @@ model Produto {
   nome   String  @map("nome_produto") @db.VarChar(255)
   valor  Decimal @map("valor_produto") @db.Decimal(10, 2)
 
-  /// Sem FK no SQL (`categoria_fk`) — Integer opcional até existir tabela Categoria
-  categoriaId Int? @map("categoria_fk")
+  categoriaId Int?       @map("categoria_fk")
+  categoria   Categoria? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
 
   lojistaId Int     @map("id_lojista")
   lojista   Lojista @relation(fields: [lojistaId], references: [id])
@@ -224,6 +235,7 @@ model Produto {
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
   @@index([lojistaId])
+  @@index([categoriaId])
   @@map("produto")
 }
 
