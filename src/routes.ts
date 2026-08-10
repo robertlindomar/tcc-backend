@@ -7,6 +7,7 @@ import { RotasEndereco } from "./modules/endereco/routes/endereco.rotas";
 import { RotasEvento } from "./modules/evento/rotas/evento.rotas";
 import { RotasLojista } from "./modules/lojista/rotas/lojista.rotas";
 import { RotasMissao } from "./modules/missao/rotas/missao.rotas";
+import { RotasMissaoConsumidor } from "./modules/missao-consumidor/rotas/missao-consumidor.rotas";
 import { RotasProduto } from "./modules/produto/rotas/produto.rotas";
 import { RotasPromocao } from "./modules/promocao/rotas/promocao.rotas";
 import { RotasSexo } from "./modules/sexo/rotas/sexo.rotas";
@@ -24,6 +25,7 @@ export function routes() {
     router.use("/evento", RotasEvento());
     router.use("/lojista", RotasLojista());
     router.use("/missao", RotasMissao());
+    router.use("/missao-consumidor", RotasMissaoConsumidor());
     router.use("/produto", RotasProduto());
     router.use("/promocao", RotasPromocao());
     router.use("/sexo", RotasSexo());

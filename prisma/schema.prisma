@@ -197,6 +197,8 @@ model Consumidor {
   usuarioId Int     @unique @map("id_usuario")
   usuario   Usuario @relation(fields: [usuarioId], references: [id])
 
+  missaoConsumidores MissaoConsumidor[]
+
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
@@ -264,11 +266,33 @@ model Missao {
   lojistaId Int     @map("id_lojista")
   lojista   Lojista @relation(fields: [lojistaId], references: [id])
 
+  missaoConsumidores MissaoConsumidor[]
+
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
   @@index([lojistaId])
   @@map("missao")
+}
+
+/// N:M missão ↔ consumidor. Presença do registro = missão concluída (sem status extra).
+/// UNIQUE (missaoId, consumidorId) impede farm de pontos.
+model MissaoConsumidor {
+  id Int @id @default(autoincrement()) @map("id_missao_consumidor")
+
+  missaoId Int    @map("id_missao")
+  missao   Missao @relation(fields: [missaoId], references: [id])
+
+  consumidorId Int        @map("id_consumidor")
+  consumidor   Consumidor @relation(fields: [consumidorId], references: [id])
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  @@unique([missaoId, consumidorId])
+  @@index([missaoId])
+  @@index([consumidorId])
+  @@map("missao_consumidor")
 }
 
 model Campanha {

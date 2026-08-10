@@ -103,6 +103,10 @@
     {
       "key": "sorteioId",
       "value": ""
+    },
+    {
+      "key": "missaoConsumidorId",
+      "value": ""
     }
   ],
   "item": [
@@ -3367,6 +3371,225 @@
               "path": [
                 "missao",
                 "{{missaoId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MissaoConsumidor",
+      "item": [
+        {
+          "name": "Concluir Missao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('missaoConsumidor', () => pm.expect(body.missaoConsumidor).to.be.an('object'));",
+                  "pm.test('consumidor pontos', () => pm.expect(body.consumidor.pontos).to.be.a('number'));",
+                  "pm.test('consumidor nivel', () => pm.expect(body.consumidor.nivel).to.be.at.least(1));",
+                  "pm.collectionVariables.set('missaoConsumidorId', body.missaoConsumidor.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/missao-consumidor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "missao-consumidor"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"missaoId\": {{missaoId}}\n}"
+            }
+          }
+        },
+        {
+          "name": "Concluir Missao - ja concluida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Mensagem', () => pm.expect(pm.response.json().error).to.eql('Missao ja concluida'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/missao-consumidor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "missao-consumidor"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"missaoId\": {{missaoId}}\n}"
+            }
+          }
+        },
+        {
+          "name": "Concluir Missao - missao inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/missao-consumidor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "missao-consumidor"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"missaoId\": 999999\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar Missoes Concluidas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/missao-consumidor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "missao-consumidor"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Missao Concluida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Id', () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get('missaoConsumidorId'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/missao-consumidor/{{missaoConsumidorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "missao-consumidor",
+                "{{missaoConsumidorId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar Missoes Concluidas - Sem Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/missao-consumidor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "missao-consumidor"
               ]
             }
           }
