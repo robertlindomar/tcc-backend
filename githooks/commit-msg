@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Remove trailers injetados pelo Cursor Agent (Co-authored-by / Made-with).
+set -euo pipefail
+MSG_FILE="${1:-}"
+[[ -n "$MSG_FILE" && -f "$MSG_FILE" ]] || exit 0
+tmp="$(mktemp)"
+sed -E \
+  -e '/^Co-authored-by:[[:space:]]*Cursor([[:space:]]*<cursoragent@cursor\.com>)?[[:space:]]*$/d' \
+  -e '/^Made-with:[[:space:]]*Cursor[[:space:]]*$/d' \
+  -e '/^Made with \[Cursor\]\(https:\/\/cursor\.com\)[[:space:]]*$/d' \
+  "$MSG_FILE" > "$tmp"
+printf '%s\n' "$(cat "$tmp")" > "$MSG_FILE"
+rm -f "$tmp"
+exit 0
