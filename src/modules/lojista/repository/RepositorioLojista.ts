@@ -12,6 +12,7 @@ type RegistroLojista = {
     status: StatusLojista;
     usuarioId: number;
     associacaoId: number;
+    enderecoId: number | null;
     dataCriacao: Date;
     dataAtualizacao: Date;
 };
@@ -27,6 +28,7 @@ export class RepositorioLojista {
         status: StatusLojista;
         usuarioId: number;
         associacaoId: number;
+        enderecoId: number | null;
     }): Promise<Lojista> {
         try {
             const criado = await this.prisma.lojista.create({ data: dados });
@@ -102,6 +104,7 @@ export class RepositorioLojista {
             razaoSocial: string;
             cnpj: string;
             inscricaoEstadual: number | null;
+            enderecoId?: number | null;
         },
     ): Promise<Lojista> {
         try {
@@ -145,6 +148,7 @@ export class RepositorioLojista {
             status: item.status,
             usuarioId: item.usuarioId,
             associacaoId: item.associacaoId,
+            enderecoId: item.enderecoId,
             dataCriacao: item.dataCriacao,
             dataAtualizacao: item.dataAtualizacao,
         });

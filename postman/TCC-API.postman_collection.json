@@ -319,8 +319,8 @@
                   "pm.test('Retorna role correto', () => pm.expect(body.role).to.eql('CONSUMIDOR'));",
                   "pm.test('Retorna ativo true', () => pm.expect(body.ativo).to.be.true);",
                   "pm.test('Nao retorna senha', () => pm.expect(body.senha).to.be.undefined);",
-                  "pm.test('Retorna createdAt', () => pm.expect(body.createdAt).to.be.a('string'));",
-                  "pm.test('Retorna updatedAt', () => pm.expect(body.updatedAt).to.be.a('string'));",
+                  "pm.test('Retorna dataCriacao', () => pm.expect(body.dataCriacao).to.be.a('string'));",
+                  "pm.test('Retorna dataAtualizacao', () => pm.expect(body.dataAtualizacao).to.be.a('string'));",
                   "",
                   "pm.collectionVariables.set('usuarioId', body.id);"
                 ]

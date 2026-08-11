@@ -8,8 +8,8 @@ type UsuarioProps = {
     senha: string;
     role: Role;
     ativo: boolean;
-    createdAt: Date;
-    updatedAt: Date;
+    dataCriacao: Date;
+    dataAtualizacao: Date;
 };
 
 export class Usuario {
@@ -55,11 +55,11 @@ export class Usuario {
         return this.props.ativo;
     }
 
-    get createdAt() {
-        return this.props.createdAt;
+    get dataCriacao() {
+        return this.props.dataCriacao;
     }
 
-    get updatedAt() {
-        return this.props.updatedAt;
+    get dataAtualizacao() {
+        return this.props.dataAtualizacao;
     }
 }

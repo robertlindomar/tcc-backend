@@ -55,8 +55,8 @@ export class ServicoLogin {
             email: usuario.email,
             role: usuario.role,
             ativo: usuario.ativo,
-            createdAt: usuario.createdAt,
-            updatedAt: usuario.updatedAt,
+            dataCriacao: usuario.dataCriacao,
+            dataAtualizacao: usuario.dataAtualizacao,
         };
     }
 }

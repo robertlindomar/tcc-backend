@@ -6,6 +6,6 @@ export interface RespostaUsuario {
     email: string;
     role: Role;
     ativo: boolean;
-    createdAt: Date;
-    updatedAt: Date;
+    dataCriacao: Date;
+    dataAtualizacao: Date;
 }

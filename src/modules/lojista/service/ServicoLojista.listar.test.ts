@@ -34,6 +34,7 @@ function lojistaFake(overrides: Partial<{ id: number; associacaoId: number }> = 
         status: StatusLojista.PENDENTE,
         usuarioId: 50,
         associacaoId: overrides.associacaoId ?? 3,
+        enderecoId: null,
         dataCriacao: agora,
         dataAtualizacao: agora,
     });
@@ -59,6 +60,7 @@ describe("ServicoLojista.listar isolamento", () => {
             repositorioLojistaMock as unknown as RepositorioLojista,
             {} as RepositorioUsuario,
             repositorioAssociacaoMock as unknown as RepositorioAssociacao,
+            {} as never,
         );
     });
 

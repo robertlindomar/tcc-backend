@@ -46,8 +46,8 @@ describe("ServicoUsuario.criar (cadastro publico web+mobile)", () => {
                 senha: usuario.senha,
                 role: usuario.role,
                 ativo: true,
-                createdAt: agora,
-                updatedAt: agora,
+                dataCriacao: agora,
+                dataAtualizacao: agora,
             }),
         );
 
@@ -72,8 +72,8 @@ describe("ServicoUsuario.criar (cadastro publico web+mobile)", () => {
                 senha: usuario.senha,
                 role: usuario.role,
                 ativo: true,
-                createdAt: agora,
-                updatedAt: agora,
+                dataCriacao: agora,
+                dataAtualizacao: agora,
             }),
         );
 

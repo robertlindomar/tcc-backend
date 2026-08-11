@@ -9,6 +9,7 @@ export interface RespostaLojista {
     status: StatusLojista;
     usuarioId: number;
     associacaoId: number;
+    enderecoId: number | null;
     dataCriacao: Date;
     dataAtualizacao: Date;
 }

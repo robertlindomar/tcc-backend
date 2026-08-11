@@ -9,6 +9,7 @@ type LojistaProps = {
     status: StatusLojista;
     usuarioId: number;
     associacaoId: number;
+    enderecoId: number | null;
     dataCriacao: Date;
     dataAtualizacao: Date;
 };
@@ -50,6 +51,10 @@ export class Lojista {
 
     get associacaoId() {
         return this.props.associacaoId;
+    }
+
+    get enderecoId() {
+        return this.props.enderecoId;
     }
 
     get dataCriacao() {

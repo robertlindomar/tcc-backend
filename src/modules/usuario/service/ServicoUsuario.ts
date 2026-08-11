@@ -40,8 +40,8 @@ export class ServicoUsuario {
             senha: senhaHash,
             role: request.role as Role,
             ativo: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            dataCriacao: new Date(),
+            dataAtualizacao: new Date(),
         });
 
         const criado = await this.repositorioUsuario.criar(usuario);
@@ -89,8 +89,8 @@ export class ServicoUsuario {
             email: usuario.email,
             role: usuario.role,
             ativo: usuario.ativo,
-            createdAt: usuario.createdAt,
-            updatedAt: usuario.updatedAt,
+            dataCriacao: usuario.dataCriacao,
+            dataAtualizacao: usuario.dataAtualizacao,
         };
     }
 

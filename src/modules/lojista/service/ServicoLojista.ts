@@ -2,6 +2,7 @@ import { StatusLojista } from "../../../generated/prisma/enums";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { Role } from "../../auth/enum/Role";
 import { RepositorioAssociacao } from "../../associacao/repository/RepositorioAssociacao";
+import { RepositorioEndereco } from "../../endereco/repository/RepositorioEndereco";
 import { RepositorioUsuario } from "../../usuario/repository/RepositorioUsuario";
 import { DTOAtualizarLojista } from "../dto/DTOAtualizarLojista";
 import { DTOCriarLojista } from "../dto/DTOCriarLojista";
@@ -21,6 +22,7 @@ export class ServicoLojista {
         private readonly repositorioLojista: RepositorioLojista,
         private readonly repositorioUsuario: RepositorioUsuario,
         private readonly repositorioAssociacao: RepositorioAssociacao,
+        private readonly repositorioEndereco: RepositorioEndereco,
     ) {}
 
     async criar(usuarioId: number, request: DTOCriarLojista): Promise<RespostaLojista> {
@@ -32,6 +34,7 @@ export class ServicoLojista {
         const cnpj = this.validarTextoObrigatorio(request.cnpj, "CNPJ");
         const associacaoId = this.validarIdNumerico(request.associacaoId, "associacaoId");
         const inscricaoEstadual = this.validarInscricaoEstadual(request.inscricaoEstadual);
+        const enderecoId = await this.resolverEnderecoId(usuarioId, request.enderecoId, false);
 
         const usuario = await this.repositorioUsuario.buscar(usuarioId);
         if (!usuario) {
@@ -64,6 +67,7 @@ export class ServicoLojista {
             status: StatusLojista.PENDENTE,
             usuarioId,
             associacaoId,
+            enderecoId,
         });
 
         return this.paraResposta(criado);
@@ -148,12 +152,28 @@ export class ServicoLojista {
             }
         }
 
-        const atualizado = await this.repositorioLojista.atualizar(id, {
+        const dadosAtualizacao: {
+            nomeFantasia: string;
+            razaoSocial: string;
+            cnpj: string;
+            inscricaoEstadual: number | null;
+            enderecoId?: number | null;
+        } = {
             nomeFantasia,
             razaoSocial,
             cnpj,
             inscricaoEstadual,
-        });
+        };
+
+        if (request.enderecoId !== undefined) {
+            dadosAtualizacao.enderecoId = await this.resolverEnderecoId(
+                existente.usuarioId,
+                request.enderecoId,
+                true,
+            );
+        }
+
+        const atualizado = await this.repositorioLojista.atualizar(id, dadosAtualizacao);
 
         return this.paraResposta(atualizado);
     }
@@ -242,9 +262,43 @@ export class ServicoLojista {
             status: lojista.status,
             usuarioId: lojista.usuarioId,
             associacaoId: lojista.associacaoId,
+            enderecoId: lojista.enderecoId,
             dataCriacao: lojista.dataCriacao,
             dataAtualizacao: lojista.dataAtualizacao,
         };
+    }
+
+    /**
+     * @param permitirNullExplicito no update, `null` remove o vínculo; no create, `null`/omitido
+     * tenta o endereço do usuário.
+     */
+    private async resolverEnderecoId(
+        usuarioId: number,
+        enderecoIdInformado: unknown,
+        permitirNullExplicito: boolean,
+    ): Promise<number | null> {
+        if (enderecoIdInformado === undefined) {
+            if (permitirNullExplicito) {
+                return null;
+            }
+            const doUsuario = await this.repositorioEndereco.buscarPorUsuarioId(usuarioId);
+            return doUsuario?.id ?? null;
+        }
+
+        if (enderecoIdInformado === null || enderecoIdInformado === "") {
+            return null;
+        }
+
+        const id = this.validarIdNumerico(enderecoIdInformado, "enderecoId");
+        const endereco = await this.repositorioEndereco.buscarPorId(id);
+        if (!endereco) {
+            throw new ErroAplicacao("Endereco nao encontrado", 404);
+        }
+        if (endereco.usuarioId !== usuarioId) {
+            throw new ErroAplicacao("Endereco nao pertence ao usuario lojista", 403);
+        }
+
+        return id;
     }
 
     private parseStatusOpcional(statusQuery?: string): StatusLojista | undefined {

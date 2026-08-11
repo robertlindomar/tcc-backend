@@ -28,8 +28,8 @@ export class RepositorioUsuario {
                 senha: criado.senha,
                 role: criado.role as Role,
                 ativo: criado.ativo,
-                createdAt: criado.createdAt,
-                updatedAt: criado.updatedAt,
+                dataCriacao: criado.dataCriacao,
+                dataAtualizacao: criado.dataAtualizacao,
             });
         } catch {
             throw new ErroAplicacao("Erro ao criar usuario", 500);
@@ -48,8 +48,8 @@ export class RepositorioUsuario {
                         senha: u.senha,
                         role: u.role as Role,
                         ativo: u.ativo,
-                        createdAt: u.createdAt,
-                        updatedAt: u.updatedAt,
+                        dataCriacao: u.dataCriacao,
+                        dataAtualizacao: u.dataAtualizacao,
                     }),
             );
         } catch {
@@ -72,8 +72,8 @@ export class RepositorioUsuario {
                 senha: u.senha,
                 role: u.role as Role,
                 ativo: u.ativo,
-                createdAt: u.createdAt,
-                updatedAt: u.updatedAt,
+                dataCriacao: u.dataCriacao,
+                dataAtualizacao: u.dataAtualizacao,
             });
         } catch {
             throw new ErroAplicacao("Erro ao buscar usuario por ID", 500);
@@ -95,8 +95,8 @@ export class RepositorioUsuario {
                 senha: u.senha,
                 role: u.role as Role,
                 ativo: u.ativo,
-                createdAt: u.createdAt,
-                updatedAt: u.updatedAt,
+                dataCriacao: u.dataCriacao,
+                dataAtualizacao: u.dataAtualizacao,
             });
         } catch {
             throw new ErroAplicacao("Erro ao buscar usuario por email", 500);
@@ -117,8 +117,8 @@ export class RepositorioUsuario {
                 senha: u.senha,
                 role: u.role as Role,
                 ativo: u.ativo,
-                createdAt: u.createdAt,
-                updatedAt: u.updatedAt,
+                dataCriacao: u.dataCriacao,
+                dataAtualizacao: u.dataAtualizacao,
             });
         } catch {
             throw new ErroAplicacao("Erro ao atualizar usuario", 500);

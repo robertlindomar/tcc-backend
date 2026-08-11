@@ -34,8 +34,8 @@ describe("ServicoLogin", () => {
                 senha: senhaHash,
                 role: Role.LOJISTA,
                 ativo: true,
-                createdAt: agora,
-                updatedAt: agora,
+                dataCriacao: agora,
+                dataAtualizacao: agora,
             }),
         );
 
@@ -73,8 +73,8 @@ describe("ServicoLogin", () => {
                 senha: senhaHash,
                 role: Role.LOJISTA,
                 ativo: true,
-                createdAt: agora,
-                updatedAt: agora,
+                dataCriacao: agora,
+                dataAtualizacao: agora,
             }),
         );
 

@@ -60,8 +60,8 @@ describe("ServicoConsumidor", () => {
                 senha: "hash",
                 role: Role.CONSUMIDOR,
                 ativo: true,
-                createdAt: agora,
-                updatedAt: agora,
+                dataCriacao: agora,
+                dataAtualizacao: agora,
             }),
         );
         repositorioEnderecoMock.buscarPorUsuarioId.mockResolvedValue(null);
@@ -86,8 +86,8 @@ describe("ServicoConsumidor", () => {
                 senha: "hash",
                 role: Role.CONSUMIDOR,
                 ativo: true,
-                createdAt: agora,
-                updatedAt: agora,
+                dataCriacao: agora,
+                dataAtualizacao: agora,
             }),
         );
         repositorioEnderecoMock.buscarPorUsuarioId.mockResolvedValue(

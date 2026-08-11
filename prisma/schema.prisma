@@ -16,14 +16,14 @@ enum Role {
 }
 
 model Usuario {
-  id        Int      @id @default(autoincrement()) @map("id_usuario")
-  nome      String   @map("nome_usuario") @db.VarChar(255)
-  email     String   @unique @map("email_usuario") @db.VarChar(255)
-  senha     String   @map("senha_usuario") @db.VarChar(255)
-  role      Role     @map("role")
-  ativo     Boolean  @default(true) @map("ativo")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id              Int      @id @default(autoincrement()) @map("id_usuario")
+  nome            String   @map("nome_usuario") @db.VarChar(255)
+  email           String   @unique @map("email_usuario") @db.VarChar(255)
+  senha           String   @map("senha_usuario") @db.VarChar(255)
+  role            Role     @map("role_usuario")
+  ativo           Boolean  @default(true) @map("ativo_usuario")
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
   endereco   Endereco?
   associacao Associacao?
@@ -36,8 +36,8 @@ model Usuario {
 model Endereco {
   id Int @id @default(autoincrement()) @map("id_endereco")
 
-  cep    String  @db.VarChar(9)
-  numero String? @db.VarChar(20)
+  cep    String  @map("cep_endereco") @db.VarChar(9)
+  numero String? @map("numero_endereco") @db.VarChar(20)
 
   usuarioId Int     @unique @map("id_usuario")
   usuario   Usuario @relation(fields: [usuarioId], references: [id])
@@ -53,6 +53,8 @@ model Endereco {
 
   estadoId Int    @map("id_estado")
   estado   Estado @relation(fields: [estadoId], references: [id])
+
+  lojista Lojista?
 
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
@@ -75,7 +77,7 @@ model Rua {
 model Estado {
   id   Int    @id @default(autoincrement()) @map("id_estado")
   nome String @map("nome_estado") @db.VarChar(255)
-  uf   String @db.VarChar(2)
+  uf   String @map("uf_estado") @db.VarChar(2)
 
   cidades   Cidade[]
   enderecos Endereco[]
@@ -172,13 +174,17 @@ model Lojista {
   razaoSocial       String        @map("razao_social_lojista") @db.VarChar(255)
   cnpj              String        @unique @map("cnpj_lojista") @db.VarChar(18)
   inscricaoEstadual Int?          @map("inscricao_estadual_lojista")
-  status            StatusLojista @default(PENDENTE) @map("status")
+  status            StatusLojista @default(PENDENTE) @map("status_lojista")
 
   usuarioId Int     @unique @map("id_usuario")
   usuario   Usuario @relation(fields: [usuarioId], references: [id])
 
   associacaoId Int        @map("id_associacao")
   associacao   Associacao @relation(fields: [associacaoId], references: [id])
+
+  /// Endereço da loja (UML endereco_fk). Opcional; tipicamente o Endereco 1:1 do usuário lojista.
+  enderecoId Int?      @unique @map("id_endereco")
+  endereco   Endereco? @relation(fields: [enderecoId], references: [id], onDelete: SetNull)
 
   consumidores Consumidor[]
   produtos     Produto[]

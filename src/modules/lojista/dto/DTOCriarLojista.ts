@@ -4,4 +4,6 @@ export interface DTOCriarLojista {
     cnpj: string;
     inscricaoEstadual?: number | null;
     associacaoId: number;
+    /** Se omitido, usa o Endereco 1:1 do usuário lojista (quando existir). */
+    enderecoId?: number | null;
 }
