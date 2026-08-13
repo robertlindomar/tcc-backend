@@ -10,6 +10,16 @@ import { RotasDashboard } from "./dashboard.rotas";
 
 const SECRET_TESTE = "segredo-teste-dashboard-rotas";
 
+type RespostaResumo = {
+    metricas: {
+        lojasAguardandoAprovacao: number;
+        campanhasCadastradas: number;
+        sorteiosCadastrados: number;
+        totalLojasParticipantes: number;
+    };
+    atividadesRecentes: unknown[];
+};
+
 function tokenPara(role: Role, id = 1): string {
     return jwt.sign({ sub: id, role }, SECRET_TESTE, { expiresIn: "1h" });
 }
@@ -93,7 +103,7 @@ describe("GET /dashboard/resumo (rotas)", () => {
             });
             expect(resposta.status).toBe(200);
             expect(resumoMock).toHaveBeenCalledTimes(1);
-            const corpo = await resposta.json();
+            const corpo = (await resposta.json()) as RespostaResumo;
             expect(corpo.metricas).toEqual({
                 lojasAguardandoAprovacao: 0,
                 campanhasCadastradas: 0,

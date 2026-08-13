@@ -33,6 +33,7 @@ describe("ServicoPromocao", () => {
                     status: StatusLojista.APROVADO,
                     usuarioId: 20,
                     associacaoId: 1,
+                    enderecoId: null,
                     dataCriacao: agora,
                     dataAtualizacao: agora,
                 }),

@@ -16,6 +16,7 @@ function lojistaFake(status: StatusLojista, id = 7): Lojista {
         status,
         usuarioId: 10,
         associacaoId: 1,
+        enderecoId: null,
         dataCriacao: agora,
         dataAtualizacao: agora,
     });
