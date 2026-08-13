@@ -1,5 +1,6 @@
 import { StatusLojista } from "../../../generated/prisma/enums";
 import { garantirProprioId } from "../../../shared/authz/garantirProprioId";
+import { resolverLojistaAprovado } from "../../../shared/authz/resolverLojistaAprovado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { Role } from "../../auth/enum/Role";
 import { RepositorioEndereco } from "../../endereco/repository/RepositorioEndereco";
@@ -75,12 +76,12 @@ export class ServicoConsumidor {
             throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
         }
 
-        const lojista = await this.repositorioLojista.buscarPorUsuarioId(usuarioLogado.id);
-        if (!lojista) {
-            throw new ErroAplicacao("Lojista nao encontrado para o usuario logado", 404);
-        }
+        const { lojistaId } = await resolverLojistaAprovado(
+            this.repositorioLojista,
+            usuarioLogado.id,
+        );
 
-        const lista = await this.repositorioConsumidor.listarPorLojistaId(lojista.id);
+        const lista = await this.repositorioConsumidor.listarPorLojistaId(lojistaId);
         return lista.map((item) => this.paraResposta(item));
     }
 
@@ -101,10 +102,11 @@ export class ServicoConsumidor {
         }
 
         if (usuarioLogado.role === Role.LOJISTA) {
-            const lojista = await this.repositorioLojista.buscarPorUsuarioId(
+            const { lojistaId } = await resolverLojistaAprovado(
+                this.repositorioLojista,
                 usuarioLogado.id,
             );
-            if (!lojista || consumidor.lojistaId !== lojista.id) {
+            if (consumidor.lojistaId !== lojistaId) {
                 throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
             }
             return this.paraResposta(consumidor);

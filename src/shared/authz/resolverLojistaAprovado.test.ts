@@ -64,6 +64,23 @@ describe("resolverLojistaAprovado", () => {
         });
     });
 
+    it("retorna 403 quando lojista esta REJEITADO", async () => {
+        repositorioMock.buscarPorUsuarioId.mockResolvedValue(
+            lojistaFake(StatusLojista.REJEITADO),
+        );
+
+        const promessa = resolverLojistaAprovado(
+            repositorioMock as unknown as RepositorioLojista,
+            10,
+        );
+
+        await expect(promessa).rejects.toBeInstanceOf(ErroAplicacao);
+        await expect(promessa).rejects.toMatchObject({
+            message: "Lojista precisa estar APROVADO para esta operacao",
+            statusCode: 403,
+        });
+    });
+
     it("retorna lojistaId quando lojista esta APROVADO", async () => {
         repositorioMock.buscarPorUsuarioId.mockResolvedValue(
             lojistaFake(StatusLojista.APROVADO, 42),
