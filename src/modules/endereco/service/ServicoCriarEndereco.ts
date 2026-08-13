@@ -15,11 +15,19 @@ export class ServicoCriarEndereco {
         private readonly clienteViaCep: ClienteViaCep,
     ) {}
 
-    async executar(dto: DTOCriarEndereco): Promise<RespostaEndereco> {
+    async executar(usuarioLogadoId: number, dto: DTOCriarEndereco): Promise<RespostaEndereco> {
+        if (dto.usuarioId !== undefined && dto.usuarioId !== null) {
+            const informado = Number(dto.usuarioId);
+            if (!Number.isInteger(informado) || informado !== usuarioLogadoId) {
+                throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+            }
+        }
+
         const cep = normalizarCep(dto.cep);
+        const usuarioId = usuarioLogadoId;
 
         const usuario = await this.prisma.usuario.findUnique({
-            where: { id: dto.usuarioId },
+            where: { id: usuarioId },
         });
 
         if (!usuario) {
@@ -27,7 +35,7 @@ export class ServicoCriarEndereco {
         }
 
         const jaPossuiEndereco = await this.repositorioEndereco.existePorUsuarioId(
-            dto.usuarioId,
+            usuarioId,
         );
 
         if (jaPossuiEndereco) {
@@ -43,7 +51,7 @@ export class ServicoCriarEndereco {
                 id: 0,
                 cep,
                 numero: dto.numero ?? null,
-                usuarioId: dto.usuarioId,
+                usuarioId,
                 ruaId: geografia.ruaId,
                 bairroId: geografia.bairroId,
                 cidadeId: geografia.cidadeId,

@@ -1,4 +1,5 @@
 import { StatusLojista } from "../../../generated/prisma/enums";
+import { garantirProprioId } from "../../../shared/authz/garantirProprioId";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { Role } from "../../auth/enum/Role";
 import { RepositorioEndereco } from "../../endereco/repository/RepositorioEndereco";
@@ -61,12 +62,32 @@ export class ServicoConsumidor {
         return this.paraResposta(criado);
     }
 
-    async listar(): Promise<RespostaConsumidor[]> {
-        const lista = await this.repositorioConsumidor.listar();
+    async listar(usuarioLogado: { id: number; role: Role }): Promise<RespostaConsumidor[]> {
+        if (usuarioLogado.role === Role.ASSOCIACAO) {
+            throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+        }
+
+        if (usuarioLogado.role === Role.CONSUMIDOR) {
+            throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+        }
+
+        if (usuarioLogado.role !== Role.LOJISTA) {
+            throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+        }
+
+        const lojista = await this.repositorioLojista.buscarPorUsuarioId(usuarioLogado.id);
+        if (!lojista) {
+            throw new ErroAplicacao("Lojista nao encontrado para o usuario logado", 404);
+        }
+
+        const lista = await this.repositorioConsumidor.listarPorLojistaId(lojista.id);
         return lista.map((item) => this.paraResposta(item));
     }
 
-    async buscar(idParam: string): Promise<RespostaConsumidor> {
+    async buscar(
+        idParam: string,
+        usuarioLogado: { id: number; role: Role },
+    ): Promise<RespostaConsumidor> {
         const id = this.parseId(idParam);
         const consumidor = await this.repositorioConsumidor.buscar(id);
 
@@ -74,14 +95,33 @@ export class ServicoConsumidor {
             throw new ErroAplicacao("Consumidor nao encontrado", 404);
         }
 
-        return this.paraResposta(consumidor);
+        if (usuarioLogado.role === Role.CONSUMIDOR) {
+            garantirProprioId(consumidor.usuarioId, usuarioLogado.id);
+            return this.paraResposta(consumidor);
+        }
+
+        if (usuarioLogado.role === Role.LOJISTA) {
+            const lojista = await this.repositorioLojista.buscarPorUsuarioId(
+                usuarioLogado.id,
+            );
+            if (!lojista || consumidor.lojistaId !== lojista.id) {
+                throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+            }
+            return this.paraResposta(consumidor);
+        }
+
+        throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
     }
 
     async atualizar(
         idParam: string,
-        usuarioLogadoId: number,
+        usuarioLogado: { id: number; role: Role },
         request: DTOAtualizarConsumidor,
     ): Promise<RespostaConsumidor> {
+        if (usuarioLogado.role !== Role.CONSUMIDOR) {
+            throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+        }
+
         const id = this.parseId(idParam);
         const existente = await this.repositorioConsumidor.buscar(id);
 
@@ -89,7 +129,7 @@ export class ServicoConsumidor {
             throw new ErroAplicacao("Consumidor nao encontrado", 404);
         }
 
-        this.garantirDono(existente.usuarioId, usuarioLogadoId);
+        garantirProprioId(existente.usuarioId, usuarioLogado.id);
 
         const cpf = this.validarCpf(request.cpf);
         const sexoId = await this.validarSexoOpcional(request.sexoId);
@@ -111,7 +151,14 @@ export class ServicoConsumidor {
         return this.paraResposta(atualizado);
     }
 
-    async deletar(idParam: string, usuarioLogadoId: number): Promise<void> {
+    async deletar(
+        idParam: string,
+        usuarioLogado: { id: number; role: Role },
+    ): Promise<void> {
+        if (usuarioLogado.role !== Role.CONSUMIDOR) {
+            throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+        }
+
         const id = this.parseId(idParam);
         const existente = await this.repositorioConsumidor.buscar(id);
 
@@ -119,15 +166,9 @@ export class ServicoConsumidor {
             throw new ErroAplicacao("Consumidor nao encontrado", 404);
         }
 
-        this.garantirDono(existente.usuarioId, usuarioLogadoId);
+        garantirProprioId(existente.usuarioId, usuarioLogado.id);
 
         await this.repositorioConsumidor.deletar(id);
-    }
-
-    private garantirDono(perfilUsuarioId: number, usuarioLogadoId: number): void {
-        if (perfilUsuarioId !== usuarioLogadoId) {
-            throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
-        }
     }
 
     private paraResposta(consumidor: Consumidor): RespostaConsumidor {

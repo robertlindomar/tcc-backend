@@ -107,6 +107,58 @@
     {
       "key": "missaoConsumidorId",
       "value": ""
+    },
+    {
+      "key": "tokenAssociacaoB",
+      "value": ""
+    },
+    {
+      "key": "tokenLojistaB",
+      "value": ""
+    },
+    {
+      "key": "tokenConsumidorB",
+      "value": ""
+    },
+    {
+      "key": "usuarioIdA",
+      "value": ""
+    },
+    {
+      "key": "usuarioIdB",
+      "value": ""
+    },
+    {
+      "key": "consumidorIdA",
+      "value": ""
+    },
+    {
+      "key": "consumidorIdB",
+      "value": ""
+    },
+    {
+      "key": "lojistaIdA",
+      "value": ""
+    },
+    {
+      "key": "lojistaIdB",
+      "value": ""
+    },
+    {
+      "key": "associacaoIdA",
+      "value": ""
+    },
+    {
+      "key": "associacaoIdB",
+      "value": ""
+    },
+    {
+      "key": "enderecoIdA",
+      "value": ""
+    },
+    {
+      "key": "enderecoIdB",
+      "value": ""
     }
   ],
   "item": [
@@ -261,10 +313,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 200 com Bearer', () => pm.response.to.have.status(200));",
-                  "",
-                  "const body = pm.response.json();",
-                  "pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));"
+                  "pm.test('Status 403 — listagem global bloqueada (Fatia 1)', () => pm.response.to.have.status(403));"
                 ]
               }
             }
@@ -309,20 +358,9 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "",
-                  "const body = pm.response.json();",
-                  "",
-                  "pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
-                  "pm.test('Retorna nome correto', () => pm.expect(body.nome).to.eql('João Silva'));",
-                  "pm.test('Retorna email correto', () => pm.expect(body.email).to.eql(pm.collectionVariables.get('usuarioEmail')));",
-                  "pm.test('Retorna role correto', () => pm.expect(body.role).to.eql('CONSUMIDOR'));",
-                  "pm.test('Retorna ativo true', () => pm.expect(body.ativo).to.be.true);",
-                  "pm.test('Nao retorna senha', () => pm.expect(body.senha).to.be.undefined);",
-                  "pm.test('Retorna dataCriacao', () => pm.expect(body.dataCriacao).to.be.a('string'));",
-                  "pm.test('Retorna dataAtualizacao', () => pm.expect(body.dataAtualizacao).to.be.a('string'));",
-                  "",
-                  "pm.collectionVariables.set('usuarioId', body.id);"
+                  "pm.test('Status 401 sem token ou 403 com token — POST /usuario fechado', function () {",
+                  "  pm.expect([401, 403]).to.include(pm.response.code);",
+                  "});"
                 ]
               }
             }
@@ -357,10 +395,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 400 email duplicado', () => pm.response.to.have.status(400));",
-                  "",
-                  "const body = pm.response.json();",
-                  "pm.test('Retorna mensagem de erro', () => pm.expect(body.error).to.include('Email'));"
+                  "pm.test('POST /usuario fechado (401/403)', () => pm.expect([401, 403]).to.include(pm.response.code));"
                 ]
               }
             }
@@ -395,10 +430,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 400 role invalida', () => pm.response.to.have.status(400));",
-                  "",
-                  "const body = pm.response.json();",
-                  "pm.test('Retorna mensagem de erro', () => pm.expect(body.error).to.include('Role'));"
+                  "pm.test('POST /usuario fechado (401/403)', () => pm.expect([401, 403]).to.include(pm.response.code));"
                 ]
               }
             }
@@ -472,12 +504,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "",
-                  "const body = pm.response.json();",
-                  "pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));",
-                  "pm.test('Array nao vazio', () => pm.expect(body.length).to.be.greaterThan(0));",
-                  "pm.test('Nenhum item contem senha', () => body.forEach(u => pm.expect(u.senha).to.be.undefined));"
+                  "pm.test('Status 403 listagem global', () => pm.response.to.have.status(403));"
                 ]
               }
             }
@@ -936,15 +963,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "",
-                  "const body = pm.response.json();",
-                  "pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
-                  "pm.test('Retorna nome', () => pm.expect(body.nome).to.eql('Feminino'));",
-                  "pm.test('Retorna dataCriacao', () => pm.expect(body.dataCriacao).to.be.a('string'));",
-                  "pm.test('Retorna dataAtualizacao', () => pm.expect(body.dataAtualizacao).to.be.a('string'));",
-                  "",
-                  "pm.collectionVariables.set('sexoId', body.id);"
+                  "pm.test('Status 403 escrita de catalogo bloqueada', () => pm.response.to.have.status(403));"
                 ]
               }
             }
@@ -1151,9 +1170,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "const body = pm.response.json();",
-                  "pm.test('Nome atualizado', () => pm.expect(body.nome).to.eql('Masculino'));"
+                  "pm.test('Status 403 escrita de catalogo bloqueada', () => pm.response.to.have.status(403));"
                 ]
               }
             }
@@ -1193,7 +1210,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                  "pm.test('Status 403 escrita de catalogo bloqueada', () => pm.response.to.have.status(403));"
                 ]
               }
             }
@@ -1830,7 +1847,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}"
+                "value": "Bearer {{tokenLojista}}"
               }
             ],
             "url": {
@@ -1848,8 +1865,9 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                  "pm.test('Status 200 scoped do lojista autenticado', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));"
                 ]
               }
             }
@@ -2376,17 +2394,13 @@
           ]
         },
         {
-          "name": "11 Criar Sexo (fluxo)",
+          "name": "11 Listar Sexos (seed — escrita bloqueada)",
           "request": {
-            "method": "POST",
+            "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
                 "key": "Authorization",
-                "value": "Bearer {{tokenAssociacao}}"
+                "value": "Bearer {{tokenConsumidor}}"
               }
             ],
             "url": {
@@ -2397,10 +2411,6 @@
               "path": [
                 "sexo"
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Feminino Fluxo\"\n}"
             }
           },
           "event": [
@@ -2408,8 +2418,12 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set('sexoId', pm.response.json().id);"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));",
+                  "if (Array.isArray(body) && body.length) {",
+                  "  pm.collectionVariables.set('sexoId', body[0].id);",
+                  "}"
                 ]
               }
             }
@@ -4057,6 +4071,821 @@
                 "sorteio",
                 "{{sorteioId}}"
               ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Security / Ownership",
+      "description": "Fatia 1 — reproduzir IDOR/cross-tenant.\nPreencha tokens A/B e IDs reais (Associação A/B, Lojista A/B, Consumidor A/B) antes de rodar. Cadastro público: POST /auth/cadastro.",
+      "item": [
+        {
+          "name": "Usuario A acessa usuario A — permitido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuario/{{usuarioIdA}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario",
+                "{{usuarioIdA}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Usuario A acessa usuario B — 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuario/{{usuarioIdB}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario",
+                "{{usuarioIdB}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Usuario A altera usuario B — 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuario/{{usuarioIdB}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario",
+                "{{usuarioIdB}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Hack\",\n  \"email\": \"hack@teste.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Usuario A exclui usuario B — 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuario/{{usuarioIdB}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario",
+                "{{usuarioIdB}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar todos usuarios — 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuario",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /usuario fechado — 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuario",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuario"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"X\",\n  \"email\": \"x@teste.com\",\n  \"senha\": \"123456\",\n  \"role\": \"CONSUMIDOR\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Consumidor A acessa proprio registro — permitido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/consumidor/{{consumidorIdA}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "consumidor",
+                "{{consumidorIdA}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Consumidor A acessa consumidor B — 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/consumidor/{{consumidorIdB}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "consumidor",
+                "{{consumidorIdB}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Lojista A lista consumidores scoped — permitido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Array sem consumidor de outra loja', () => {",
+                  "  pm.expect(body).to.be.an('array');",
+                  "  const idB = Number(pm.collectionVariables.get('consumidorIdB'));",
+                  "  if (idB) pm.expect(body.map(c => c.id)).to.not.include(idB);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/consumidor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "consumidor"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Lojista A acessa consumidor de Lojista B — 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/consumidor/{{consumidorIdB}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "consumidor",
+                "{{consumidorIdB}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Associacao dump global de consumidores — 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/consumidor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "consumidor"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Lojista A acessa proprio registro — permitido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista/{{lojistaIdA}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista",
+                "{{lojistaIdA}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Lojista A acessa Lojista B — 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista/{{lojistaIdB}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista",
+                "{{lojistaIdB}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Associacao A acessa seu Lojista A — permitido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista/{{lojistaIdA}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista",
+                "{{lojistaIdA}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Associacao A acessa Lojista B da Associacao B — 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista/{{lojistaIdB}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista",
+                "{{lojistaIdB}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Associacao A aprova lojista da Associacao B — 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista/{{lojistaIdB}}/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista",
+                "{{lojistaIdB}}",
+                "aprovar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Usuario A consulta proprio endereco — permitido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/endereco/usuario/{{usuarioIdA}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "endereco",
+                "usuario",
+                "{{usuarioIdA}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Usuario A consulta endereco de B — 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/endereco/usuario/{{usuarioIdB}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "endereco",
+                "usuario",
+                "{{usuarioIdB}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Usuario A edita endereco B — 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/endereco/{{enderecoIdB}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "endereco",
+                "{{enderecoIdB}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numero\": \"999\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Usuario A deleta endereco B — 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/endereco/{{enderecoIdB}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "endereco",
+                "{{enderecoIdB}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Usuario A envia usuarioId de B no body — 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/endereco",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "endereco"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cep\": \"01001000\",\n  \"numero\": \"10\",\n  \"usuarioId\": {{usuarioIdB}}\n}"
+            }
+          }
+        },
+        {
+          "name": "POST categoria — 403 catalogo global",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categoria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Hack\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST sexo — 403 catalogo global",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sexo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sexo"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Hack\"\n}"
             }
           }
         }

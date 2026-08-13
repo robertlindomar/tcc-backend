@@ -1,4 +1,5 @@
 import { PrismaClient } from "../../../generated/prisma/client";
+import { garantirProprioId } from "../../../shared/authz/garantirProprioId";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { ClienteViaCep } from "../../../shared/infra/ClienteViaCep";
 import { DTOAtualizarEndereco } from "../dto/DTOAtualizarEndereco";
@@ -16,6 +17,7 @@ export class ServicoAtualizarEndereco {
 
     async executar(
         idParam: string,
+        usuarioLogadoId: number,
         dto: DTOAtualizarEndereco,
     ): Promise<RespostaEndereco> {
         const id = parseId(idParam, "ID do endereco invalido");
@@ -25,6 +27,8 @@ export class ServicoAtualizarEndereco {
         if (!enderecoAtual) {
             throw new ErroAplicacao("Endereco nao encontrado", 404);
         }
+
+        garantirProprioId(enderecoAtual.usuarioId, usuarioLogadoId);
 
         if (!dto.cep && dto.numero === undefined) {
             throw new ErroAplicacao("Informe ao menos um campo para atualizar");

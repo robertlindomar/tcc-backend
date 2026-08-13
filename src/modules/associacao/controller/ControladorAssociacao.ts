@@ -21,7 +21,13 @@ export class ControladorAssociacao {
     }
 
     async buscar(request: Request, response: Response, _next: NextFunction): Promise<void> {
-        const item = await this.servicoAssociacao.buscar(request.params.id);
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
+        const item = await this.servicoAssociacao.buscar(request.params.id, {
+            id: request.usuario.id,
+            role: request.usuario.role,
+        });
         response.status(200).json(item);
     }
 

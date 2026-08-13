@@ -1,5 +1,6 @@
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { Role } from "../../auth/enum/Role";
+import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista";
 import { RepositorioUsuario } from "../../usuario/repository/RepositorioUsuario";
 import { DTOAtualizarAssociacao } from "../dto/DTOAtualizarAssociacao";
 import { DTOCriarAssociacao } from "../dto/DTOCriarAssociacao";
@@ -16,6 +17,7 @@ export class ServicoAssociacao {
     constructor(
         private readonly repositorioAssociacao: RepositorioAssociacao,
         private readonly repositorioUsuario: RepositorioUsuario,
+        private readonly repositorioLojista: RepositorioLojista,
     ) {}
 
     async criar(
@@ -68,6 +70,16 @@ export class ServicoAssociacao {
         }
 
         if (usuarioLogado.role === Role.LOJISTA) {
+            const lojista = await this.repositorioLojista.buscarPorUsuarioId(
+                usuarioLogado.id,
+            );
+            if (lojista) {
+                const vinculada = await this.repositorioAssociacao.buscar(
+                    lojista.associacaoId,
+                );
+                return vinculada ? [this.paraResposta(vinculada)] : [];
+            }
+            // Onboarding /minha-loja: ainda sem loja — precisa escolher associação.
             const lista = await this.repositorioAssociacao.listar();
             return lista.map((item) => this.paraResposta(item));
         }
@@ -75,7 +87,10 @@ export class ServicoAssociacao {
         throw new ErroAplicacao("Acesso nao autorizado para este perfil", 403);
     }
 
-    async buscar(idParam: string): Promise<RespostaAssociacao> {
+    async buscar(
+        idParam: string,
+        usuarioLogado: UsuarioAutenticado,
+    ): Promise<RespostaAssociacao> {
         const id = this.parseId(idParam);
         const associacao = await this.repositorioAssociacao.buscar(id);
 
@@ -83,7 +98,27 @@ export class ServicoAssociacao {
             throw new ErroAplicacao("Associacao nao encontrada", 404);
         }
 
-        return this.paraResposta(associacao);
+        if (usuarioLogado.role === Role.ASSOCIACAO) {
+            if (associacao.usuarioId !== usuarioLogado.id) {
+                throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+            }
+            return this.paraResposta(associacao);
+        }
+
+        if (usuarioLogado.role === Role.LOJISTA) {
+            const lojista = await this.repositorioLojista.buscarPorUsuarioId(
+                usuarioLogado.id,
+            );
+            if (lojista) {
+                if (associacao.id !== lojista.associacaoId) {
+                    throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+                }
+                return this.paraResposta(associacao);
+            }
+            return this.paraResposta(associacao);
+        }
+
+        throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
     }
 
     async atualizar(

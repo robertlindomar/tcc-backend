@@ -42,6 +42,18 @@ export class RepositorioConsumidor {
         }
     }
 
+    async listarPorLojistaId(lojistaId: number): Promise<Consumidor[]> {
+        try {
+            const lista = await this.prisma.consumidor.findMany({
+                where: { lojistaId },
+                orderBy: { id: "asc" },
+            });
+            return lista.map((item) => this.paraDominio(item));
+        } catch {
+            throw new ErroAplicacao("Erro ao listar consumidores do lojista", 500);
+        }
+    }
+
     async buscar(id: number): Promise<Consumidor | null> {
         try {
             const item = await this.prisma.consumidor.findUnique({ where: { id } });

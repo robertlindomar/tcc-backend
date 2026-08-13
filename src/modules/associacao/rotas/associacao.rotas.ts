@@ -18,8 +18,16 @@ export function RotasAssociacao() {
         garantirPapel(Role.ASSOCIACAO),
         tratarAsync(controller.criar.bind(controller)),
     );
-    router.put("/:id", tratarAsync(controller.atualizar.bind(controller)));
-    router.delete("/:id", tratarAsync(controller.deletar.bind(controller)));
+    router.put(
+        "/:id",
+        garantirPapel(Role.ASSOCIACAO),
+        tratarAsync(controller.atualizar.bind(controller)),
+    );
+    router.delete(
+        "/:id",
+        garantirPapel(Role.ASSOCIACAO),
+        tratarAsync(controller.deletar.bind(controller)),
+    );
 
     return router;
 }

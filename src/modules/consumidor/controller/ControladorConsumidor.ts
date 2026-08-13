@@ -1,33 +1,25 @@
 import { NextFunction, Request, Response } from "express";
-import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { exigirUsuario } from "../../../shared/authz/exigirUsuario";
 import { ServicoConsumidor } from "../service/ServicoConsumidor";
 
 export class ControladorConsumidor {
     constructor(private readonly servicoConsumidor: ServicoConsumidor) {}
 
-    async listar(
-        _request: Request,
-        response: Response,
-        _next: NextFunction,
-    ): Promise<void> {
-        const lista = await this.servicoConsumidor.listar();
+    async listar(request: Request, response: Response, _next: NextFunction): Promise<void> {
+        const usuario = exigirUsuario(request);
+        const lista = await this.servicoConsumidor.listar(usuario);
         response.status(200).json(lista);
     }
 
     async buscar(request: Request, response: Response, _next: NextFunction): Promise<void> {
-        const item = await this.servicoConsumidor.buscar(request.params.id);
+        const usuario = exigirUsuario(request);
+        const item = await this.servicoConsumidor.buscar(request.params.id, usuario);
         response.status(200).json(item);
     }
 
     async criar(request: Request, response: Response, _next: NextFunction): Promise<void> {
-        if (!request.usuario) {
-            throw new ErroAplicacao("Usuario nao autenticado", 401);
-        }
-
-        const criado = await this.servicoConsumidor.criar(
-            request.usuario.id,
-            request.body,
-        );
+        const usuario = exigirUsuario(request);
+        const criado = await this.servicoConsumidor.criar(usuario.id, request.body);
         response.status(201).json(criado);
     }
 
@@ -36,24 +28,18 @@ export class ControladorConsumidor {
         response: Response,
         _next: NextFunction,
     ): Promise<void> {
-        if (!request.usuario) {
-            throw new ErroAplicacao("Usuario nao autenticado", 401);
-        }
-
+        const usuario = exigirUsuario(request);
         const atualizado = await this.servicoConsumidor.atualizar(
             request.params.id,
-            request.usuario.id,
+            usuario,
             request.body,
         );
         response.status(200).json(atualizado);
     }
 
     async deletar(request: Request, response: Response, _next: NextFunction): Promise<void> {
-        if (!request.usuario) {
-            throw new ErroAplicacao("Usuario nao autenticado", 401);
-        }
-
-        await this.servicoConsumidor.deletar(request.params.id, request.usuario.id);
+        const usuario = exigirUsuario(request);
+        await this.servicoConsumidor.deletar(request.params.id, usuario);
         response.status(204).send();
     }
 }

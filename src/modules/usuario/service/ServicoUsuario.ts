@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { garantirProprioId } from "../../../shared/authz/garantirProprioId";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { Role } from "../../auth/enum/Role";
 import { RequisicaoAtualizarUsuario } from "../dtos/RequisicaoAtualizarUsuario";
@@ -48,13 +49,18 @@ export class ServicoUsuario {
         return this.paraResposta(criado);
     }
 
-    async listar(): Promise<RespostaUsuario[]> {
-        const lista = await this.repositorioUsuario.listar();
-        return lista.map((u) => this.paraResposta(u));
+    async criarViaHttp(): Promise<never> {
+        throw new ErroAplicacao("Cadastro publico deve usar POST /auth/cadastro", 403);
     }
 
-    async buscar(idParam: string): Promise<RespostaUsuario> {
+    async listar(): Promise<never> {
+        throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+    }
+
+    async buscar(idParam: string, usuarioLogadoId: number): Promise<RespostaUsuario> {
         const id = this.parseId(idParam);
+        garantirProprioId(id, usuarioLogadoId);
+
         const usuario = await this.repositorioUsuario.buscar(id);
 
         if (!usuario) {
@@ -66,9 +72,12 @@ export class ServicoUsuario {
 
     async atualizar(
         idParam: string,
+        usuarioLogadoId: number,
         request: RequisicaoAtualizarUsuario,
     ): Promise<RespostaUsuario> {
         const id = this.parseId(idParam);
+        garantirProprioId(id, usuarioLogadoId);
+
         const atualizado = await this.repositorioUsuario.atualizar(
             id,
             request.nome,
@@ -77,8 +86,9 @@ export class ServicoUsuario {
         return this.paraResposta(atualizado);
     }
 
-    async deletar(idParam: string): Promise<void> {
+    async deletar(idParam: string, usuarioLogadoId: number): Promise<void> {
         const id = this.parseId(idParam);
+        garantirProprioId(id, usuarioLogadoId);
         return this.repositorioUsuario.deletar(id);
     }
 

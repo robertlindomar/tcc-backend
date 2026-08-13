@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
-import { Categoria } from "../model/Categoria";
 import { RepositorioCategoria } from "../repository/RepositorioCategoria";
 import { ServicoCategoria } from "./ServicoCategoria";
 
@@ -27,27 +26,24 @@ describe("ServicoCategoria", () => {
         );
     });
 
-    it("cria categoria com nome trimado", async () => {
-        const agora = new Date();
-        repositorioMock.criar.mockResolvedValue(
-            new Categoria({
-                id: 1,
-                nome: "Alimentos",
-                dataCriacao: agora,
-                dataAtualizacao: agora,
-            }),
-        );
-
-        const resultado = await servico.criar({ nome: "  Alimentos  " });
-
-        expect(repositorioMock.criar).toHaveBeenCalled();
-        expect(resultado).toMatchObject({ id: 1, nome: "Alimentos" });
+    it("bloqueia POST de catalogo global", async () => {
+        await expect(servico.criar({ nome: "Alimentos" })).rejects.toMatchObject({
+            statusCode: 403,
+            message: "Escrita de catalogo global nao permitida",
+        } satisfies Partial<ErroAplicacao>);
+        expect(repositorioMock.criar).not.toHaveBeenCalled();
     });
 
-    it("rejeita nome vazio", async () => {
-        await expect(servico.criar({ nome: "   " })).rejects.toBeInstanceOf(
-            ErroAplicacao,
-        );
+    it("bloqueia PUT de catalogo global", async () => {
+        await expect(
+            servico.atualizar("1", { nome: "Outro" }),
+        ).rejects.toMatchObject({ statusCode: 403 });
+        expect(repositorioMock.atualizar).not.toHaveBeenCalled();
+    });
+
+    it("bloqueia DELETE de catalogo global", async () => {
+        await expect(servico.deletar("1")).rejects.toMatchObject({ statusCode: 403 });
+        expect(repositorioMock.deletar).not.toHaveBeenCalled();
     });
 
     it("busca inexistente retorna 404", async () => {

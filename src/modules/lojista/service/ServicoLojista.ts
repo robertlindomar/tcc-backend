@@ -112,7 +112,10 @@ export class ServicoLojista {
         throw new ErroAplicacao("Acesso nao autorizado para este perfil", 403);
     }
 
-    async buscar(idParam: string): Promise<RespostaLojista> {
+    async buscar(
+        idParam: string,
+        usuarioLogado: UsuarioAutenticado,
+    ): Promise<RespostaLojista> {
         const id = this.parseId(idParam);
         const lojista = await this.repositorioLojista.buscar(id);
 
@@ -120,7 +123,24 @@ export class ServicoLojista {
             throw new ErroAplicacao("Lojista nao encontrado", 404);
         }
 
-        return this.paraResposta(lojista);
+        if (usuarioLogado.role === Role.LOJISTA) {
+            if (lojista.usuarioId !== usuarioLogado.id) {
+                throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+            }
+            return this.paraResposta(lojista);
+        }
+
+        if (usuarioLogado.role === Role.ASSOCIACAO) {
+            const associacao = await this.repositorioAssociacao.buscarPorUsuarioId(
+                usuarioLogado.id,
+            );
+            if (!associacao || lojista.associacaoId !== associacao.id) {
+                throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+            }
+            return this.paraResposta(lojista);
+        }
+
+        throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
     }
 
     async atualizar(

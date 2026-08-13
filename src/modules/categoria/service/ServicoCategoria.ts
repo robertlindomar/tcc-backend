@@ -1,3 +1,4 @@
+import { recusarEscritaCatalogoGlobal } from "../../../shared/authz/recusarEscritaCatalogoGlobal";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { DTOAtualizarCategoria } from "../dto/DTOAtualizarCategoria";
 import { DTOCriarCategoria } from "../dto/DTOCriarCategoria";
@@ -9,6 +10,7 @@ export class ServicoCategoria {
     constructor(private readonly repositorioCategoria: RepositorioCategoria) {}
 
     async criar(request: DTOCriarCategoria): Promise<RespostaCategoria> {
+        recusarEscritaCatalogoGlobal();
         const nome = this.validarNome(request.nome);
         const categoria = new Categoria({
             id: 0,
@@ -38,6 +40,7 @@ export class ServicoCategoria {
         idParam: string,
         request: DTOAtualizarCategoria,
     ): Promise<RespostaCategoria> {
+        recusarEscritaCatalogoGlobal();
         const id = this.parseId(idParam);
         const nome = this.validarNome(request.nome);
         const existente = await this.repositorioCategoria.buscar(id);
@@ -49,6 +52,7 @@ export class ServicoCategoria {
     }
 
     async deletar(idParam: string): Promise<void> {
+        recusarEscritaCatalogoGlobal();
         const id = this.parseId(idParam);
         const existente = await this.repositorioCategoria.buscar(id);
         if (!existente) {

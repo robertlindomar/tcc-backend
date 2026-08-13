@@ -1,5 +1,6 @@
 export interface DTOCriarEndereco {
     cep: string;
     numero?: string;
-    usuarioId: number;
+    /** Ignorado: o dono vem do JWT. Mantido só por compatibilidade de payload. */
+    usuarioId?: number;
 }

@@ -1,3 +1,4 @@
+import { recusarEscritaCatalogoGlobal } from "../../../shared/authz/recusarEscritaCatalogoGlobal";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { DTOAtualizarSexo } from "../dto/DTOAtualizarSexo";
 import { DTOCriarSexo } from "../dto/DTOCriarSexo";
@@ -9,6 +10,7 @@ export class ServicoSexo {
     constructor(private readonly repositorioSexo: RepositorioSexo) {}
 
     async criar(request: DTOCriarSexo): Promise<RespostaSexo> {
+        recusarEscritaCatalogoGlobal();
         const nome = this.validarNome(request.nome);
 
         const sexo = new Sexo({
@@ -39,6 +41,7 @@ export class ServicoSexo {
     }
 
     async atualizar(idParam: string, request: DTOAtualizarSexo): Promise<RespostaSexo> {
+        recusarEscritaCatalogoGlobal();
         const id = this.parseId(idParam);
         const nome = this.validarNome(request.nome);
 
@@ -52,6 +55,7 @@ export class ServicoSexo {
     }
 
     async deletar(idParam: string): Promise<void> {
+        recusarEscritaCatalogoGlobal();
         const id = this.parseId(idParam);
 
         const existente = await this.repositorioSexo.buscar(id);

@@ -18,8 +18,16 @@ export function RotasConsumidor() {
         garantirPapel(Role.CONSUMIDOR),
         tratarAsync(controller.criar.bind(controller)),
     );
-    router.put("/:id", tratarAsync(controller.atualizar.bind(controller)));
-    router.delete("/:id", tratarAsync(controller.deletar.bind(controller)));
+    router.put(
+        "/:id",
+        garantirPapel(Role.CONSUMIDOR),
+        tratarAsync(controller.atualizar.bind(controller)),
+    );
+    router.delete(
+        "/:id",
+        garantirPapel(Role.CONSUMIDOR),
+        tratarAsync(controller.deletar.bind(controller)),
+    );
 
     return router;
 }

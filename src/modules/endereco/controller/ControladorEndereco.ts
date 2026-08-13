@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { exigirUsuario } from "../../../shared/authz/exigirUsuario";
 import { ServicoAtualizarEndereco } from "../service/ServicoAtualizarEndereco";
 import { ServicoCriarEndereco } from "../service/ServicoCriarEndereco";
 import { ServicoDeletarEndereco } from "../service/ServicoDeletarEndereco";
@@ -13,7 +14,8 @@ export class ControladorEndereco {
     ) {}
 
     async criar(request: Request, response: Response, _next: NextFunction): Promise<void> {
-        const criado = await this.servicoCriarEndereco.executar(request.body);
+        const usuario = exigirUsuario(request);
+        const criado = await this.servicoCriarEndereco.executar(usuario.id, request.body);
         response.status(201).json(criado);
     }
 
@@ -22,8 +24,10 @@ export class ControladorEndereco {
         response: Response,
         _next: NextFunction,
     ): Promise<void> {
+        const usuario = exigirUsuario(request);
         const endereco = await this.servicoEncontrarEnderecoPorUsuario.executar(
             request.params.usuarioId,
+            usuario.id,
         );
         response.status(200).json(endereco);
     }
@@ -33,15 +37,18 @@ export class ControladorEndereco {
         response: Response,
         _next: NextFunction,
     ): Promise<void> {
+        const usuario = exigirUsuario(request);
         const atualizado = await this.servicoAtualizarEndereco.executar(
             request.params.id,
+            usuario.id,
             request.body,
         );
         response.status(200).json(atualizado);
     }
 
     async deletar(request: Request, response: Response, _next: NextFunction): Promise<void> {
-        await this.servicoDeletarEndereco.executar(request.params.id);
+        const usuario = exigirUsuario(request);
+        await this.servicoDeletarEndereco.executar(request.params.id, usuario.id);
         response.status(204).send();
     }
 }

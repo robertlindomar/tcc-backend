@@ -7,13 +7,13 @@ export function RotasUsuario() {
     const router = Router();
     const controller = criarControladorUsuario();
 
-    // POST permanece público (compatibilidade Postman Fase 0 / cadastro direto)
-    router.post("/", tratarAsync(controller.criar.bind(controller)));
+    router.use(garantirAutenticado);
 
-    router.get("/", garantirAutenticado, tratarAsync(controller.listar.bind(controller)));
-    router.get("/:id", garantirAutenticado, tratarAsync(controller.buscar.bind(controller)));
-    router.put("/:id", garantirAutenticado, tratarAsync(controller.atualizar.bind(controller)));
-    router.delete("/:id", garantirAutenticado, tratarAsync(controller.deletar.bind(controller)));
+    router.post("/", tratarAsync(controller.criar.bind(controller)));
+    router.get("/", tratarAsync(controller.listar.bind(controller)));
+    router.get("/:id", tratarAsync(controller.buscar.bind(controller)));
+    router.put("/:id", tratarAsync(controller.atualizar.bind(controller)));
+    router.delete("/:id", tratarAsync(controller.deletar.bind(controller)));
 
     return router;
 }
