@@ -3,6 +3,7 @@ type EventoProps = {
     nome: string;
     descricao: string | null;
     lojistaId: number;
+    urlImagem?: string | null;
     dataCriacao: Date;
     dataAtualizacao: Date;
 };
@@ -11,7 +12,10 @@ export class Evento {
     private readonly props: EventoProps;
 
     constructor(props: EventoProps) {
-        this.props = { ...props };
+        this.props = {
+            ...props,
+            urlImagem: props.urlImagem ?? null,
+        };
     }
 
     get id() {
@@ -28,6 +32,10 @@ export class Evento {
 
     get lojistaId() {
         return this.props.lojistaId;
+    }
+
+    get urlImagem() {
+        return this.props.urlImagem ?? null;
     }
 
     get dataCriacao() {

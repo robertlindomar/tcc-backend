@@ -5,5 +5,5 @@ node_modules
 
 /src/generated/prisma
 
-# Regras locais do Cursor (opcional no repositorio)
-.cursor/rules/
+# Uploads locais da demo (não versionar binários)
+/uploads/

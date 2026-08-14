@@ -30,6 +30,10 @@ describe("ServicoEvento por status do lojista", () => {
         servico = new ServicoEvento(
             repositorioEventoMock as unknown as RepositorioEvento,
             repositorioLojistaMock as unknown as RepositorioLojista,
+            {
+                gravar: vi.fn(),
+                remover: vi.fn(),
+            } as never,
         );
     });
 

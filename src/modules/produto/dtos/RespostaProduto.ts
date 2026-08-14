@@ -5,6 +5,7 @@ export interface RespostaProduto {
     valor: number;
     categoriaId: number | null;
     lojistaId: number;
+    urlImagem: string | null;
     dataCriacao: Date;
     dataAtualizacao: Date;
 }

@@ -3,6 +3,7 @@ export interface RespostaEvento {
     nome: string;
     descricao: string | null;
     lojistaId: number;
+    urlImagem: string | null;
     dataCriacao: Date;
     dataAtualizacao: Date;
 }

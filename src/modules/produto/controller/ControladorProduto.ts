@@ -52,4 +52,24 @@ export class ControladorProduto {
         await this.servicoProduto.deletar(request.usuario.id, request.params.id);
         response.status(204).send();
     }
+
+    async definirImagem(
+        request: Request,
+        response: Response,
+        _next: NextFunction,
+    ): Promise<void> {
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
+        const arquivo = request.file;
+        if (!arquivo) {
+            throw new ErroAplicacao("Arquivo de imagem e obrigatorio", 400);
+        }
+        const atualizado = await this.servicoProduto.definirImagem(
+            request.usuario.id,
+            request.params.id,
+            arquivo.buffer,
+        );
+        response.status(200).json(atualizado);
+    }
 }

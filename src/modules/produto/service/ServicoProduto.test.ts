@@ -46,6 +46,10 @@ describe("ServicoProduto", () => {
             repositorioProdutoMock as unknown as RepositorioProduto,
             repositorioLojistaMock as unknown as RepositorioLojista,
             repositorioCategoriaMock as unknown as RepositorioCategoria,
+            {
+                gravar: vi.fn(),
+                remover: vi.fn(),
+            } as never,
         );
     });
 

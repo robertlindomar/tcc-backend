@@ -243,6 +243,8 @@ model Produto {
   lojistaId Int     @map("id_lojista")
   lojista   Lojista @relation(fields: [lojistaId], references: [id])
 
+  urlImagem String? @map("url_imagem") @db.VarChar(500)
+
   promocoes Promocao[]
 
   dataCriacao     DateTime @default(now()) @map("data_criacao")
@@ -279,6 +281,8 @@ model Evento {
 
   lojistaId Int     @map("id_lojista")
   lojista   Lojista @relation(fields: [lojistaId], references: [id])
+
+  urlImagem String? @map("url_imagem") @db.VarChar(500)
 
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")

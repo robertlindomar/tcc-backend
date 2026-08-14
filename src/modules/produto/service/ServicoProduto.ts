@@ -1,5 +1,6 @@
 import { resolverLojistaAprovado } from "../../../shared/authz/resolverLojistaAprovado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { ServicoUploadImagem } from "../../../shared/upload/ServicoUploadImagem";
 import { RepositorioCategoria } from "../../categoria/repository/RepositorioCategoria";
 import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista";
 import { DTOAtualizarProduto } from "../dto/DTOAtualizarProduto";
@@ -13,6 +14,7 @@ export class ServicoProduto {
         private readonly repositorioProduto: RepositorioProduto,
         private readonly repositorioLojista: RepositorioLojista,
         private readonly repositorioCategoria: RepositorioCategoria,
+        private readonly servicoUploadImagem: ServicoUploadImagem,
     ) {}
 
     async criar(usuarioId: number, request: DTOCriarProduto): Promise<RespostaProduto> {
@@ -101,6 +103,25 @@ export class ServicoProduto {
         );
         const existente = await this.obterDoLojista(idParam, lojistaId);
         await this.repositorioProduto.deletar(existente.id);
+        await this.servicoUploadImagem.remover(existente.urlImagem);
+    }
+
+    async definirImagem(
+        usuarioId: number,
+        idParam: string,
+        buffer: Buffer,
+    ): Promise<RespostaProduto> {
+        const { lojistaId } = await resolverLojistaAprovado(
+            this.repositorioLojista,
+            usuarioId,
+        );
+        const existente = await this.obterDoLojista(idParam, lojistaId);
+        const urlImagem = await this.servicoUploadImagem.gravar("produtos", buffer);
+        const atualizado = await this.repositorioProduto.atualizar(existente.id, {
+            urlImagem,
+        });
+        await this.servicoUploadImagem.remover(existente.urlImagem);
+        return this.paraResposta(atualizado);
     }
 
     private async obterDoLojista(idParam: string, lojistaId: number): Promise<Produto> {
@@ -121,6 +142,7 @@ export class ServicoProduto {
             valor: produto.valor,
             categoriaId: produto.categoriaId,
             lojistaId: produto.lojistaId,
+            urlImagem: produto.urlImagem,
             dataCriacao: produto.dataCriacao,
             dataAtualizacao: produto.dataAtualizacao,
         };

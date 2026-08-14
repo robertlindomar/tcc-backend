@@ -9,6 +9,7 @@ type RegistroProduto = {
     valor: { toString(): string } | number;
     categoriaId: number | null;
     lojistaId: number;
+    urlImagem: string | null;
     dataCriacao: Date;
     dataAtualizacao: Date;
 };
@@ -57,6 +58,7 @@ export class RepositorioProduto {
             nome?: string;
             valor?: number;
             categoriaId?: number | null;
+            urlImagem?: string | null;
         },
     ): Promise<Produto> {
         try {
@@ -85,6 +87,7 @@ export class RepositorioProduto {
             valor: decimalParaNumero(item.valor),
             categoriaId: item.categoriaId,
             lojistaId: item.lojistaId,
+            urlImagem: item.urlImagem,
             dataCriacao: item.dataCriacao,
             dataAtualizacao: item.dataAtualizacao,
         });

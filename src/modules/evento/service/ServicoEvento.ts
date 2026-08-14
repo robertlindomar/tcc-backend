@@ -1,5 +1,6 @@
 import { resolverLojistaAprovado } from "../../../shared/authz/resolverLojistaAprovado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { ServicoUploadImagem } from "../../../shared/upload/ServicoUploadImagem";
 import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista";
 import { DTOAtualizarEvento } from "../dto/DTOAtualizarEvento";
 import { DTOCriarEvento } from "../dto/DTOCriarEvento";
@@ -11,6 +12,7 @@ export class ServicoEvento {
     constructor(
         private readonly repositorioEvento: RepositorioEvento,
         private readonly repositorioLojista: RepositorioLojista,
+        private readonly servicoUploadImagem: ServicoUploadImagem,
     ) {}
 
     async criar(usuarioId: number, request: DTOCriarEvento): Promise<RespostaEvento> {
@@ -87,6 +89,25 @@ export class ServicoEvento {
         );
         const existente = await this.obterDoLojista(idParam, lojistaId);
         await this.repositorioEvento.deletar(existente.id);
+        await this.servicoUploadImagem.remover(existente.urlImagem);
+    }
+
+    async definirImagem(
+        usuarioId: number,
+        idParam: string,
+        buffer: Buffer,
+    ): Promise<RespostaEvento> {
+        const { lojistaId } = await resolverLojistaAprovado(
+            this.repositorioLojista,
+            usuarioId,
+        );
+        const existente = await this.obterDoLojista(idParam, lojistaId);
+        const urlImagem = await this.servicoUploadImagem.gravar("eventos", buffer);
+        const atualizado = await this.repositorioEvento.atualizar(existente.id, {
+            urlImagem,
+        });
+        await this.servicoUploadImagem.remover(existente.urlImagem);
+        return this.paraResposta(atualizado);
     }
 
     private async obterDoLojista(idParam: string, lojistaId: number): Promise<Evento> {
@@ -106,6 +127,7 @@ export class ServicoEvento {
             nome: evento.nome,
             descricao: evento.descricao,
             lojistaId: evento.lojistaId,
+            urlImagem: evento.urlImagem,
             dataCriacao: evento.dataCriacao,
             dataAtualizacao: evento.dataAtualizacao,
         };

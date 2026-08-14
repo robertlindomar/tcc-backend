@@ -32,6 +32,10 @@ describe("ServicoProduto por status do lojista", () => {
             repositorioProdutoMock as unknown as RepositorioProduto,
             repositorioLojistaMock as unknown as RepositorioLojista,
             {} as RepositorioCategoria,
+            {
+                gravar: vi.fn(),
+                remover: vi.fn(),
+            } as never,
         );
     });
 

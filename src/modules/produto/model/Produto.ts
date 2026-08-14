@@ -4,6 +4,7 @@ type ProdutoProps = {
     valor: number;
     categoriaId: number | null;
     lojistaId: number;
+    urlImagem?: string | null;
     dataCriacao: Date;
     dataAtualizacao: Date;
 };
@@ -12,7 +13,10 @@ export class Produto {
     private readonly props: ProdutoProps;
 
     constructor(props: ProdutoProps) {
-        this.props = { ...props };
+        this.props = {
+            ...props,
+            urlImagem: props.urlImagem ?? null,
+        };
     }
 
     get id() {
@@ -33,6 +37,10 @@ export class Produto {
 
     get lojistaId() {
         return this.props.lojistaId;
+    }
+
+    get urlImagem() {
+        return this.props.urlImagem ?? null;
     }
 
     get dataCriacao() {

@@ -4,15 +4,22 @@ import express from "express";
 import cors from "cors";
 import { routes } from "./routes";
 import { middlewareErro } from "./shared/middlewares/middlewareErro";
+import { diretorioUploads } from "./shared/upload/ArmazenamentoDiscoLocal";
 
 const app = express();
 
-// Middlewares
 app.use(cors());
 app.use(express.json());
+app.use(
+    "/uploads",
+    express.static(diretorioUploads(), {
+        index: false,
+        fallthrough: false,
+    }),
+);
 
-// Rotas
 app.use(routes());
+app.use(middlewareErro);
 
 // Middleware de tratamento de erros (sempre no final)
 app.use(middlewareErro);

@@ -7,6 +7,7 @@ type RegistroEvento = {
     nome: string;
     descricao: string | null;
     lojistaId: number;
+    urlImagem: string | null;
     dataCriacao: Date;
     dataAtualizacao: Date;
 };
@@ -53,6 +54,7 @@ export class RepositorioEvento {
         dados: {
             nome?: string;
             descricao?: string | null;
+            urlImagem?: string | null;
         },
     ): Promise<Evento> {
         try {
@@ -80,6 +82,7 @@ export class RepositorioEvento {
             nome: item.nome,
             descricao: item.descricao,
             lojistaId: item.lojistaId,
+            urlImagem: item.urlImagem,
             dataCriacao: item.dataCriacao,
             dataAtualizacao: item.dataAtualizacao,
         });
