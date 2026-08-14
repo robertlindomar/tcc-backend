@@ -21,9 +21,7 @@ export class ServicoMissao {
 
         const nome = this.validarNome(request.nome);
         const descricao = this.validarDescricaoOpcional(request.descricao);
-        const pontoRecompensa = this.validarPontoRecompensa(
-            request.pontoRecompensa === undefined ? 0 : request.pontoRecompensa,
-        );
+        const pontoRecompensa = this.validarPontoRecompensa(request.pontoRecompensa);
 
         const criado = await this.repositorioMissao.criar({
             nome,
@@ -138,9 +136,12 @@ export class ServicoMissao {
     }
 
     private validarPontoRecompensa(valor: unknown): number {
+        if (valor === undefined || valor === null || valor === "") {
+            throw new ErroAplicacao("pontoRecompensa e obrigatorio", 400);
+        }
         const n = typeof valor === "number" ? valor : Number(valor);
-        if (!Number.isInteger(n) || n < 0) {
-            throw new ErroAplicacao("pontoRecompensa invalido", 400);
+        if (!Number.isInteger(n) || n < 1) {
+            throw new ErroAplicacao("pontoRecompensa deve ser um inteiro maior que zero", 400);
         }
         return n;
     }

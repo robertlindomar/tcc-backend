@@ -39,7 +39,7 @@ describe("ServicoMissao por status do lojista", () => {
         );
 
         await expect(
-            servico.criar(20, { nome: "Visite a loja" }),
+            servico.criar(20, { nome: "Visite a loja", pontoRecompensa: 1 }),
         ).rejects.toMatchObject({
             statusCode: 403,
         } satisfies Partial<ErroAplicacao>);
@@ -52,7 +52,7 @@ describe("ServicoMissao por status do lojista", () => {
         );
 
         await expect(
-            servico.criar(20, { nome: "Visite a loja" }),
+            servico.criar(20, { nome: "Visite a loja", pontoRecompensa: 1 }),
         ).rejects.toMatchObject({ statusCode: 403 });
         expect(repositorioMissaoMock.criar).not.toHaveBeenCalled();
     });
@@ -67,14 +67,14 @@ describe("ServicoMissao por status do lojista", () => {
                 id: 4,
                 nome: "Visite a loja",
                 descricao: null,
-                pontoRecompensa: 0,
+                pontoRecompensa: 50,
                 lojistaId: 5,
                 dataCriacao: agora,
                 dataAtualizacao: agora,
             }),
         );
 
-        const resultado = await servico.criar(20, { nome: "Visite a loja" });
+        const resultado = await servico.criar(20, { nome: "Visite a loja", pontoRecompensa: 50 });
 
         expect(resultado.lojistaId).toBe(5);
         expect(repositorioMissaoMock.criar).toHaveBeenCalledOnce();

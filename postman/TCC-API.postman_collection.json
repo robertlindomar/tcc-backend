@@ -3222,14 +3222,14 @@
           }
         },
         {
-          "name": "Criar Missao - ponto default 0",
+          "name": "Criar Missao - sem pontos (400)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "pm.test('default 0', () => pm.expect(pm.response.json().pontoRecompensa).to.eql(0));"
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ]
               }
             }
           ],
