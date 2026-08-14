@@ -7,6 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
+    "db:demo:reset": "tsx prisma/demo-reset.ts",
     "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest"

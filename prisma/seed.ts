@@ -16,8 +16,12 @@ const prisma = new PrismaClient({
 
 const SENHA_DEMO = "senha123";
 
-/** Preferência: conta que você já usa no navegador. */
-const EMAILS_ASSOCIACAO_DEMO = ["associacao@gmail.com"] as const;
+/**
+ * Conta de associação da demonstração. Precisa nascer do seed para a senha ser
+ * conhecida: contas criadas fora dele (ex.: associacao@gmail.com) têm senha que
+ * o seed não pode adivinhar nem sobrescrever.
+ */
+const EMAIL_ASSOCIACAO_DEMO = "associacao@demo.local";
 
 const NOMES_SEXO = ["Masculino", "Feminino"] as const;
 const NOMES_CATEGORIA = [
@@ -53,43 +57,238 @@ async function garantirUsuario(dados: {
 }
 
 async function resolverAssociacaoAlvo() {
-    for (const email of EMAILS_ASSOCIACAO_DEMO) {
-        const usuario = await prisma.usuario.findUnique({ where: { email } });
-        if (!usuario || usuario.role !== Role.ASSOCIACAO) {
-            continue;
-        }
-        const associacao = await prisma.associacao.findUnique({
-            where: { usuarioId: usuario.id },
-        });
-        if (associacao) {
-            console.log(
-                `Associação alvo: id=${associacao.id} (${associacao.nomeFantasia}) via ${email}`,
-            );
-            return associacao;
-        }
-    }
-
     const usuarioAssoc = await garantirUsuario({
-        email: "associacao@gmail.com",
-        nome: "Associação Demo",
+        email: EMAIL_ASSOCIACAO_DEMO,
+        nome: "Associação Comercial (Demo)",
         role: Role.ASSOCIACAO,
     });
-    let associacao = await prisma.associacao.findUnique({
+
+    const existente = await prisma.associacao.findUnique({
         where: { usuarioId: usuarioAssoc.id },
     });
-    if (!associacao) {
-        associacao = await prisma.associacao.create({
+    if (existente) {
+        console.log(
+            `Associação alvo: id=${existente.id} (${existente.nomeFantasia}) via ${EMAIL_ASSOCIACAO_DEMO}`,
+        );
+        return existente;
+    }
+
+    const associacao = await prisma.associacao.create({
+        data: {
+            nomeFantasia: "Associação Comercial de Santa Fé do Sul",
+            razaoSocial: "Associacao Comercial de Santa Fe do Sul",
+            cnpj: "22.222.222/0001-22",
+            inscricaoEstadual: null,
+            usuarioId: usuarioAssoc.id,
+        },
+    });
+    console.log(`Associação demo criada (id=${associacao.id})`);
+    return associacao;
+}
+
+/** Endereço 1:1 do usuário, também vinculado em `lojista.enderecoId`. */
+async function garantirEnderecoDemo(dados: {
+    emailLojista: string;
+    cep: string;
+    numero: string;
+    rua: string;
+    bairro: string;
+    cidade: string;
+    estado: string;
+    uf: string;
+}) {
+    const usuario = await prisma.usuario.findUnique({
+        where: { email: dados.emailLojista },
+    });
+    if (!usuario) {
+        return;
+    }
+
+    const lojista = await prisma.lojista.findUnique({
+        where: { usuarioId: usuario.id },
+    });
+    if (!lojista) {
+        return;
+    }
+
+    let endereco = await prisma.endereco.findUnique({
+        where: { usuarioId: usuario.id },
+    });
+
+    if (!endereco) {
+        const estado =
+            (await prisma.estado.findFirst({ where: { uf: dados.uf } })) ??
+            (await prisma.estado.create({
+                data: { nome: dados.estado, uf: dados.uf },
+            }));
+        const cidade =
+            (await prisma.cidade.findFirst({
+                where: { nome: dados.cidade, estadoId: estado.id },
+            })) ??
+            (await prisma.cidade.create({
+                data: { nome: dados.cidade, estadoId: estado.id },
+            }));
+        const bairro =
+            (await prisma.bairro.findFirst({
+                where: { nome: dados.bairro, cidadeId: cidade.id },
+            })) ??
+            (await prisma.bairro.create({
+                data: { nome: dados.bairro, cidadeId: cidade.id },
+            }));
+        const rua =
+            (await prisma.rua.findFirst({ where: { nome: dados.rua } })) ??
+            (await prisma.rua.create({ data: { nome: dados.rua } }));
+
+        endereco = await prisma.endereco.create({
             data: {
-                nomeFantasia: "Associação Comercial de Santa Fé do Sul",
-                razaoSocial: "Associacao Comercial de Santa Fe do Sul",
-                cnpj: "11.111.111/0001-11",
-                inscricaoEstadual: null,
-                usuarioId: usuarioAssoc.id,
+                cep: dados.cep,
+                numero: dados.numero,
+                usuarioId: usuario.id,
+                ruaId: rua.id,
+                bairroId: bairro.id,
+                cidadeId: cidade.id,
+                estadoId: estado.id,
             },
         });
-        console.log(`Associação demo criada (id=${associacao.id})`);
+        console.log(
+            `Endereço demo criado para ${dados.emailLojista} (id=${endereco.id})`,
+        );
     }
-    return associacao;
+
+    if (lojista.enderecoId !== endereco.id) {
+        await prisma.lojista.update({
+            where: { id: lojista.id },
+            data: { enderecoId: endereco.id },
+        });
+        console.log(
+            `Lojista ${lojista.nomeFantasia}: enderecoId → ${endereco.id}`,
+        );
+    }
+}
+
+async function garantirProdutosDemo(
+    emailLojista: string,
+    produtos: readonly { nome: string; valor: number; categoria: string }[],
+) {
+    const usuario = await prisma.usuario.findUnique({
+        where: { email: emailLojista },
+    });
+    if (!usuario) {
+        return;
+    }
+    const lojista = await prisma.lojista.findUnique({
+        where: { usuarioId: usuario.id },
+    });
+    if (!lojista) {
+        return;
+    }
+
+    for (const produto of produtos) {
+        const existente = await prisma.produto.findFirst({
+            where: { nome: produto.nome, lojistaId: lojista.id },
+        });
+        if (existente) {
+            continue;
+        }
+        const categoria = await prisma.categoria.findFirst({
+            where: { nome: produto.categoria },
+        });
+        const criado = await prisma.produto.create({
+            data: {
+                nome: produto.nome,
+                valor: produto.valor,
+                lojistaId: lojista.id,
+                categoriaId: categoria?.id ?? null,
+            },
+        });
+        console.log(
+            `Produto demo criado: ${criado.nome} (loja ${lojista.nomeFantasia})`,
+        );
+    }
+}
+
+/** Consumidor vinculado à loja, para a tela do lojista não ficar vazia. */
+async function garantirConsumidorDemo(dados: {
+    email: string;
+    nome: string;
+    cpf: string;
+    pontos: number;
+    emailLojista: string;
+}) {
+    const usuario = await garantirUsuario({
+        email: dados.email,
+        nome: dados.nome,
+        role: Role.CONSUMIDOR,
+    });
+
+    const usuarioLojista = await prisma.usuario.findUnique({
+        where: { email: dados.emailLojista },
+    });
+    const lojista = usuarioLojista
+        ? await prisma.lojista.findUnique({ where: { usuarioId: usuarioLojista.id } })
+        : null;
+
+    const existente = await prisma.consumidor.findUnique({
+        where: { usuarioId: usuario.id },
+    });
+    if (existente) {
+        if (lojista && existente.lojistaId !== lojista.id) {
+            await prisma.consumidor.update({
+                where: { id: existente.id },
+                data: { lojistaId: lojista.id },
+            });
+            console.log(`Consumidor ${dados.nome}: vinculado à loja ${lojista.nomeFantasia}`);
+        }
+        return;
+    }
+
+    if (await prisma.consumidor.findUnique({ where: { cpf: dados.cpf } })) {
+        console.log(`CPF ${dados.cpf} já em uso — pulando consumidor demo`);
+        return;
+    }
+
+    const sexo = await prisma.sexo.findFirst();
+    const criado = await prisma.consumidor.create({
+        data: {
+            cpf: dados.cpf,
+            pontos: dados.pontos,
+            nivel: 1,
+            usuarioId: usuario.id,
+            lojistaId: lojista?.id ?? null,
+            sexoId: sexo?.id ?? null,
+        },
+    });
+    console.log(`Consumidor demo criado: ${dados.nome} (id=${criado.id})`);
+}
+
+async function garantirCampanhasDemo(associacaoId: number) {
+    const campanhas = [
+        {
+            nome: "Natal Premiado 2026",
+            descricao: "Compre nas lojas participantes e concorra a prêmios.",
+        },
+        {
+            nome: "Semana do Comércio Local",
+            descricao: "Campanha de valorização dos comércios da cidade.",
+        },
+    ] as const;
+
+    for (const campanha of campanhas) {
+        const existente = await prisma.campanha.findFirst({
+            where: { nome: campanha.nome, associacaoId },
+        });
+        if (existente) {
+            continue;
+        }
+        const criada = await prisma.campanha.create({
+            data: { ...campanha, associacaoId },
+        });
+        console.log(`Campanha demo criada: ${criada.nome} (id=${criada.id})`);
+
+        await prisma.sorteio.create({
+            data: { campanhaId: criada.id, qrcode: null },
+        });
+    }
 }
 
 async function garantirLojistaDemo(dados: {
@@ -232,6 +431,56 @@ async function main() {
         });
     }
 
+    // Endereço pronto nas duas lojas do roteiro; "Sabor & Cia" fica sem, para
+    // demonstrar o cadastro de endereço ao vivo.
+    await garantirEnderecoDemo({
+        emailLojista: "loja.pendente@demo.local",
+        cep: "15775-000",
+        numero: "1250",
+        rua: "Avenida Navarro de Andrade",
+        bairro: "Centro",
+        cidade: "Santa Fé do Sul",
+        estado: "São Paulo",
+        uf: "SP",
+    });
+    await garantirEnderecoDemo({
+        emailLojista: "loja.aprovada@demo.local",
+        cep: "15775-000",
+        numero: "480",
+        rua: "Rua Nove",
+        bairro: "Centro",
+        cidade: "Santa Fé do Sul",
+        estado: "São Paulo",
+        uf: "SP",
+    });
+
+    await garantirProdutosDemo("loja.aprovada@demo.local", [
+        { nome: "Cesta de café da manhã", valor: 89.9, categoria: "Alimentos" },
+        { nome: "Vinho tinto seco 750ml", valor: 54.5, categoria: "Bebidas" },
+        { nome: "Camiseta algodão premium", valor: 79.9, categoria: "Vestuário" },
+    ]);
+    await garantirProdutosDemo("loja.pendente@demo.local", [
+        { nome: "Óculos de sol polarizado", valor: 249.9, categoria: "Vestuário" },
+        { nome: "Armação infantil flexível", valor: 189.0, categoria: "Vestuário" },
+    ]);
+
+    await garantirConsumidorDemo({
+        email: "cliente1@demo.local",
+        nome: "Ana Souza",
+        cpf: "111.222.333-44",
+        pontos: 320,
+        emailLojista: "loja.pendente@demo.local",
+    });
+    await garantirConsumidorDemo({
+        email: "cliente2@demo.local",
+        nome: "Bruno Lima",
+        cpf: "222.333.444-55",
+        pontos: 150,
+        emailLojista: "loja.aprovada@demo.local",
+    });
+
+    await garantirCampanhasDemo(associacao.id);
+
     const pendentes = await prisma.lojista.count({
         where: { associacaoId: associacao.id, status: StatusLojista.PENDENTE },
     });
@@ -241,10 +490,11 @@ async function main() {
     console.log(
         `Pré-cadastros PENDENTE na associação id=${associacao.id}: ${pendentes}`,
     );
-    console.log("Associação (única): associacao@gmail.com");
-    console.log("loja.pendente@demo.local  → LOJISTA PENDENTE");
-    console.log("loja.aprovada@demo.local  → LOJISTA APROVADO");
+    console.log(`${EMAIL_ASSOCIACAO_DEMO}     → ASSOCIACAO`);
+    console.log("loja.pendente@demo.local  → LOJISTA PENDENTE (com endereço)");
+    console.log("loja.aprovada@demo.local  → LOJISTA APROVADO (com endereço)");
     console.log("loja.rejeitada@demo.local → LOJISTA REJEITADO");
+    console.log("loja.pendente2@demo.local → LOJISTA PENDENTE (sem endereço)");
     console.log("Re-seed NÃO altera status de lojistas já existentes.");
 }
 
