@@ -69,6 +69,7 @@ describe("ServicoMissao por status do lojista", () => {
                 descricao: null,
                 pontoRecompensa: 50,
                 lojistaId: 5,
+                tokenQr: "cd".repeat(32),
                 dataCriacao: agora,
                 dataAtualizacao: agora,
             }),
@@ -77,6 +78,7 @@ describe("ServicoMissao por status do lojista", () => {
         const resultado = await servico.criar(20, { nome: "Visite a loja", pontoRecompensa: 50 });
 
         expect(resultado.lojistaId).toBe(5);
+        expect(resultado.tokenQr).toBe("cd".repeat(32));
         expect(repositorioMissaoMock.criar).toHaveBeenCalledOnce();
     });
 

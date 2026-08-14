@@ -113,6 +113,7 @@ export class ServicoMissao {
             descricao: missao.descricao,
             pontoRecompensa: missao.pontoRecompensa,
             lojistaId: missao.lojistaId,
+            tokenQr: missao.tokenQr,
             dataCriacao: missao.dataCriacao,
             dataAtualizacao: missao.dataAtualizacao,
         };

@@ -1,5 +1,6 @@
 import { PrismaClient } from "../../../generated/prisma/client";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { gerarTokenQrMissao } from "../../../shared/utils/tokenQrMissao";
 import { Missao } from "../model/Missao";
 
 type RegistroMissao = {
@@ -8,6 +9,7 @@ type RegistroMissao = {
     descricao: string | null;
     pontoRecompensa: number;
     lojistaId: number;
+    tokenQr: string;
     dataCriacao: Date;
     dataAtualizacao: Date;
 };
@@ -22,7 +24,12 @@ export class RepositorioMissao {
         lojistaId: number;
     }): Promise<Missao> {
         try {
-            const criado = await this.prisma.missao.create({ data: dados });
+            const criado = await this.prisma.missao.create({
+                data: {
+                    ...dados,
+                    tokenQr: gerarTokenQrMissao(),
+                },
+            });
             return this.paraDominio(criado);
         } catch {
             throw new ErroAplicacao("Erro ao criar missao", 500);
@@ -47,6 +54,15 @@ export class RepositorioMissao {
             return item ? this.paraDominio(item) : null;
         } catch {
             throw new ErroAplicacao("Erro ao buscar missao por ID", 500);
+        }
+    }
+
+    async buscarPorTokenQr(tokenQr: string): Promise<Missao | null> {
+        try {
+            const item = await this.prisma.missao.findUnique({ where: { tokenQr } });
+            return item ? this.paraDominio(item) : null;
+        } catch {
+            throw new ErroAplicacao("Erro ao buscar missao por token", 500);
         }
     }
 
@@ -84,6 +100,7 @@ export class RepositorioMissao {
             descricao: item.descricao,
             pontoRecompensa: item.pontoRecompensa,
             lojistaId: item.lojistaId,
+            tokenQr: item.tokenQr,
             dataCriacao: item.dataCriacao,
             dataAtualizacao: item.dataAtualizacao,
         });

@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client.js";
@@ -287,6 +288,35 @@ async function garantirConsumidorDemo(dados: {
     console.log(`Consumidor demo criado: ${dados.nome} (id=${criado.id})`);
 }
 
+async function garantirMissaoDemo(emailLojista: string) {
+    const usuario = await prisma.usuario.findUnique({ where: { email: emailLojista } });
+    const lojista = usuario
+        ? await prisma.lojista.findUnique({ where: { usuarioId: usuario.id } })
+        : null;
+    if (!lojista) {
+        return;
+    }
+
+    const nome = "Visite a loja e ganhe pontos";
+    const existente = await prisma.missao.findFirst({
+        where: { lojistaId: lojista.id, nome },
+    });
+    if (existente) {
+        return;
+    }
+
+    const criada = await prisma.missao.create({
+        data: {
+            nome,
+            descricao: "Mostre o QR da missão para o consumidor escanear (lab web).",
+            pontoRecompensa: 50,
+            lojistaId: lojista.id,
+            tokenQr: randomBytes(32).toString("hex"),
+        },
+    });
+    console.log(`Missao demo criada: ${criada.nome} (loja ${lojista.nomeFantasia})`);
+}
+
 async function garantirCampanhasDemo(associacaoId: number) {
     const campanhas = [
         {
@@ -504,6 +534,8 @@ async function main() {
         pontos: 150,
         emailLojista: "loja.aprovada@demo.local",
     });
+
+    await garantirMissaoDemo("loja.aprovada@demo.local");
 
     await garantirCampanhasDemo(associacao.id);
 

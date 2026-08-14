@@ -4,6 +4,7 @@ type MissaoProps = {
     descricao: string | null;
     pontoRecompensa: number;
     lojistaId: number;
+    tokenQr: string;
     dataCriacao: Date;
     dataAtualizacao: Date;
 };
@@ -33,6 +34,10 @@ export class Missao {
 
     get lojistaId() {
         return this.props.lojistaId;
+    }
+
+    get tokenQr() {
+        return this.props.tokenQr;
     }
 
     get dataCriacao() {

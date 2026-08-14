@@ -36,6 +36,7 @@ function missaoFake(id = 8, pontoRecompensa = 100): Missao {
         descricao: "Descricao",
         pontoRecompensa,
         lojistaId: 1,
+        tokenQr: "ab".repeat(32),
         dataCriacao: agora,
         dataAtualizacao: agora,
     });
@@ -46,7 +47,10 @@ describe("ServicoMissaoConsumidor", () => {
         buscarPorMissaoEConsumidor: ReturnType<typeof vi.fn>;
         concluirComPontos: ReturnType<typeof vi.fn>;
     };
-    let repositorioMissaoMock: { buscar: ReturnType<typeof vi.fn> };
+    let repositorioMissaoMock: {
+        buscar: ReturnType<typeof vi.fn>;
+        buscarPorTokenQr: ReturnType<typeof vi.fn>;
+    };
     let repositorioConsumidorMock: { buscarPorUsuarioId: ReturnType<typeof vi.fn> };
     let servico: ServicoMissaoConsumidor;
 
@@ -57,6 +61,7 @@ describe("ServicoMissaoConsumidor", () => {
         };
         repositorioMissaoMock = {
             buscar: vi.fn(),
+            buscarPorTokenQr: vi.fn(),
         };
         repositorioConsumidorMock = {
             buscarPorUsuarioId: vi.fn().mockResolvedValue(consumidorFake()),
@@ -68,10 +73,10 @@ describe("ServicoMissaoConsumidor", () => {
         );
     });
 
-    it("conclui missao: cria vinculo e retorna pontos/nivel atualizados", async () => {
+    it("conclui missao por token: cria vinculo e retorna pontos/nivel atualizados", async () => {
         const agora = new Date();
         const missao = missaoFake(8, 100);
-        repositorioMissaoMock.buscar.mockResolvedValue(missao);
+        repositorioMissaoMock.buscarPorTokenQr.mockResolvedValue(missao);
         repositorioMissaoConsumidorMock.buscarPorMissaoEConsumidor.mockResolvedValue(null);
         repositorioMissaoConsumidorMock.concluirComPontos.mockResolvedValue({
             missaoConsumidor: new MissaoConsumidor({
@@ -84,10 +89,11 @@ describe("ServicoMissaoConsumidor", () => {
             consumidor: consumidorFake({ id: 5, pontos: 150, nivel: 2 }),
         });
 
-        const resultado = await servico.criar(30, { missaoId: 8 });
+        const resultado = await servico.concluirPorToken(30, { tokenQr: missao.tokenQr });
 
         expect(repositorioConsumidorMock.buscarPorUsuarioId).toHaveBeenCalledWith(30);
-        expect(repositorioMissaoMock.buscar).toHaveBeenCalledWith(8);
+        expect(repositorioMissaoMock.buscarPorTokenQr).toHaveBeenCalledWith(missao.tokenQr);
+        expect(repositorioMissaoMock.buscar).not.toHaveBeenCalled();
         expect(
             repositorioMissaoConsumidorMock.buscarPorMissaoEConsumidor,
         ).toHaveBeenCalledWith(8, 5);
@@ -110,10 +116,10 @@ describe("ServicoMissaoConsumidor", () => {
         });
     });
 
-    it("retorna 404 quando missao nao existe", async () => {
-        repositorioMissaoMock.buscar.mockResolvedValue(null);
+    it("retorna 404 quando o token nao existe", async () => {
+        repositorioMissaoMock.buscarPorTokenQr.mockResolvedValue(null);
 
-        const promessa = servico.criar(30, { missaoId: 99 });
+        const promessa = servico.concluirPorToken(30, { tokenQr: "naoexiste" });
 
         await expect(promessa).rejects.toBeInstanceOf(ErroAplicacao);
         await expect(promessa).rejects.toMatchObject({
@@ -125,9 +131,9 @@ describe("ServicoMissaoConsumidor", () => {
         ).not.toHaveBeenCalled();
     });
 
-    it("retorna 400 quando missao ja foi concluida", async () => {
+    it("retorna 409 quando missao ja foi concluida", async () => {
         const agora = new Date();
-        repositorioMissaoMock.buscar.mockResolvedValue(missaoFake(8));
+        repositorioMissaoMock.buscarPorTokenQr.mockResolvedValue(missaoFake(8));
         repositorioMissaoConsumidorMock.buscarPorMissaoEConsumidor.mockResolvedValue(
             new MissaoConsumidor({
                 id: 1,
@@ -138,15 +144,118 @@ describe("ServicoMissaoConsumidor", () => {
             }),
         );
 
-        const promessa = servico.criar(30, { missaoId: 8 });
+        const promessa = servico.concluirPorToken(30, { tokenQr: missaoFake().tokenQr });
 
         await expect(promessa).rejects.toBeInstanceOf(ErroAplicacao);
         await expect(promessa).rejects.toMatchObject({
             message: "Missao ja concluida",
-            statusCode: 400,
+            statusCode: 409,
         });
         expect(
             repositorioMissaoConsumidorMock.concluirComPontos,
         ).not.toHaveBeenCalled();
+    });
+
+    it("conclui por tokenQr e ignora consumidorId do body", async () => {
+        const agora = new Date();
+        const missao = missaoFake(8, 50);
+        repositorioMissaoMock.buscarPorTokenQr.mockResolvedValue(missao);
+        repositorioMissaoConsumidorMock.buscarPorMissaoEConsumidor.mockResolvedValue(null);
+        repositorioMissaoConsumidorMock.concluirComPontos.mockResolvedValue({
+            missaoConsumidor: new MissaoConsumidor({
+                id: 2,
+                missaoId: 8,
+                consumidorId: 5,
+                dataCriacao: agora,
+                dataAtualizacao: agora,
+            }),
+            consumidor: consumidorFake({ id: 5, pontos: 100, nivel: 1 }),
+        });
+
+        const resultado = await servico.concluirPorToken(30, {
+            tokenQr: `tcc://missao/${missao.tokenQr}`,
+            consumidorId: 999,
+            pontoRecompensa: 9999,
+        } as never);
+
+        expect(repositorioMissaoMock.buscarPorTokenQr).toHaveBeenCalledWith(missao.tokenQr);
+        expect(repositorioMissaoConsumidorMock.concluirComPontos).toHaveBeenCalledWith({
+            missaoId: 8,
+            consumidorId: 5,
+            pontoRecompensa: 50,
+        });
+        expect(resultado.consumidor.pontos).toBe(100);
+    });
+
+    it("body so com missaoId nao conclui (exige tokenQr)", async () => {
+        await expect(
+            servico.concluirPorToken(30, { missaoId: 1 } as never),
+        ).rejects.toMatchObject({
+            message: "tokenQr invalido",
+            statusCode: 400,
+        });
+        expect(repositorioMissaoMock.buscar).not.toHaveBeenCalled();
+        expect(repositorioMissaoConsumidorMock.concluirComPontos).not.toHaveBeenCalled();
+    });
+
+    it("token inexistente retorna 404", async () => {
+        repositorioMissaoMock.buscarPorTokenQr.mockResolvedValue(null);
+
+        const promessa = servico.concluirPorToken(30, { tokenQr: "naoexiste" });
+
+        await expect(promessa).rejects.toMatchObject({
+            message: "Missao nao encontrada",
+            statusCode: 404,
+        });
+        expect(repositorioMissaoConsumidorMock.concluirComPontos).not.toHaveBeenCalled();
+    });
+
+    it("segundo scan por token nao credita de novo (409)", async () => {
+        const agora = new Date();
+        repositorioMissaoMock.buscarPorTokenQr.mockResolvedValue(missaoFake(8, 50));
+        repositorioMissaoConsumidorMock.buscarPorMissaoEConsumidor.mockResolvedValue(
+            new MissaoConsumidor({
+                id: 1,
+                missaoId: 8,
+                consumidorId: 5,
+                dataCriacao: agora,
+                dataAtualizacao: agora,
+            }),
+        );
+
+        await expect(
+            servico.concluirPorToken(30, { tokenQr: missaoFake().tokenQr }),
+        ).rejects.toMatchObject({ statusCode: 409 });
+        expect(repositorioMissaoConsumidorMock.concluirComPontos).not.toHaveBeenCalled();
+    });
+
+    it("concorrencia: UNIQUE vira 409 e nao duplica credito no servico", async () => {
+        repositorioMissaoMock.buscarPorTokenQr.mockResolvedValue(missaoFake(8, 50));
+        repositorioMissaoConsumidorMock.buscarPorMissaoEConsumidor.mockResolvedValue(null);
+        repositorioMissaoConsumidorMock.concluirComPontos
+            .mockResolvedValueOnce({
+                missaoConsumidor: new MissaoConsumidor({
+                    id: 1,
+                    missaoId: 8,
+                    consumidorId: 5,
+                    dataCriacao: new Date(),
+                    dataAtualizacao: new Date(),
+                }),
+                consumidor: consumidorFake({ pontos: 200 }),
+            })
+            .mockRejectedValueOnce(new ErroAplicacao("Missao ja concluida", 409));
+
+        const token = { tokenQr: missaoFake().tokenQr };
+        const [a, b] = await Promise.allSettled([
+            servico.concluirPorToken(30, token),
+            servico.concluirPorToken(30, token),
+        ]);
+
+        expect(a.status === "fulfilled" || b.status === "fulfilled").toBe(true);
+        const rejeitado = a.status === "rejected" ? a : b;
+        expect(rejeitado.status).toBe("rejected");
+        expect((rejeitado as PromiseRejectedResult).reason).toMatchObject({
+            statusCode: 409,
+        });
     });
 });

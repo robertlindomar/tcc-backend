@@ -24,11 +24,15 @@ export class ControladorMissaoConsumidor {
         response.status(200).json(item);
     }
 
-    async criar(request: Request, response: Response, _next: NextFunction): Promise<void> {
+    async concluirPorToken(
+        request: Request,
+        response: Response,
+        _next: NextFunction,
+    ): Promise<void> {
         if (!request.usuario) {
             throw new ErroAplicacao("Usuario nao autenticado", 401);
         }
-        const criado = await this.servicoMissaoConsumidor.criar(
+        const criado = await this.servicoMissaoConsumidor.concluirPorToken(
             request.usuario.id,
             request.body,
         );

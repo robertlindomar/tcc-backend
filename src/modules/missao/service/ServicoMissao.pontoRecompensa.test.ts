@@ -22,6 +22,7 @@ describe("ServicoMissao pontoRecompensa", () => {
             descricao: null,
             pontoRecompensa: pontos,
             lojistaId: 5,
+            tokenQr: "cd".repeat(32),
             dataCriacao: agora,
             dataAtualizacao: agora,
         });

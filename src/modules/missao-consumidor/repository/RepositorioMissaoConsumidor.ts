@@ -85,7 +85,7 @@ export class RepositorioMissaoConsumidor {
                 throw erro;
             }
             if (ehViolacaoUnica(erro)) {
-                throw new ErroAplicacao("Missao ja concluida", 400);
+                throw new ErroAplicacao("Missao ja concluida", 409);
             }
             throw new ErroAplicacao("Erro ao concluir missao", 500);
         }

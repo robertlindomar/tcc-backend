@@ -4,7 +4,9 @@ import { Consumidor } from "../../consumidor/model/Consumidor";
 import { RespostaConsumidor } from "../../consumidor/dtos/RespostaConsumidor";
 import { RepositorioConsumidor } from "../../consumidor/repository/RepositorioConsumidor";
 import { RepositorioMissao } from "../../missao/repository/RepositorioMissao";
-import { DTOCriarMissaoConsumidor } from "../dto/DTOCriarMissaoConsumidor";
+import { extrairTokenQrMissao } from "../../../shared/utils/tokenQrMissao";
+import { Missao } from "../../missao/model/Missao";
+import { DTOConcluirMissaoPorToken } from "../dto/DTOConcluirMissaoPorToken";
 import { RespostaConclusaoMissao } from "../dtos/RespostaConclusaoMissao";
 import { RespostaMissaoConsumidor } from "../dtos/RespostaMissaoConsumidor";
 import { MissaoConsumidor } from "../model/MissaoConsumidor";
@@ -17,44 +19,26 @@ export class ServicoMissaoConsumidor {
         private readonly repositorioConsumidor: RepositorioConsumidor,
     ) {}
 
-    async criar(
+    async concluirPorToken(
         usuarioId: number,
-        request: DTOCriarMissaoConsumidor,
+        request: DTOConcluirMissaoPorToken,
     ): Promise<RespostaConclusaoMissao> {
         const { consumidorId } = await resolverConsumidorLogado(
             this.repositorioConsumidor,
             usuarioId,
         );
 
-        const missaoId = this.validarMissaoId(request.missaoId);
-        const missao = await this.repositorioMissao.buscar(missaoId);
+        const tokenQr = extrairTokenQrMissao(request.tokenQr);
+        if (!tokenQr) {
+            throw new ErroAplicacao("tokenQr invalido", 400);
+        }
 
+        const missao = await this.repositorioMissao.buscarPorTokenQr(tokenQr);
         if (!missao) {
             throw new ErroAplicacao("Missao nao encontrada", 404);
         }
 
-        const jaConcluida = await this.repositorioMissaoConsumidor.buscarPorMissaoEConsumidor(
-            missaoId,
-            consumidorId,
-        );
-        if (jaConcluida) {
-            throw new ErroAplicacao("Missao ja concluida", 400);
-        }
-
-        const { missaoConsumidor, consumidor } =
-            await this.repositorioMissaoConsumidor.concluirComPontos({
-                missaoId,
-                consumidorId,
-                pontoRecompensa: missao.pontoRecompensa,
-            });
-
-        return {
-            missaoConsumidor: this.paraResposta(missaoConsumidor, {
-                nomeMissao: missao.nome,
-                pontoRecompensa: missao.pontoRecompensa,
-            }),
-            consumidor: this.paraRespostaConsumidor(consumidor),
-        };
+        return this.concluirParaConsumidor(missao, consumidorId);
     }
 
     async listar(usuarioId: number): Promise<RespostaMissaoConsumidor[]> {
@@ -80,6 +64,34 @@ export class ServicoMissaoConsumidor {
         }
 
         return this.paraResposta(item);
+    }
+
+    private async concluirParaConsumidor(
+        missao: Missao,
+        consumidorId: number,
+    ): Promise<RespostaConclusaoMissao> {
+        const jaConcluida = await this.repositorioMissaoConsumidor.buscarPorMissaoEConsumidor(
+            missao.id,
+            consumidorId,
+        );
+        if (jaConcluida) {
+            throw new ErroAplicacao("Missao ja concluida", 409);
+        }
+
+        const { missaoConsumidor, consumidor } =
+            await this.repositorioMissaoConsumidor.concluirComPontos({
+                missaoId: missao.id,
+                consumidorId,
+                pontoRecompensa: missao.pontoRecompensa,
+            });
+
+        return {
+            missaoConsumidor: this.paraResposta(missaoConsumidor, {
+                nomeMissao: missao.nome,
+                pontoRecompensa: missao.pontoRecompensa,
+            }),
+            consumidor: this.paraRespostaConsumidor(consumidor),
+        };
     }
 
     private paraResposta(
@@ -119,14 +131,6 @@ export class ServicoMissaoConsumidor {
             dataCriacao: consumidor.dataCriacao,
             dataAtualizacao: consumidor.dataAtualizacao,
         };
-    }
-
-    private validarMissaoId(valor: unknown): number {
-        const id = typeof valor === "number" ? valor : Number(valor);
-        if (!Number.isInteger(id) || id <= 0) {
-            throw new ErroAplicacao("missaoId invalido", 400);
-        }
-        return id;
     }
 
     private parseId(idParam: string): number {

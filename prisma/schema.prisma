@@ -300,6 +300,8 @@ model Missao {
   lojistaId Int     @map("id_lojista")
   lojista   Lojista @relation(fields: [lojistaId], references: [id])
 
+  tokenQr String @unique @map("token_qr") @db.VarChar(64)
+
   missaoConsumidores MissaoConsumidor[]
 
   dataCriacao     DateTime @default(now()) @map("data_criacao")
