@@ -6,11 +6,13 @@ import { RepositorioEndereco } from "../../endereco/repository/RepositorioEndere
 import { RepositorioUsuario } from "../../usuario/repository/RepositorioUsuario";
 import { DTOAtualizarLojista } from "../dto/DTOAtualizarLojista";
 import { DTOCriarLojista } from "../dto/DTOCriarLojista";
+import { DTORejeitarLojista } from "../dto/DTORejeitarLojista";
 import { RespostaLojista } from "../dtos/RespostaLojista";
 import { Lojista } from "../model/Lojista";
 import { RepositorioLojista } from "../repository/RepositorioLojista";
 
 const STATUS_VALIDOS = Object.values(StatusLojista);
+const TAMANHO_MAX_JUSTIFICATIVA_REJEICAO = 500;
 
 type UsuarioAutenticado = {
     id: number;
@@ -199,19 +201,21 @@ export class ServicoLojista {
     }
 
     async aprovar(idParam: string, usuarioLogadoId: number): Promise<RespostaLojista> {
-        return this.alterarStatus(
-            idParam,
-            usuarioLogadoId,
-            StatusLojista.APROVADO,
-        );
+        return this.alterarStatus(idParam, usuarioLogadoId, {
+            status: StatusLojista.APROVADO,
+            justificativaRejeicao: null,
+        });
     }
 
-    async rejeitar(idParam: string, usuarioLogadoId: number): Promise<RespostaLojista> {
-        return this.alterarStatus(
-            idParam,
-            usuarioLogadoId,
-            StatusLojista.REJEITADO,
-        );
+    async rejeitar(
+        idParam: string,
+        usuarioLogadoId: number,
+        request: DTORejeitarLojista,
+    ): Promise<RespostaLojista> {
+        return this.alterarStatus(idParam, usuarioLogadoId, {
+            status: StatusLojista.REJEITADO,
+            justificativaRejeicao: request.justificativaRejeicao,
+        });
     }
 
     async deletar(idParam: string, usuarioLogado: UsuarioAutenticado): Promise<void> {
@@ -250,7 +254,10 @@ export class ServicoLojista {
     private async alterarStatus(
         idParam: string,
         usuarioLogadoId: number,
-        status: typeof StatusLojista.APROVADO | typeof StatusLojista.REJEITADO,
+        dados: {
+            status: typeof StatusLojista.APROVADO | typeof StatusLojista.REJEITADO;
+            justificativaRejeicao: unknown;
+        },
     ): Promise<RespostaLojista> {
         const id = this.parseId(idParam);
         const lojista = await this.repositorioLojista.buscar(id);
@@ -268,7 +275,15 @@ export class ServicoLojista {
             throw new ErroAplicacao("Lojista nao pertence a sua associacao", 403);
         }
 
-        const atualizado = await this.repositorioLojista.atualizarStatus(id, status);
+        const justificativaRejeicao =
+            dados.status === StatusLojista.REJEITADO
+                ? this.validarJustificativaRejeicao(dados.justificativaRejeicao)
+                : null;
+
+        const atualizado = await this.repositorioLojista.atualizarStatus(id, {
+            status: dados.status,
+            justificativaRejeicao,
+        });
         return this.paraResposta(atualizado);
     }
 
@@ -283,6 +298,7 @@ export class ServicoLojista {
             usuarioId: lojista.usuarioId,
             associacaoId: lojista.associacaoId,
             enderecoId: lojista.enderecoId,
+            justificativaRejeicao: lojista.justificativaRejeicao,
             dataCriacao: lojista.dataCriacao,
             dataAtualizacao: lojista.dataAtualizacao,
         };
@@ -331,6 +347,20 @@ export class ServicoLojista {
         }
 
         return statusQuery as StatusLojista;
+    }
+
+    private validarJustificativaRejeicao(valor: unknown): string {
+        if (typeof valor !== "string" || !valor.trim()) {
+            throw new ErroAplicacao("Justificativa da rejeicao e obrigatoria", 400);
+        }
+        const texto = valor.trim();
+        if (texto.length > TAMANHO_MAX_JUSTIFICATIVA_REJEICAO) {
+            throw new ErroAplicacao(
+                `Justificativa da rejeicao deve ter no maximo ${TAMANHO_MAX_JUSTIFICATIVA_REJEICAO} caracteres`,
+                400,
+            );
+        }
+        return texto;
     }
 
     private validarTextoObrigatorio(valor: unknown, campo: string): string {

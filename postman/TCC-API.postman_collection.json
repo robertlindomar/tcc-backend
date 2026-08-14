@@ -1693,8 +1693,16 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{tokenAssociacao}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"justificativaRejeicao\": \"CNPJ informado esta incorreto.\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/lojista/{{lojistaId}}/rejeitar",
               "host": [
@@ -1713,7 +1721,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Status REJEITADO', () => pm.expect(pm.response.json().status).to.eql('REJEITADO'));"
+                  "pm.test('Status REJEITADO', () => pm.expect(pm.response.json().status).to.eql('REJEITADO'));",
+                  "pm.test('Justificativa', () => pm.expect(pm.response.json().justificativaRejeicao).to.be.a('string'));"
                 ]
               }
             }
@@ -3221,7 +3230,6 @@
                 "exec": [
                   "pm.test('Status 201', () => pm.response.to.have.status(201));",
                   "pm.test('default 0', () => pm.expect(pm.response.json().pontoRecompensa).to.eql(0));"
-                ]
               }
             }
           ],

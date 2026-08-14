@@ -153,6 +153,27 @@ describe("ServicoLojista: perfil proprio por status", () => {
         expect(resultado.status).toBe(StatusLojista.PENDENTE);
     });
 
+    it("REJEITADO nao limpa justificativa enviando o campo no PUT", async () => {
+        const proprio = lojistaFake({
+            status: StatusLojista.REJEITADO,
+            id: 5,
+            justificativaRejeicao: "CNPJ incorreto",
+        });
+        repositorioLojistaMock.buscar.mockResolvedValue(proprio);
+        repositorioLojistaMock.atualizar.mockResolvedValue(proprio);
+
+        await servico.atualizar(
+            "5",
+            { id: 20, role: Role.LOJISTA },
+            payloadComExtras({ justificativaRejeicao: null, status: "PENDENTE" }),
+        );
+
+        expect(repositorioLojistaMock.atualizar.mock.calls[0][1]).not.toHaveProperty(
+            "justificativaRejeicao",
+        );
+        expect(repositorioLojistaMock.atualizarStatus).not.toHaveBeenCalled();
+    });
+
     it("REJEITADO nao se autoaprova enviando status no corpo do PUT", async () => {
         const proprio = lojistaFake({ status: StatusLojista.REJEITADO, id: 5 });
         repositorioLojistaMock.buscar.mockResolvedValue(proprio);

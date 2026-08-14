@@ -20,6 +20,7 @@ function lojistaFake(status: StatusLojista, id = 5): Lojista {
         usuarioId: 20,
         associacaoId: 1,
         enderecoId: null,
+        justificativaRejeicao: null,
         dataCriacao: agora,
         dataAtualizacao: agora,
     });

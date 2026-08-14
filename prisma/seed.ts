@@ -298,6 +298,7 @@ async function garantirLojistaDemo(dados: {
     razaoSocial: string;
     cnpj: string;
     statusInicial: (typeof StatusLojista)[keyof typeof StatusLojista];
+    justificativaRejeicao?: string | null;
     associacaoId: number;
 }) {
     const usuario = await garantirUsuario({
@@ -349,6 +350,7 @@ async function garantirLojistaDemo(dados: {
             cnpj: dados.cnpj,
             inscricaoEstadual: null,
             status: dados.statusInicial,
+            justificativaRejeicao: dados.justificativaRejeicao ?? null,
             usuarioId: usuario.id,
             associacaoId: dados.associacaoId,
         },
@@ -405,6 +407,7 @@ async function main() {
             razaoSocial: "Estilo Kids LTDA",
             cnpj: "33.333.333/0001-33",
             statusInicial: StatusLojista.REJEITADO,
+            justificativaRejeicao: "CNPJ informado esta incorreto.",
         },
         {
             email: "loja.pendente2@demo.local",

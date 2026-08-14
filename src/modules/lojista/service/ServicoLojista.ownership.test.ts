@@ -28,6 +28,7 @@ function lojistaFake(overrides: {
     usuarioId: number;
     associacaoId: number;
     status?: StatusLojista;
+    justificativaRejeicao?: string | null;
 }): Lojista {
     const agora = new Date();
     return new Lojista({
@@ -40,6 +41,7 @@ function lojistaFake(overrides: {
         usuarioId: overrides.usuarioId,
         associacaoId: overrides.associacaoId,
         enderecoId: null,
+        justificativaRejeicao: overrides.justificativaRejeicao ?? null,
         dataCriacao: agora,
         dataAtualizacao: agora,
     });
@@ -144,10 +146,10 @@ describe("ServicoLojista ownership", () => {
         const resultado = await servico.aprovar("10", 1);
 
         expect(resultado.status).toBe(StatusLojista.APROVADO);
-        expect(repositorioLojistaMock.atualizarStatus).toHaveBeenCalledWith(
-            10,
-            StatusLojista.APROVADO,
-        );
+        expect(repositorioLojistaMock.atualizarStatus).toHaveBeenCalledWith(10, {
+            status: StatusLojista.APROVADO,
+            justificativaRejeicao: null,
+        });
     });
 
     it("associacao A nao aprova lojista da associacao B", async () => {
@@ -169,7 +171,11 @@ describe("ServicoLojista ownership", () => {
             associacaoFake(1, 1),
         );
 
-        await expect(servico.rejeitar("11", 1)).rejects.toMatchObject({
+        await expect(
+            servico.rejeitar("11", 1, {
+                justificativaRejeicao: "CNPJ informado esta incorreto.",
+            }),
+        ).rejects.toMatchObject({
             statusCode: 403,
         });
         expect(repositorioLojistaMock.atualizarStatus).not.toHaveBeenCalled();

@@ -75,6 +75,7 @@ export class ControladorLojista {
         const atualizado = await this.servicoLojista.rejeitar(
             request.params.id,
             request.usuario.id,
+            request.body,
         );
         response.status(200).json(atualizado);
     }

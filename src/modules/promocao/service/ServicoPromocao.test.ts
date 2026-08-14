@@ -34,6 +34,7 @@ describe("ServicoPromocao", () => {
                     usuarioId: 20,
                     associacaoId: 1,
                     enderecoId: null,
+                    justificativaRejeicao: null,
                     dataCriacao: agora,
                     dataAtualizacao: agora,
                 }),

@@ -10,6 +10,7 @@ type LojistaProps = {
     usuarioId: number;
     associacaoId: number;
     enderecoId: number | null;
+    justificativaRejeicao: string | null;
     dataCriacao: Date;
     dataAtualizacao: Date;
 };
@@ -55,6 +56,10 @@ export class Lojista {
 
     get enderecoId() {
         return this.props.enderecoId;
+    }
+
+    get justificativaRejeicao() {
+        return this.props.justificativaRejeicao;
     }
 
     get dataCriacao() {

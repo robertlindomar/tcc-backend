@@ -35,6 +35,7 @@ function lojistaFake(overrides: Partial<{ id: number; associacaoId: number }> = 
         usuarioId: 50,
         associacaoId: overrides.associacaoId ?? 3,
         enderecoId: null,
+        justificativaRejeicao: null,
         dataCriacao: agora,
         dataAtualizacao: agora,
     });

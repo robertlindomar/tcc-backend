@@ -173,8 +173,10 @@ model Lojista {
   nomeFantasia      String        @map("nome_fantasia_lojista") @db.VarChar(255)
   razaoSocial       String        @map("razao_social_lojista") @db.VarChar(255)
   cnpj              String        @unique @map("cnpj_lojista") @db.VarChar(18)
-  inscricaoEstadual Int?          @map("inscricao_estadual_lojista")
-  status            StatusLojista @default(PENDENTE) @map("status_lojista")
+  inscricaoEstadual     Int?          @map("inscricao_estadual_lojista")
+  status                StatusLojista @default(PENDENTE) @map("status_lojista")
+  /// Preenchido só quando status = REJEITADO. Null em PENDENTE/APROVADO.
+  justificativaRejeicao String?       @map("justificativa_rejeicao") @db.VarChar(500)
 
   usuarioId Int     @unique @map("id_usuario")
   usuario   Usuario @relation(fields: [usuarioId], references: [id])

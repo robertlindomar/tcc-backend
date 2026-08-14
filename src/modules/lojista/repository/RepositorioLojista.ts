@@ -13,6 +13,7 @@ type RegistroLojista = {
     usuarioId: number;
     associacaoId: number;
     enderecoId: number | null;
+    justificativaRejeicao: string | null;
     dataCriacao: Date;
     dataAtualizacao: Date;
 };
@@ -118,11 +119,20 @@ export class RepositorioLojista {
         }
     }
 
-    async atualizarStatus(id: number, status: StatusLojista): Promise<Lojista> {
+    async atualizarStatus(
+        id: number,
+        dados: {
+            status: StatusLojista;
+            justificativaRejeicao: string | null;
+        },
+    ): Promise<Lojista> {
         try {
             const atualizado = await this.prisma.lojista.update({
                 where: { id },
-                data: { status },
+                data: {
+                    status: dados.status,
+                    justificativaRejeicao: dados.justificativaRejeicao,
+                },
             });
             return this.paraDominio(atualizado);
         } catch {
@@ -149,6 +159,7 @@ export class RepositorioLojista {
             usuarioId: item.usuarioId,
             associacaoId: item.associacaoId,
             enderecoId: item.enderecoId,
+            justificativaRejeicao: item.justificativaRejeicao,
             dataCriacao: item.dataCriacao,
             dataAtualizacao: item.dataAtualizacao,
         });

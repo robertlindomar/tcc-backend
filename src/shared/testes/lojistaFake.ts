@@ -8,6 +8,7 @@ export function lojistaFake(overrides: {
     usuarioId?: number;
     associacaoId?: number;
     enderecoId?: number | null;
+    justificativaRejeicao?: string | null;
 }): Lojista {
     const agora = new Date();
     return new Lojista({
@@ -20,6 +21,7 @@ export function lojistaFake(overrides: {
         usuarioId: overrides.usuarioId ?? 20,
         associacaoId: overrides.associacaoId ?? 1,
         enderecoId: overrides.enderecoId ?? null,
+        justificativaRejeicao: overrides.justificativaRejeicao ?? null,
         dataCriacao: agora,
         dataAtualizacao: agora,
     });
