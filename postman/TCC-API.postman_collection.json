@@ -2849,7 +2849,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"descricao\": \"10% off\",\n  \"preco\": 45,\n  \"produtoId\": {{produtoId}}\n}"
+              "raw": "{\n  \"descricao\": \"10% off\",\n  \"preco\": 45,\n  \"produtoId\": {{produtoId}},\n  \"duracaoDias\": 7\n}"
             }
           }
         },
@@ -2955,6 +2955,40 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"preco\": 40,\n  \"descricao\": \"20% off\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Desativar Promocao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('desativada', () => pm.expect(pm.response.json().ativa).to.eql(false));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/promocao/{{promocaoId}}/desativar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "promocao",
+                "{{promocaoId}}",
+                "desativar"
+              ]
             }
           }
         },

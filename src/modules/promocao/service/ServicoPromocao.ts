@@ -1,5 +1,9 @@
 import { resolverLojistaAprovado } from "../../../shared/authz/resolverLojistaAprovado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import {
+    calcularDataFimPromocao,
+    calcularStatusVigenciaPromocao,
+} from "../../../shared/utils/calcularStatusVigenciaPromocao";
 import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista";
 import { RepositorioProduto } from "../../produto/repository/RepositorioProduto";
 import { DTOAtualizarPromocao } from "../dto/DTOAtualizarPromocao";
@@ -24,11 +28,17 @@ export class ServicoPromocao {
         const produtoId = await this.validarProdutoDoLojista(request.produtoId, lojistaId);
         const preco = this.validarPreco(request.preco);
         const descricao = this.validarDescricaoOpcional(request.descricao);
+        const duracaoDias = this.validarDuracaoDias(request.duracaoDias);
+        const dataInicio = new Date();
+        const dataFim = calcularDataFimPromocao(dataInicio, duracaoDias);
 
         const criado = await this.repositorioPromocao.criar({
             descricao,
             preco,
             produtoId,
+            ativa: true,
+            dataInicio,
+            dataFim,
         });
 
         return this.paraResposta(criado);
@@ -67,6 +77,8 @@ export class ServicoPromocao {
             descricao?: string | null;
             preco?: number;
             produtoId?: number;
+            dataInicio?: Date;
+            dataFim?: Date;
         } = {};
 
         if (request.descricao !== undefined) {
@@ -81,12 +93,32 @@ export class ServicoPromocao {
                 lojistaId,
             );
         }
+        if (request.duracaoDias !== undefined) {
+            const duracaoDias = this.validarDuracaoDias(request.duracaoDias);
+            dados.dataInicio = new Date();
+            dados.dataFim = calcularDataFimPromocao(dados.dataInicio, duracaoDias);
+        }
 
         if (Object.keys(dados).length === 0) {
             throw new ErroAplicacao("Nenhum campo para atualizar", 400);
         }
 
         const atualizado = await this.repositorioPromocao.atualizar(existente.id, dados);
+        return this.paraResposta(atualizado);
+    }
+
+    async desativar(usuarioId: number, idParam: string): Promise<RespostaPromocao> {
+        const { lojistaId } = await resolverLojistaAprovado(
+            this.repositorioLojista,
+            usuarioId,
+        );
+        const existente = await this.obterDoLojista(idParam, lojistaId);
+        if (!existente.ativa) {
+            return this.paraResposta(existente);
+        }
+        const atualizado = await this.repositorioPromocao.atualizar(existente.id, {
+            ativa: false,
+        });
         return this.paraResposta(atualizado);
     }
 
@@ -139,6 +171,14 @@ export class ServicoPromocao {
             descricao: promocao.descricao,
             preco: promocao.preco,
             produtoId: promocao.produtoId,
+            ativa: promocao.ativa,
+            dataInicio: promocao.dataInicio,
+            dataFim: promocao.dataFim,
+            statusVigencia: calcularStatusVigenciaPromocao({
+                ativa: promocao.ativa,
+                dataInicio: promocao.dataInicio,
+                dataFim: promocao.dataFim,
+            }),
             dataCriacao: promocao.dataCriacao,
             dataAtualizacao: promocao.dataAtualizacao,
         };
@@ -150,6 +190,17 @@ export class ServicoPromocao {
             throw new ErroAplicacao("Preco da promocao invalido", 400);
         }
         return Math.round(n * 100) / 100;
+    }
+
+    private validarDuracaoDias(valor: unknown): number {
+        if (valor === undefined || valor === null || valor === "") {
+            throw new ErroAplicacao("Duracao em dias e obrigatoria", 400);
+        }
+        const n = typeof valor === "number" ? valor : Number(valor);
+        if (!Number.isInteger(n) || n <= 0) {
+            throw new ErroAplicacao("Duracao em dias deve ser um inteiro maior que zero", 400);
+        }
+        return n;
     }
 
     private validarDescricaoOpcional(descricao: unknown): string | null {

@@ -7,6 +7,9 @@ type RegistroPromocao = {
     id: number;
     descricao: string | null;
     preco: { toString(): string } | number;
+    ativa: boolean;
+    dataInicio: Date;
+    dataFim: Date;
     produtoId: number;
     dataCriacao: Date;
     dataAtualizacao: Date;
@@ -19,6 +22,9 @@ export class RepositorioPromocao {
         descricao: string | null;
         preco: number;
         produtoId: number;
+        ativa: boolean;
+        dataInicio: Date;
+        dataFim: Date;
     }): Promise<Promocao> {
         try {
             const criado = await this.prisma.promocao.create({ data: dados });
@@ -55,6 +61,9 @@ export class RepositorioPromocao {
             descricao?: string | null;
             preco?: number;
             produtoId?: number;
+            ativa?: boolean;
+            dataInicio?: Date;
+            dataFim?: Date;
         },
     ): Promise<Promocao> {
         try {
@@ -81,6 +90,9 @@ export class RepositorioPromocao {
             id: item.id,
             descricao: item.descricao,
             preco: decimalParaNumero(item.preco),
+            ativa: item.ativa,
+            dataInicio: item.dataInicio,
+            dataFim: item.dataFim,
             produtoId: item.produtoId,
             dataCriacao: item.dataCriacao,
             dataAtualizacao: item.dataAtualizacao,

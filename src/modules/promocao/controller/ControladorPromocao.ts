@@ -29,6 +29,21 @@ export class ControladorPromocao {
         response.status(201).json(criado);
     }
 
+    async desativar(
+        request: Request,
+        response: Response,
+        _next: NextFunction,
+    ): Promise<void> {
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
+        const atualizado = await this.servicoPromocao.desativar(
+            request.usuario.id,
+            request.params.id,
+        );
+        response.status(200).json(atualizado);
+    }
+
     async atualizar(
         request: Request,
         response: Response,

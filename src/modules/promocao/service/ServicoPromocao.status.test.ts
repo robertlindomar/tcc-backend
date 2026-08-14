@@ -44,11 +44,33 @@ describe("ServicoPromocao por status do lojista", () => {
         );
 
         await expect(
-            servico.criar(20, { produtoId: 1, preco: 10 }),
+            servico.criar(20, { produtoId: 1, preco: 10, duracaoDias: 7 }),
         ).rejects.toMatchObject({
             statusCode: 403,
         } satisfies Partial<ErroAplicacao>);
         expect(repositorioPromocaoMock.criar).not.toHaveBeenCalled();
+    });
+
+    it("PENDENTE nao desativa promocao", async () => {
+        repositorioLojistaMock.buscarPorUsuarioId.mockResolvedValue(
+            lojistaFake({ status: StatusLojista.PENDENTE }),
+        );
+
+        await expect(servico.desativar(20, "7")).rejects.toMatchObject({
+            statusCode: 403,
+        });
+        expect(repositorioPromocaoMock.atualizar).not.toHaveBeenCalled();
+    });
+
+    it("REJEITADO nao desativa promocao", async () => {
+        repositorioLojistaMock.buscarPorUsuarioId.mockResolvedValue(
+            lojistaFake({ status: StatusLojista.REJEITADO }),
+        );
+
+        await expect(servico.desativar(20, "7")).rejects.toMatchObject({
+            statusCode: 403,
+        });
+        expect(repositorioPromocaoMock.atualizar).not.toHaveBeenCalled();
     });
 
     it("REJEITADO nao cria promocao", async () => {
@@ -57,7 +79,7 @@ describe("ServicoPromocao por status do lojista", () => {
         );
 
         await expect(
-            servico.criar(20, { produtoId: 1, preco: 10 }),
+            servico.criar(20, { produtoId: 1, preco: 10, duracaoDias: 7 }),
         ).rejects.toMatchObject({ statusCode: 403 });
         expect(repositorioPromocaoMock.criar).not.toHaveBeenCalled();
     });
@@ -84,12 +106,19 @@ describe("ServicoPromocao por status do lojista", () => {
                 descricao: null,
                 preco: 10,
                 produtoId: 1,
+                ativa: true,
+                dataInicio: agora,
+                dataFim: new Date(agora.getTime() + 7 * 86400000),
                 dataCriacao: agora,
                 dataAtualizacao: agora,
             }),
         );
 
-        const resultado = await servico.criar(20, { produtoId: 1, preco: 10 });
+        const resultado = await servico.criar(20, {
+            produtoId: 1,
+            preco: 10,
+            duracaoDias: 7,
+        });
 
         expect(resultado.id).toBe(7);
         expect(repositorioPromocaoMock.criar).toHaveBeenCalledOnce();

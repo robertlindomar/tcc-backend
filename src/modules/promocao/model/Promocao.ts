@@ -2,6 +2,9 @@ type PromocaoProps = {
     id: number;
     descricao: string | null;
     preco: number;
+    ativa: boolean;
+    dataInicio: Date;
+    dataFim: Date;
     produtoId: number;
     dataCriacao: Date;
     dataAtualizacao: Date;
@@ -24,6 +27,18 @@ export class Promocao {
 
     get preco() {
         return this.props.preco;
+    }
+
+    get ativa() {
+        return this.props.ativa;
+    }
+
+    get dataInicio() {
+        return this.props.dataInicio;
+    }
+
+    get dataFim() {
+        return this.props.dataFim;
     }
 
     get produtoId() {

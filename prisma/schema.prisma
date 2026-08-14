@@ -257,6 +257,9 @@ model Promocao {
   id        Int      @id @default(autoincrement()) @map("id_promocao")
   descricao String?  @map("descricao_promocao") @db.VarChar(500)
   preco     Decimal  @map("preco_promocao") @db.Decimal(10, 2)
+  ativa     Boolean  @default(true) @map("ativa_promocao")
+  dataInicio DateTime @map("data_inicio")
+  dataFim    DateTime @map("data_fim")
 
   produtoId Int     @map("id_produto")
   produto   Produto @relation(fields: [produtoId], references: [id])
@@ -265,6 +268,7 @@ model Promocao {
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
   @@index([produtoId])
+  @@index([dataFim])
   @@map("promocao")
 }
 
