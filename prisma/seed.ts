@@ -259,13 +259,16 @@ async function garantirConsumidorDemo(dados: {
         where: { usuarioId: usuario.id },
     });
     if (existente) {
-        if (lojista && existente.lojistaId !== lojista.id) {
-            await prisma.consumidor.update({
-                where: { id: existente.id },
-                data: { lojistaId: lojista.id },
-            });
-            console.log(`Consumidor ${dados.nome}: vinculado à loja ${lojista.nomeFantasia}`);
-        }
+        const nivel = Math.floor(dados.pontos / 100) + 1;
+        await prisma.consumidor.update({
+            where: { id: existente.id },
+            data: {
+                pontos: dados.pontos,
+                nivel,
+                lojistaId: lojista && existente.lojistaId !== lojista.id ? lojista.id : existente.lojistaId,
+            },
+        });
+        console.log(`Consumidor ${dados.nome}: pontos restaurados para ${dados.pontos}`);
         return;
     }
 
@@ -315,6 +318,48 @@ async function garantirMissaoDemo(emailLojista: string) {
         },
     });
     console.log(`Missao demo criada: ${criada.nome} (loja ${lojista.nomeFantasia})`);
+}
+
+async function garantirRecompensasDemo(emailLojista: string) {
+    const usuario = await prisma.usuario.findUnique({ where: { email: emailLojista } });
+    const lojista = usuario
+        ? await prisma.lojista.findUnique({ where: { usuarioId: usuario.id } })
+        : null;
+    if (!lojista) {
+        return;
+    }
+
+    const itens = [
+        {
+            nome: "Cupom 10% de desconto",
+            descricao: "Válido na loja física (demonstração).",
+            custoPontos: 100,
+        },
+        {
+            nome: "Chaveiro da loja",
+            descricao: "Brinde da Casa do Real.",
+            custoPontos: 50,
+        },
+    ] as const;
+
+    for (const item of itens) {
+        const existente = await prisma.recompensa.findFirst({
+            where: { lojistaId: lojista.id, nome: item.nome },
+        });
+        if (existente) {
+            continue;
+        }
+        await prisma.recompensa.create({
+            data: {
+                nome: item.nome,
+                descricao: item.descricao,
+                custoPontos: item.custoPontos,
+                lojistaId: lojista.id,
+                ativa: true,
+            },
+        });
+        console.log(`Recompensa demo criada: ${item.nome} (loja ${lojista.nomeFantasia})`);
+    }
 }
 
 async function garantirCampanhasDemo(associacaoId: number) {
@@ -531,11 +576,12 @@ async function main() {
         email: "cliente2@demo.local",
         nome: "Bruno Lima",
         cpf: "222.333.444-55",
-        pontos: 150,
+        pontos: 200,
         emailLojista: "loja.aprovada@demo.local",
     });
 
     await garantirMissaoDemo("loja.aprovada@demo.local");
+    await garantirRecompensasDemo("loja.aprovada@demo.local");
 
     await garantirCampanhasDemo(associacao.id);
 

@@ -198,6 +198,7 @@ model Lojista {
   eventos      Evento[]
   missoes      Missao[]
   categorias   Categoria[]
+  recompensas  Recompensa[]
 
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
@@ -223,6 +224,7 @@ model Consumidor {
   usuario   Usuario @relation(fields: [usuarioId], references: [id])
 
   missaoConsumidores MissaoConsumidor[]
+  resgates           ResgateRecompensa[]
 
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
@@ -361,4 +363,44 @@ model Sorteio {
 
   @@index([campanhaId])
   @@map("sorteio")
+}
+
+model Recompensa {
+  id          Int     @id @default(autoincrement()) @map("id_recompensa")
+  nome        String  @map("nome_recompensa") @db.VarChar(255)
+  descricao   String? @map("descricao_recompensa") @db.VarChar(500)
+  custoPontos Int     @map("custo_pontos_recompensa")
+  ativa       Boolean @default(true) @map("ativa_recompensa")
+
+  lojistaId Int     @map("id_lojista")
+  lojista   Lojista @relation(fields: [lojistaId], references: [id])
+
+  resgates ResgateRecompensa[]
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  @@index([lojistaId])
+  @@map("recompensa")
+}
+
+/// Histórico de uso de pontos. Snapshots preservam custo/nome se a recompensa mudar.
+/// onDelete Restrict: exclusão da recompensa falha se houver resgate (use desativar).
+model ResgateRecompensa {
+  id Int @id @default(autoincrement()) @map("id_resgate_recompensa")
+
+  recompensaId Int        @map("id_recompensa")
+  recompensa   Recompensa @relation(fields: [recompensaId], references: [id], onDelete: Restrict)
+
+  consumidorId Int        @map("id_consumidor")
+  consumidor   Consumidor @relation(fields: [consumidorId], references: [id])
+
+  custoPontosSnapshot    Int    @map("custo_pontos_snapshot")
+  nomeRecompensaSnapshot String @map("nome_recompensa_snapshot") @db.VarChar(255)
+
+  dataCriacao DateTime @default(now()) @map("data_criacao")
+
+  @@index([recompensaId])
+  @@index([consumidorId])
+  @@map("resgate_recompensa")
 }

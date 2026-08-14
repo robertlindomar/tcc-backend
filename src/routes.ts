@@ -12,6 +12,7 @@ import { RotasMissao } from "./modules/missao/rotas/missao.rotas";
 import { RotasMissaoConsumidor } from "./modules/missao-consumidor/rotas/missao-consumidor.rotas";
 import { RotasProduto } from "./modules/produto/rotas/produto.rotas";
 import { RotasPromocao } from "./modules/promocao/rotas/promocao.rotas";
+import { RotasRecompensa, RotasResgateRecompensa } from "./modules/recompensa/rotas/recompensa.rotas";
 import { RotasSexo } from "./modules/sexo/rotas/sexo.rotas";
 import { RotasSorteio } from "./modules/sorteio/rotas/sorteio.rotas";
 import { RotasUsuario } from "./modules/usuario/rotasUsuario";
@@ -32,6 +33,8 @@ export function routes() {
     router.use("/missao-consumidor", RotasMissaoConsumidor());
     router.use("/produto", RotasProduto());
     router.use("/promocao", RotasPromocao());
+    router.use("/recompensa", RotasRecompensa());
+    router.use("/resgate-recompensa", RotasResgateRecompensa());
     router.use("/sexo", RotasSexo());
     router.use("/sorteio", RotasSorteio());
     router.use("/usuario", RotasUsuario());
