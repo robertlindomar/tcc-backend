@@ -136,8 +136,13 @@ model Categoria {
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
+  lojistaId Int     @map("id_lojista")
+  lojista   Lojista @relation(fields: [lojistaId], references: [id])
+
   produtos Produto[]
 
+  @@index([lojistaId])
+  @@unique([lojistaId, nome])
   @@map("categoria")
 }
 
@@ -192,6 +197,7 @@ model Lojista {
   produtos     Produto[]
   eventos      Evento[]
   missoes      Missao[]
+  categorias   Categoria[]
 
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")

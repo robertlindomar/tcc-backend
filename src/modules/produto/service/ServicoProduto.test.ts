@@ -96,6 +96,22 @@ describe("ServicoProduto", () => {
         ).rejects.toMatchObject({ statusCode: 404 });
     });
 
+    it("rejeita categoria de outro lojista", async () => {
+        repositorioLojistaMock.buscarPorUsuarioId.mockResolvedValue(
+            lojistaFake(StatusLojista.APROVADO, 5),
+        );
+        repositorioCategoriaMock.buscar.mockResolvedValue({
+            id: 9,
+            nome: "Alimentos",
+            lojistaId: 8,
+        });
+
+        await expect(
+            servico.criar(20, { nome: "Cafe", valor: 10, categoriaId: 9 }),
+        ).rejects.toMatchObject({ statusCode: 404 });
+        expect(repositorioProdutoMock.criar).not.toHaveBeenCalled();
+    });
+
     it("propaga 403 quando lojista esta pendente", async () => {
         repositorioLojistaMock.buscarPorUsuarioId.mockResolvedValue(
             lojistaFake(StatusLojista.PENDENTE),

@@ -23,7 +23,10 @@ export class ServicoProduto {
 
         const nome = this.validarNome(request.nome);
         const valor = this.validarValor(request.valor);
-        const categoriaId = await this.validarCategoriaIdOpcional(request.categoriaId);
+        const categoriaId = await this.validarCategoriaIdOpcional(
+            request.categoriaId,
+            lojistaId,
+        );
 
         const criado = await this.repositorioProduto.criar({
             nome,
@@ -77,7 +80,10 @@ export class ServicoProduto {
             dados.valor = this.validarValor(request.valor);
         }
         if (request.categoriaId !== undefined) {
-            dados.categoriaId = await this.validarCategoriaIdOpcional(request.categoriaId);
+            dados.categoriaId = await this.validarCategoriaIdOpcional(
+                request.categoriaId,
+                lojistaId,
+            );
         }
 
         if (Object.keys(dados).length === 0) {
@@ -135,7 +141,10 @@ export class ServicoProduto {
         return Math.round(n * 100) / 100;
     }
 
-    private async validarCategoriaIdOpcional(valor: unknown): Promise<number | null> {
+    private async validarCategoriaIdOpcional(
+        valor: unknown,
+        lojistaId: number,
+    ): Promise<number | null> {
         if (valor === undefined || valor === null || valor === "") {
             return null;
         }
@@ -144,7 +153,7 @@ export class ServicoProduto {
             throw new ErroAplicacao("categoriaId invalido", 400);
         }
         const categoria = await this.repositorioCategoria.buscar(id);
-        if (!categoria) {
+        if (!categoria || categoria.lojistaId !== lojistaId) {
             throw new ErroAplicacao("Categoria nao encontrada", 404);
         }
         return id;

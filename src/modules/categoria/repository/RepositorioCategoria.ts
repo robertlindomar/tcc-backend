@@ -2,23 +2,45 @@ import { PrismaClient } from "../../../generated/prisma/client";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { Categoria } from "../model/Categoria";
 
+type RegistroCategoria = {
+    id: number;
+    nome: string;
+    lojistaId: number;
+    dataCriacao: Date;
+    dataAtualizacao: Date;
+};
+
+function ehViolacaoUnica(erro: unknown): boolean {
+    return (
+        typeof erro === "object" &&
+        erro !== null &&
+        "code" in erro &&
+        (erro as { code: unknown }).code === "P2002"
+    );
+}
+
 export class RepositorioCategoria {
     constructor(private readonly prisma: PrismaClient) {}
 
-    async criar(categoria: Categoria): Promise<Categoria> {
+    async criar(dados: { nome: string; lojistaId: number }): Promise<Categoria> {
         try {
-            const criado = await this.prisma.categoria.create({
-                data: { nome: categoria.nome },
-            });
+            const criado = await this.prisma.categoria.create({ data: dados });
             return this.paraDominio(criado);
-        } catch {
+        } catch (erro) {
+            if (ehViolacaoUnica(erro)) {
+                throw new ErroAplicacao(
+                    "Ja existe categoria com este nome nesta loja",
+                    409,
+                );
+            }
             throw new ErroAplicacao("Erro ao criar categoria", 500);
         }
     }
 
-    async listar(): Promise<Categoria[]> {
+    async listarPorLojistaId(lojistaId: number): Promise<Categoria[]> {
         try {
             const lista = await this.prisma.categoria.findMany({
+                where: { lojistaId },
                 orderBy: { id: "asc" },
             });
             return lista.map((item) => this.paraDominio(item));
@@ -43,7 +65,13 @@ export class RepositorioCategoria {
                 data: { nome },
             });
             return this.paraDominio(atualizado);
-        } catch {
+        } catch (erro) {
+            if (ehViolacaoUnica(erro)) {
+                throw new ErroAplicacao(
+                    "Ja existe categoria com este nome nesta loja",
+                    409,
+                );
+            }
             throw new ErroAplicacao("Erro ao atualizar categoria", 500);
         }
     }
@@ -56,15 +84,11 @@ export class RepositorioCategoria {
         }
     }
 
-    private paraDominio(item: {
-        id: number;
-        nome: string;
-        dataCriacao: Date;
-        dataAtualizacao: Date;
-    }): Categoria {
+    private paraDominio(item: RegistroCategoria): Categoria {
         return new Categoria({
             id: item.id,
             nome: item.nome,
+            lojistaId: item.lojistaId,
             dataCriacao: item.dataCriacao,
             dataAtualizacao: item.dataAtualizacao,
         });

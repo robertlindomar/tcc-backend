@@ -3,6 +3,7 @@ import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 type CategoriaProps = {
     id: number;
     nome: string;
+    lojistaId: number;
     dataCriacao: Date;
     dataAtualizacao: Date;
 };
@@ -27,6 +28,10 @@ export class Categoria {
 
     get nome() {
         return this.props.nome;
+    }
+
+    get lojistaId() {
+        return this.props.lojistaId;
     }
 
     get dataCriacao() {

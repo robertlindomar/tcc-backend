@@ -1,5 +1,6 @@
-import { recusarEscritaCatalogoGlobal } from "../../../shared/authz/recusarEscritaCatalogoGlobal";
+import { resolverLojistaAprovado } from "../../../shared/authz/resolverLojistaAprovado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista";
 import { DTOAtualizarCategoria } from "../dto/DTOAtualizarCategoria";
 import { DTOCriarCategoria } from "../dto/DTOCriarCategoria";
 import { RespostaCategoria } from "../dtos/RespostaCategoria";
@@ -7,64 +8,80 @@ import { Categoria } from "../model/Categoria";
 import { RepositorioCategoria } from "../repository/RepositorioCategoria";
 
 export class ServicoCategoria {
-    constructor(private readonly repositorioCategoria: RepositorioCategoria) {}
+    constructor(
+        private readonly repositorioCategoria: RepositorioCategoria,
+        private readonly repositorioLojista: RepositorioLojista,
+    ) {}
 
-    async criar(request: DTOCriarCategoria): Promise<RespostaCategoria> {
-        recusarEscritaCatalogoGlobal();
+    async criar(usuarioId: number, request: DTOCriarCategoria): Promise<RespostaCategoria> {
+        const { lojistaId } = await resolverLojistaAprovado(
+            this.repositorioLojista,
+            usuarioId,
+        );
+
         const nome = this.validarNome(request.nome);
-        const categoria = new Categoria({
-            id: 0,
-            nome,
-            dataCriacao: new Date(),
-            dataAtualizacao: new Date(),
-        });
-        const criado = await this.repositorioCategoria.criar(categoria);
+        const criado = await this.repositorioCategoria.criar({ nome, lojistaId });
         return this.paraResposta(criado);
     }
 
-    async listar(): Promise<RespostaCategoria[]> {
-        const lista = await this.repositorioCategoria.listar();
+    async listar(usuarioId: number): Promise<RespostaCategoria[]> {
+        const { lojistaId } = await resolverLojistaAprovado(
+            this.repositorioLojista,
+            usuarioId,
+        );
+        const lista = await this.repositorioCategoria.listarPorLojistaId(lojistaId);
         return lista.map((item) => this.paraResposta(item));
     }
 
-    async buscar(idParam: string): Promise<RespostaCategoria> {
-        const id = this.parseId(idParam);
-        const categoria = await this.repositorioCategoria.buscar(id);
-        if (!categoria) {
-            throw new ErroAplicacao("Categoria nao encontrada", 404);
-        }
+    async buscar(usuarioId: number, idParam: string): Promise<RespostaCategoria> {
+        const { lojistaId } = await resolverLojistaAprovado(
+            this.repositorioLojista,
+            usuarioId,
+        );
+        const categoria = await this.obterDoLojista(idParam, lojistaId);
         return this.paraResposta(categoria);
     }
 
     async atualizar(
+        usuarioId: number,
         idParam: string,
         request: DTOAtualizarCategoria,
     ): Promise<RespostaCategoria> {
-        recusarEscritaCatalogoGlobal();
-        const id = this.parseId(idParam);
+        const { lojistaId } = await resolverLojistaAprovado(
+            this.repositorioLojista,
+            usuarioId,
+        );
+        const existente = await this.obterDoLojista(idParam, lojistaId);
         const nome = this.validarNome(request.nome);
-        const existente = await this.repositorioCategoria.buscar(id);
-        if (!existente) {
-            throw new ErroAplicacao("Categoria nao encontrada", 404);
-        }
-        const atualizado = await this.repositorioCategoria.atualizar(id, nome);
+        const atualizado = await this.repositorioCategoria.atualizar(existente.id, nome);
         return this.paraResposta(atualizado);
     }
 
-    async deletar(idParam: string): Promise<void> {
-        recusarEscritaCatalogoGlobal();
+    async deletar(usuarioId: number, idParam: string): Promise<void> {
+        const { lojistaId } = await resolverLojistaAprovado(
+            this.repositorioLojista,
+            usuarioId,
+        );
+        const existente = await this.obterDoLojista(idParam, lojistaId);
+        await this.repositorioCategoria.deletar(existente.id);
+    }
+
+    private async obterDoLojista(idParam: string, lojistaId: number): Promise<Categoria> {
         const id = this.parseId(idParam);
-        const existente = await this.repositorioCategoria.buscar(id);
-        if (!existente) {
+        const categoria = await this.repositorioCategoria.buscar(id);
+
+        if (!categoria || categoria.lojistaId !== lojistaId) {
             throw new ErroAplicacao("Categoria nao encontrada", 404);
         }
-        await this.repositorioCategoria.deletar(id);
+
+        return categoria;
     }
 
     private paraResposta(categoria: Categoria): RespostaCategoria {
         return {
             id: categoria.id,
             nome: categoria.nome,
+            lojistaId: categoria.lojistaId,
             dataCriacao: categoria.dataCriacao,
             dataAtualizacao: categoria.dataAtualizacao,
         };

@@ -24,13 +24,6 @@ const SENHA_DEMO = "senha123";
 const EMAIL_ASSOCIACAO_DEMO = "associacao@demo.local";
 
 const NOMES_SEXO = ["Masculino", "Feminino"] as const;
-const NOMES_CATEGORIA = [
-    "Alimentos",
-    "Bebidas",
-    "Vestuário",
-    "Eletrônicos",
-    "Serviços",
-] as const;
 
 async function garantirUsuario(dados: {
     email: string;
@@ -166,6 +159,39 @@ async function garantirEnderecoDemo(dados: {
     }
 }
 
+async function garantirCategoriasDemo(
+    emailLojista: string,
+    nomes: readonly string[],
+) {
+    const usuario = await prisma.usuario.findUnique({
+        where: { email: emailLojista },
+    });
+    if (!usuario) {
+        return;
+    }
+    const lojista = await prisma.lojista.findUnique({
+        where: { usuarioId: usuario.id },
+    });
+    if (!lojista) {
+        return;
+    }
+
+    for (const nome of nomes) {
+        const existente = await prisma.categoria.findUnique({
+            where: { lojistaId_nome: { lojistaId: lojista.id, nome } },
+        });
+        if (existente) {
+            continue;
+        }
+        const criada = await prisma.categoria.create({
+            data: { nome, lojistaId: lojista.id },
+        });
+        console.log(
+            `Categoria demo criada: ${criada.nome} (loja ${lojista.nomeFantasia})`,
+        );
+    }
+}
+
 async function garantirProdutosDemo(
     emailLojista: string,
     produtos: readonly { nome: string; valor: number; categoria: string }[],
@@ -191,7 +217,7 @@ async function garantirProdutosDemo(
             continue;
         }
         const categoria = await prisma.categoria.findFirst({
-            where: { nome: produto.categoria },
+            where: { nome: produto.categoria, lojistaId: lojista.id },
         });
         const criado = await prisma.produto.create({
             data: {
@@ -371,16 +397,6 @@ async function main() {
         console.log(`Sexo cadastrado: ${nome} (id=${criado.id})`);
     }
 
-    for (const nome of NOMES_CATEGORIA) {
-        const existente = await prisma.categoria.findFirst({ where: { nome } });
-        if (existente) {
-            console.log(`Categoria já existe: ${nome} (id=${existente.id})`);
-            continue;
-        }
-        const criada = await prisma.categoria.create({ data: { nome } });
-        console.log(`Categoria cadastrada: ${nome} (id=${criada.id})`);
-    }
-
     const associacao = await resolverAssociacaoAlvo();
 
     const lojasDemo = [
@@ -456,6 +472,13 @@ async function main() {
         estado: "São Paulo",
         uf: "SP",
     });
+
+    await garantirCategoriasDemo("loja.aprovada@demo.local", [
+        "Alimentos",
+        "Bebidas",
+        "Vestuário",
+    ]);
+    await garantirCategoriasDemo("loja.pendente@demo.local", ["Vestuário"]);
 
     await garantirProdutosDemo("loja.aprovada@demo.local", [
         { nome: "Cesta de café da manhã", valor: 89.9, categoria: "Alimentos" },
