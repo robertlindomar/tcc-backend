@@ -123,16 +123,20 @@ export class RepositorioLojista {
         id: number,
         dados: {
             status: StatusLojista;
-            justificativaRejeicao: string | null;
+            justificativaRejeicao?: string | null;
         },
     ): Promise<Lojista> {
         try {
+            const data: {
+                status: StatusLojista;
+                justificativaRejeicao?: string | null;
+            } = { status: dados.status };
+            if (dados.justificativaRejeicao !== undefined) {
+                data.justificativaRejeicao = dados.justificativaRejeicao;
+            }
             const atualizado = await this.prisma.lojista.update({
                 where: { id },
-                data: {
-                    status: dados.status,
-                    justificativaRejeicao: dados.justificativaRejeicao,
-                },
+                data,
             });
             return this.paraDominio(atualizado);
         } catch {

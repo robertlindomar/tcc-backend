@@ -29,6 +29,11 @@ export function RotasLojista() {
         garantirPapel(Role.ASSOCIACAO),
         tratarAsync(controller.rejeitar.bind(controller)),
     );
+    router.patch(
+        "/:id/reenviar",
+        garantirPapel(Role.LOJISTA),
+        tratarAsync(controller.reenviarParaAnalise.bind(controller)),
+    );
     router.delete("/:id", tratarAsync(controller.deletar.bind(controller)));
 
     return router;

@@ -79,9 +79,7 @@ export class ServicoAssociacao {
                 );
                 return vinculada ? [this.paraResposta(vinculada)] : [];
             }
-            // Onboarding /minha-loja: ainda sem loja — precisa escolher associação.
-            const lista = await this.repositorioAssociacao.listar();
-            return lista.map((item) => this.paraResposta(item));
+            return [];
         }
 
         throw new ErroAplicacao("Acesso nao autorizado para este perfil", 403);
@@ -109,11 +107,8 @@ export class ServicoAssociacao {
             const lojista = await this.repositorioLojista.buscarPorUsuarioId(
                 usuarioLogado.id,
             );
-            if (lojista) {
-                if (associacao.id !== lojista.associacaoId) {
-                    throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
-                }
-                return this.paraResposta(associacao);
+            if (!lojista || associacao.id !== lojista.associacaoId) {
+                throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
             }
             return this.paraResposta(associacao);
         }

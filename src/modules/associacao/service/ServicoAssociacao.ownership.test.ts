@@ -82,14 +82,13 @@ describe("ServicoAssociacao ownership", () => {
         expect(repositorioAssociacaoMock.listar).not.toHaveBeenCalled();
     });
 
-    it("lojista sem loja ainda lista associacoes (onboarding /minha-loja)", async () => {
+    it("lojista sem loja nao lista associacoes para escolher", async () => {
         repositorioLojistaMock.buscarPorUsuarioId.mockResolvedValue(null);
-        repositorioAssociacaoMock.listar.mockResolvedValue([associacaoA, associacaoB]);
 
         const lista = await servico.listar({ id: 50, role: Role.LOJISTA });
 
-        expect(lista).toHaveLength(2);
-        expect(repositorioAssociacaoMock.listar).toHaveBeenCalledOnce();
+        expect(lista).toEqual([]);
+        expect(repositorioAssociacaoMock.listar).not.toHaveBeenCalled();
     });
 
     it("associacao A nao consulta associacao B por ID", async () => {
@@ -98,6 +97,15 @@ describe("ServicoAssociacao ownership", () => {
         await expect(
             servico.buscar("2", { id: 1, role: Role.ASSOCIACAO }),
         ).rejects.toMatchObject({ statusCode: 403 } satisfies Partial<ErroAplicacao>);
+    });
+
+    it("lojista sem loja nao consulta associacao por ID", async () => {
+        repositorioAssociacaoMock.buscar.mockResolvedValue(associacaoA);
+        repositorioLojistaMock.buscarPorUsuarioId.mockResolvedValue(null);
+
+        await expect(
+            servico.buscar("1", { id: 50, role: Role.LOJISTA }),
+        ).rejects.toMatchObject({ statusCode: 403 });
     });
 
     it("lojista com loja nao consulta associacao de outro tenant", async () => {

@@ -27,6 +27,8 @@ const STATUS_INICIAL = {
     "loja.pendente3@demo.local": StatusLojista.PENDENTE,
 } as const;
 
+const JUSTIFICATIVA_REJEICAO_DEMO = "CNPJ informado esta incorreto.";
+
 const PONTOS_CONSUMIDOR_DEMO: Record<string, number> = {
     "cliente1@demo.local": 320,
     "cliente2@demo.local": 200,
@@ -34,6 +36,10 @@ const PONTOS_CONSUMIDOR_DEMO: Record<string, number> = {
 
 function nivelDePontos(pontos: number): number {
     return Math.floor(pontos / 100) + 1;
+}
+
+function justificativaInicial(status: StatusLojista): string | null {
+    return status === StatusLojista.REJEITADO ? JUSTIFICATIVA_REJEICAO_DEMO : null;
 }
 
 async function main() {
@@ -52,16 +58,22 @@ async function main() {
             continue;
         }
 
-        if (lojista.status === status) {
+        const justificativaRejeicao = justificativaInicial(status);
+        const mesmoStatus = lojista.status === status;
+        const mesmaJustificativa = lojista.justificativaRejeicao === justificativaRejeicao;
+        if (mesmoStatus && mesmaJustificativa) {
             console.log(`${lojista.nomeFantasia}: já está ${status}`);
             continue;
         }
 
         await prisma.lojista.update({
             where: { id: lojista.id },
-            data: { status },
+            data: { status, justificativaRejeicao },
         });
-        console.log(`${lojista.nomeFantasia}: ${lojista.status} → ${status}`);
+        console.log(
+            `${lojista.nomeFantasia}: ${lojista.status} → ${status}` +
+                (justificativaRejeicao ? ` (justificativa restaurada)` : ""),
+        );
     }
 
     const consumidoresDemo = await prisma.consumidor.findMany({
@@ -103,6 +115,26 @@ async function main() {
             data: { pontos, nivel: nivelDePontos(pontos) },
         });
         console.log(`${email}: pontos restaurados para ${pontos}`);
+    }
+
+    const totalAssociacoes = await prisma.associacao.count();
+    if (totalAssociacoes !== 1) {
+        const extras = await prisma.associacao.findMany({
+            orderBy: { id: "asc" },
+            select: {
+                id: true,
+                nomeFantasia: true,
+                usuario: { select: { email: true } },
+            },
+        });
+        console.error(
+            `\nAVISO E1: encontradas ${totalAssociacoes} associacoes; o cadastro de lojista espera exatamente 1.`,
+        );
+        for (const item of extras) {
+            console.error(
+                `  id=${item.id} ${item.nomeFantasia} (${item.usuario.email})`,
+            );
+        }
     }
 
     console.log("\nRoteiro pronto para ser apresentado novamente.");

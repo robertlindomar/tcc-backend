@@ -80,6 +80,22 @@ export class ControladorLojista {
         response.status(200).json(atualizado);
     }
 
+    async reenviarParaAnalise(
+        request: Request,
+        response: Response,
+        _next: NextFunction,
+    ): Promise<void> {
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
+
+        const atualizado = await this.servicoLojista.reenviarParaAnalise(
+            request.params.id,
+            request.usuario,
+        );
+        response.status(200).json(atualizado);
+    }
+
     async deletar(request: Request, response: Response, _next: NextFunction): Promise<void> {
         if (!request.usuario) {
             throw new ErroAplicacao("Usuario nao autenticado", 401);

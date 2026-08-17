@@ -34,7 +34,6 @@ export class ServicoLojista {
         );
         const razaoSocial = this.validarTextoObrigatorio(request.razaoSocial, "Razao social");
         const cnpj = this.validarTextoObrigatorio(request.cnpj, "CNPJ");
-        const associacaoId = this.validarIdNumerico(request.associacaoId, "associacaoId");
         const inscricaoEstadual = this.validarInscricaoEstadual(request.inscricaoEstadual);
         const enderecoId = await this.resolverEnderecoId(usuarioId, request.enderecoId, false);
 
@@ -46,11 +45,6 @@ export class ServicoLojista {
             throw new ErroAplicacao("Usuario deve ter role LOJISTA", 400);
         }
 
-        const associacao = await this.repositorioAssociacao.buscar(associacaoId);
-        if (!associacao) {
-            throw new ErroAplicacao("Associacao nao encontrada", 404);
-        }
-
         const perfilExistente = await this.repositorioLojista.buscarPorUsuarioId(usuarioId);
         if (perfilExistente) {
             throw new ErroAplicacao("Usuario ja possui perfil de lojista", 400);
@@ -60,6 +54,8 @@ export class ServicoLojista {
         if (cnpjExistente) {
             throw new ErroAplicacao("CNPJ ja cadastrado", 400);
         }
+
+        const associacaoId = await this.resolverAssociacaoUnica();
 
         const criado = await this.repositorioLojista.criar({
             nomeFantasia,
@@ -218,6 +214,46 @@ export class ServicoLojista {
         });
     }
 
+    async reenviarParaAnalise(
+        idParam: string,
+        usuarioLogado: UsuarioAutenticado,
+    ): Promise<RespostaLojista> {
+        if (usuarioLogado.role !== Role.LOJISTA) {
+            throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+        }
+
+        const id = this.parseId(idParam);
+        const existente = await this.repositorioLojista.buscar(id);
+
+        if (!existente) {
+            throw new ErroAplicacao("Lojista nao encontrado", 404);
+        }
+
+        if (existente.usuarioId !== usuarioLogado.id) {
+            throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+        }
+
+        if (existente.status === StatusLojista.PENDENTE) {
+            throw new ErroAplicacao("Cadastro ja esta em analise", 409);
+        }
+
+        if (existente.status === StatusLojista.APROVADO) {
+            throw new ErroAplicacao("Cadastro ja foi aprovado", 409);
+        }
+
+        if (existente.status !== StatusLojista.REJEITADO) {
+            throw new ErroAplicacao(
+                "Somente cadastro rejeitado pode ser reenviado para analise",
+                409,
+            );
+        }
+
+        const atualizado = await this.repositorioLojista.atualizarStatus(id, {
+            status: StatusLojista.PENDENTE,
+        });
+        return this.paraResposta(atualizado);
+    }
+
     async deletar(idParam: string, usuarioLogado: UsuarioAutenticado): Promise<void> {
         const id = this.parseId(idParam);
         const existente = await this.repositorioLojista.buscar(id);
@@ -229,6 +265,21 @@ export class ServicoLojista {
         await this.garantirDonoOuAssociacaoGestora(existente, usuarioLogado);
 
         await this.repositorioLojista.deletar(id);
+    }
+
+    private async resolverAssociacaoUnica(): Promise<number> {
+        const lista = await this.repositorioAssociacao.listar();
+        const unica = lista[0];
+        if (!unica) {
+            throw new ErroAplicacao("Associacao nao encontrada", 404);
+        }
+        if (lista.length > 1) {
+            throw new ErroAplicacao(
+                "Configuracao invalida: existe mais de uma associacao",
+                409,
+            );
+        }
+        return unica.id;
     }
 
     private async garantirDonoOuAssociacaoGestora(
