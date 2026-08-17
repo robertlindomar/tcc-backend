@@ -364,22 +364,37 @@ async function garantirRecompensasDemo(emailLojista: string) {
 
     const itens = [
         {
-            nome: "Cupom 10% de desconto",
-            descricao: "Válido na loja física (demonstração).",
-            custoPontos: 100,
-        },
-        {
             nome: "Chaveiro da loja",
             descricao: "Brinde da Casa do Real.",
             custoPontos: 50,
+            estoque: 10 as number | null,
+            dataFim: null as Date | null,
         },
-    ] as const;
+        {
+            nome: "Cupom 10% de desconto",
+            descricao: "Válido na loja física (demonstração).",
+            custoPontos: 100,
+            estoque: null as number | null,
+            dataFim: fimDoDiaCivilNoFuso({ ano: 2026, mes: 12, dia: 31 }),
+        },
+    ];
 
     for (const item of itens) {
         const existente = await prisma.recompensa.findFirst({
             where: { lojistaId: lojista.id, nome: item.nome },
         });
         if (existente) {
+            await prisma.recompensa.update({
+                where: { id: existente.id },
+                data: {
+                    descricao: item.descricao,
+                    custoPontos: item.custoPontos,
+                    estoque: item.estoque,
+                    dataFim: item.dataFim,
+                    ativa: true,
+                },
+            });
+            console.log(`Recompensa demo atualizada: ${item.nome}`);
             continue;
         }
         await prisma.recompensa.create({
@@ -387,6 +402,8 @@ async function garantirRecompensasDemo(emailLojista: string) {
                 nome: item.nome,
                 descricao: item.descricao,
                 custoPontos: item.custoPontos,
+                estoque: item.estoque,
+                dataFim: item.dataFim,
                 lojistaId: lojista.id,
                 ativa: true,
             },

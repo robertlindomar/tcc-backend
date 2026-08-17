@@ -1,6 +1,8 @@
 import { resolverConsumidorLogado } from "../../../shared/authz/resolverConsumidorLogado";
 import { resolverLojistaAprovado } from "../../../shared/authz/resolverLojistaAprovado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { civilNoFuso } from "../../../shared/tempo/fusoNegocio";
+import { interpretarDataFim } from "../../../shared/tempo/interpretarDataFim";
 import { Consumidor } from "../../consumidor/model/Consumidor";
 import { RespostaConsumidor } from "../../consumidor/dtos/RespostaConsumidor";
 import { RepositorioConsumidor } from "../../consumidor/repository/RepositorioConsumidor";
@@ -15,6 +17,15 @@ import { Recompensa } from "../model/Recompensa";
 import { ResgateRecompensa } from "../model/ResgateRecompensa";
 import { RepositorioRecompensa } from "../repository/RepositorioRecompensa";
 import { RepositorioResgateRecompensa } from "../repository/RepositorioResgateRecompensa";
+import { calcularSituacaoRecompensa } from "../utils/calcularSituacaoRecompensa";
+
+function dataCivilIso(dataFim: Date | null): string | null {
+    if (!dataFim) {
+        return null;
+    }
+    const civil = civilNoFuso(dataFim);
+    return `${civil.ano}-${String(civil.mes).padStart(2, "0")}-${String(civil.dia).padStart(2, "0")}`;
+}
 
 export class ServicoRecompensa {
     constructor(
@@ -33,27 +44,36 @@ export class ServicoRecompensa {
             nome: this.validarNome(request.nome),
             descricao: this.validarDescricaoOpcional(request.descricao),
             custoPontos: this.validarCustoPontos(request.custoPontos),
+            estoque: this.validarEstoque(request.estoque),
+            dataFim: this.validarDataFimOpcional(request.dataFim),
             lojistaId,
         });
         return this.paraResposta(criado);
     }
 
-    async listar(usuarioId: number): Promise<RespostaRecompensa[]> {
+    async listar(
+        usuarioId: number,
+        agora: Date = new Date(),
+    ): Promise<RespostaRecompensa[]> {
         const { lojistaId } = await resolverLojistaAprovado(
             this.repositorioLojista,
             usuarioId,
         );
         const lista = await this.repositorioRecompensa.listarPorLojistaId(lojistaId);
-        return lista.map((item) => this.paraResposta(item));
+        return lista.map((item) => this.paraResposta(item, agora));
     }
 
-    async buscar(usuarioId: number, idParam: string): Promise<RespostaRecompensa> {
+    async buscar(
+        usuarioId: number,
+        idParam: string,
+        agora: Date = new Date(),
+    ): Promise<RespostaRecompensa> {
         const { lojistaId } = await resolverLojistaAprovado(
             this.repositorioLojista,
             usuarioId,
         );
         const recompensa = await this.obterDoLojista(idParam, lojistaId);
-        return this.paraResposta(recompensa);
+        return this.paraResposta(recompensa, agora);
     }
 
     async atualizar(
@@ -70,6 +90,8 @@ export class ServicoRecompensa {
             nome?: string;
             descricao?: string | null;
             custoPontos?: number;
+            estoque?: number | null;
+            dataFim?: Date | null;
         } = {};
         if (request.nome !== undefined) {
             dados.nome = this.validarNome(request.nome);
@@ -79,6 +101,12 @@ export class ServicoRecompensa {
         }
         if (request.custoPontos !== undefined) {
             dados.custoPontos = this.validarCustoPontos(request.custoPontos);
+        }
+        if (request.estoque !== undefined) {
+            dados.estoque = this.validarEstoque(request.estoque);
+        }
+        if (request.dataFim !== undefined) {
+            dados.dataFim = this.validarDataFimOpcional(request.dataFim);
         }
         if (Object.keys(dados).length === 0) {
             throw new ErroAplicacao("Nenhum campo para atualizar", 400);
@@ -111,7 +139,10 @@ export class ServicoRecompensa {
         await this.repositorioRecompensa.deletar(existente.id);
     }
 
-    async catalogoConsumidor(usuarioId: number): Promise<RespostaCatalogoRecompensa> {
+    async catalogoConsumidor(
+        usuarioId: number,
+        agora: Date = new Date(),
+    ): Promise<RespostaCatalogoRecompensa> {
         const { consumidorId } = await resolverConsumidorLogado(
             this.repositorioConsumidor,
             usuarioId,
@@ -120,11 +151,11 @@ export class ServicoRecompensa {
         if (!consumidor) {
             throw new ErroAplicacao("Consumidor nao encontrado para o usuario logado", 404);
         }
-        const lista = await this.repositorioRecompensa.listarAtivas();
+        const lista = await this.repositorioRecompensa.listarCatalogoAprovado();
         return {
             pontos: consumidor.pontos,
             nivel: consumidor.nivel,
-            recompensas: lista.map((item) => this.paraResposta(item)),
+            recompensas: lista.map((item) => this.paraResposta(item, agora)),
         };
     }
 
@@ -132,25 +163,17 @@ export class ServicoRecompensa {
         usuarioId: number,
         idParam: string,
         _body: unknown,
+        agora: Date = new Date(),
     ): Promise<RespostaEfetuarResgate> {
         const { consumidorId } = await resolverConsumidorLogado(
             this.repositorioConsumidor,
             usuarioId,
         );
-        const id = this.parseId(idParam);
-        const recompensa = await this.repositorioRecompensa.buscar(id);
-        if (!recompensa) {
-            throw new ErroAplicacao("Recompensa nao encontrada", 404);
-        }
-        if (!recompensa.ativa) {
-            throw new ErroAplicacao("Recompensa nao disponivel", 400);
-        }
-
+        const id = this.parseId(idParam, "recompensa");
         const { resgate, consumidor } = await this.repositorioResgate.resgatarComDebito({
-            recompensaId: recompensa.id,
+            recompensaId: id,
             consumidorId,
-            custoPontos: recompensa.custoPontos,
-            nomeRecompensa: recompensa.nome,
+            agora,
         });
 
         return {
@@ -168,8 +191,35 @@ export class ServicoRecompensa {
         return lista.map((item) => this.paraRespostaResgate(item));
     }
 
+    async listarResgatesLoja(usuarioId: number): Promise<RespostaResgateRecompensa[]> {
+        const { lojistaId } = await resolverLojistaAprovado(
+            this.repositorioLojista,
+            usuarioId,
+        );
+        const lista = await this.repositorioResgate.listarPorLojistaId(lojistaId);
+        return lista.map((item) => this.paraRespostaResgate(item));
+    }
+
+    async confirmarEntrega(
+        usuarioId: number,
+        idParam: string,
+        agora: Date = new Date(),
+    ): Promise<RespostaResgateRecompensa> {
+        const { lojistaId } = await resolverLojistaAprovado(
+            this.repositorioLojista,
+            usuarioId,
+        );
+        const id = this.parseId(idParam, "resgate");
+        const resgate = await this.repositorioResgate.confirmarEntrega({
+            resgateId: id,
+            lojistaId,
+            agora,
+        });
+        return this.paraRespostaResgate(resgate);
+    }
+
     private async obterDoLojista(idParam: string, lojistaId: number): Promise<Recompensa> {
-        const id = this.parseId(idParam);
+        const id = this.parseId(idParam, "recompensa");
         const recompensa = await this.repositorioRecompensa.buscar(id);
         if (!recompensa || recompensa.lojistaId !== lojistaId) {
             throw new ErroAplicacao("Recompensa nao encontrada", 404);
@@ -177,28 +227,42 @@ export class ServicoRecompensa {
         return recompensa;
     }
 
-    private paraResposta(item: Recompensa): RespostaRecompensa {
-        return {
+    private paraResposta(item: Recompensa, agora: Date = new Date()): RespostaRecompensa {
+        const resposta: RespostaRecompensa = {
             id: item.id,
             nome: item.nome,
             descricao: item.descricao,
             custoPontos: item.custoPontos,
             ativa: item.ativa,
+            estoque: item.estoque,
+            dataFim: item.dataFim,
+            dataFimCivil: dataCivilIso(item.dataFim),
+            situacao: calcularSituacaoRecompensa(item, agora),
             lojistaId: item.lojistaId,
             dataCriacao: item.dataCriacao,
             dataAtualizacao: item.dataAtualizacao,
         };
+        if (item.nomeLoja) {
+            resposta.nomeLoja = item.nomeLoja;
+        }
+        return resposta;
     }
 
     private paraRespostaResgate(item: ResgateRecompensa): RespostaResgateRecompensa {
-        return {
+        const resposta: RespostaResgateRecompensa = {
             id: item.id,
             recompensaId: item.recompensaId,
             consumidorId: item.consumidorId,
             custoPontosSnapshot: item.custoPontosSnapshot,
             nomeRecompensaSnapshot: item.nomeRecompensaSnapshot,
+            status: item.status,
+            dataEntrega: item.dataEntrega,
             dataCriacao: item.dataCriacao,
         };
+        if (item.nomeConsumidor) {
+            resposta.nomeConsumidor = item.nomeConsumidor;
+        }
+        return resposta;
     }
 
     private paraRespostaConsumidor(consumidor: Consumidor): RespostaConsumidor {
@@ -243,10 +307,35 @@ export class ServicoRecompensa {
         return n;
     }
 
-    private parseId(idParam: string): number {
+    private validarEstoque(valor: unknown): number | null {
+        if (valor === undefined || valor === null || valor === "") {
+            return null;
+        }
+        const n = typeof valor === "number" ? valor : Number(valor);
+        if (!Number.isInteger(n) || n < 0) {
+            throw new ErroAplicacao("estoque deve ser um inteiro maior ou igual a zero", 400);
+        }
+        return n;
+    }
+
+    private validarDataFimOpcional(valor: unknown): Date | null {
+        if (valor === undefined || valor === null || valor === "") {
+            return null;
+        }
+        try {
+            return interpretarDataFim(valor);
+        } catch {
+            throw new ErroAplicacao("dataFim invalida", 400);
+        }
+    }
+
+    private parseId(idParam: string, recurso: "recompensa" | "resgate"): number {
         const id = Number(idParam);
         if (!Number.isInteger(id) || id <= 0) {
-            throw new ErroAplicacao("ID da recompensa invalido", 400);
+            throw new ErroAplicacao(
+                recurso === "resgate" ? "ID do resgate invalido" : "ID da recompensa invalido",
+                400,
+            );
         }
         return id;
     }

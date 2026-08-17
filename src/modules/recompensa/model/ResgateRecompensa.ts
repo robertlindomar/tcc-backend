@@ -1,10 +1,15 @@
+import { StatusResgateRecompensa } from "../../../generated/prisma/enums";
+
 type ResgateRecompensaProps = {
     id: number;
     recompensaId: number;
     consumidorId: number;
     custoPontosSnapshot: number;
     nomeRecompensaSnapshot: string;
+    status: StatusResgateRecompensa;
+    dataEntrega: Date | null;
     dataCriacao: Date;
+    nomeConsumidor?: string | null;
 };
 
 export class ResgateRecompensa {
@@ -29,7 +34,16 @@ export class ResgateRecompensa {
     get nomeRecompensaSnapshot() {
         return this.props.nomeRecompensaSnapshot;
     }
+    get status() {
+        return this.props.status;
+    }
+    get dataEntrega() {
+        return this.props.dataEntrega;
+    }
     get dataCriacao() {
         return this.props.dataCriacao;
+    }
+    get nomeConsumidor() {
+        return this.props.nomeConsumidor ?? null;
     }
 }

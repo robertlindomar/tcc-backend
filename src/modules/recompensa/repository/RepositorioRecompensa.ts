@@ -1,4 +1,5 @@
 import { PrismaClient } from "../../../generated/prisma/client";
+import { StatusLojista } from "../../../generated/prisma/enums";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { Recompensa } from "../model/Recompensa";
 
@@ -8,9 +9,12 @@ type RegistroRecompensa = {
     descricao: string | null;
     custoPontos: number;
     ativa: boolean;
+    estoque: number | null;
+    dataFim: Date | null;
     lojistaId: number;
     dataCriacao: Date;
     dataAtualizacao: Date;
+    lojista?: { nomeFantasia: string };
 };
 
 function ehRestricaoFk(erro: unknown): boolean {
@@ -30,6 +34,8 @@ export class RepositorioRecompensa {
         descricao: string | null;
         custoPontos: number;
         lojistaId: number;
+        estoque: number | null;
+        dataFim: Date | null;
         ativa?: boolean;
     }): Promise<Recompensa> {
         try {
@@ -39,6 +45,8 @@ export class RepositorioRecompensa {
                     descricao: dados.descricao,
                     custoPontos: dados.custoPontos,
                     lojistaId: dados.lojistaId,
+                    estoque: dados.estoque,
+                    dataFim: dados.dataFim,
                     ativa: dados.ativa ?? true,
                 },
             });
@@ -60,10 +68,14 @@ export class RepositorioRecompensa {
         }
     }
 
-    async listarAtivas(): Promise<Recompensa[]> {
+    async listarCatalogoAprovado(): Promise<Recompensa[]> {
         try {
             const lista = await this.prisma.recompensa.findMany({
-                where: { ativa: true },
+                where: {
+                    ativa: true,
+                    lojista: { status: StatusLojista.APROVADO },
+                },
+                include: { lojista: { select: { nomeFantasia: true } } },
                 orderBy: { id: "asc" },
             });
             return lista.map((item) => this.paraDominio(item));
@@ -87,6 +99,8 @@ export class RepositorioRecompensa {
             nome?: string;
             descricao?: string | null;
             custoPontos?: number;
+            estoque?: number | null;
+            dataFim?: Date | null;
             ativa?: boolean;
         },
     ): Promise<Recompensa> {
@@ -119,7 +133,10 @@ export class RepositorioRecompensa {
             descricao: item.descricao,
             custoPontos: item.custoPontos,
             ativa: item.ativa,
+            estoque: item.estoque,
+            dataFim: item.dataFim,
             lojistaId: item.lojistaId,
+            nomeLoja: item.lojista?.nomeFantasia ?? null,
             dataCriacao: item.dataCriacao,
             dataAtualizacao: item.dataAtualizacao,
         });

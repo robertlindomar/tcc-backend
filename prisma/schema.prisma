@@ -154,6 +154,11 @@ enum StatusLojista {
   @@map("StatusLojista")
 }
 
+enum StatusResgateRecompensa {
+  PENDENTE_ENTREGA
+  ENTREGUE
+}
+
 enum FrequenciaMissao {
   UMA_VEZ
   DIARIA
@@ -388,6 +393,9 @@ model Recompensa {
   descricao   String? @map("descricao_recompensa") @db.VarChar(500)
   custoPontos Int     @map("custo_pontos_recompensa")
   ativa       Boolean @default(true) @map("ativa_recompensa")
+  /// null = ilimitado; 0 = esgotado; >0 = unidades restantes. Nunca tratar 0 como ilimitado.
+  estoque     Int?    @map("estoque_recompensa")
+  dataFim     DateTime? @map("data_fim_recompensa")
 
   lojistaId Int     @map("id_lojista")
   lojista   Lojista @relation(fields: [lojistaId], references: [id])
@@ -414,6 +422,9 @@ model ResgateRecompensa {
 
   custoPontosSnapshot    Int    @map("custo_pontos_snapshot")
   nomeRecompensaSnapshot String @map("nome_recompensa_snapshot") @db.VarChar(255)
+
+  status      StatusResgateRecompensa @default(PENDENTE_ENTREGA) @map("status_resgate_recompensa")
+  dataEntrega DateTime?               @map("data_entrega")
 
   dataCriacao DateTime @default(now()) @map("data_criacao")
 

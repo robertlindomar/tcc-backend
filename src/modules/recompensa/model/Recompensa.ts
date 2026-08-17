@@ -4,7 +4,10 @@ type RecompensaProps = {
     descricao: string | null;
     custoPontos: number;
     ativa: boolean;
+    estoque: number | null;
+    dataFim: Date | null;
     lojistaId: number;
+    nomeLoja?: string | null;
     dataCriacao: Date;
     dataAtualizacao: Date;
 };
@@ -31,8 +34,17 @@ export class Recompensa {
     get ativa() {
         return this.props.ativa;
     }
+    get estoque() {
+        return this.props.estoque;
+    }
+    get dataFim() {
+        return this.props.dataFim;
+    }
     get lojistaId() {
         return this.props.lojistaId;
+    }
+    get nomeLoja() {
+        return this.props.nomeLoja ?? null;
     }
     get dataCriacao() {
         return this.props.dataCriacao;

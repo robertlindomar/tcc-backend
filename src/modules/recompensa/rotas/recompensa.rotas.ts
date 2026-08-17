@@ -45,8 +45,22 @@ export function RotasResgateRecompensa() {
     const controller = criarControladorRecompensa();
 
     router.use(garantirAutenticado);
-    router.use(garantirPapel(Role.CONSUMIDOR));
-    router.get("/", tratarAsync(controller.listarResgates.bind(controller)));
+
+    router.get(
+        "/loja",
+        garantirPapel(Role.LOJISTA),
+        tratarAsync(controller.listarResgatesLoja.bind(controller)),
+    );
+    router.patch(
+        "/:id/confirmar-entrega",
+        garantirPapel(Role.LOJISTA),
+        tratarAsync(controller.confirmarEntrega.bind(controller)),
+    );
+    router.get(
+        "/",
+        garantirPapel(Role.CONSUMIDOR),
+        tratarAsync(controller.listarResgates.bind(controller)),
+    );
 
     return router;
 }

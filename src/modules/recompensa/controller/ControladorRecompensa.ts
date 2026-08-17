@@ -102,4 +102,31 @@ export class ControladorRecompensa {
         const lista = await this.servicoRecompensa.listarResgates(request.usuario.id);
         response.status(200).json(lista);
     }
+
+    async listarResgatesLoja(
+        request: Request,
+        response: Response,
+        _next: NextFunction,
+    ): Promise<void> {
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
+        const lista = await this.servicoRecompensa.listarResgatesLoja(request.usuario.id);
+        response.status(200).json(lista);
+    }
+
+    async confirmarEntrega(
+        request: Request,
+        response: Response,
+        _next: NextFunction,
+    ): Promise<void> {
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
+        const atualizado = await this.servicoRecompensa.confirmarEntrega(
+            request.usuario.id,
+            request.params.id,
+        );
+        response.status(200).json(atualizado);
+    }
 }

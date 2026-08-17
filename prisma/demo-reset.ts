@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client.js";
 import { Role, StatusLojista } from "../src/generated/prisma/enums.js";
+import { fimDoDiaCivilNoFuso } from "../src/shared/tempo/fusoNegocio";
 
 /**
  * Devolve contas *@demo.local ao estado inicial da apresentação.
@@ -91,7 +92,7 @@ async function main() {
     const idsConsumidorDemo = consumidoresDemo.map((item) => item.id);
 
     if (idsConsumidorDemo.length > 0) {
-  const conclusoes = await prisma.missaoConsumidor.deleteMany({
+        const conclusoes = await prisma.missaoConsumidor.deleteMany({
             where: { consumidorId: { in: idsConsumidorDemo } },
         });
         console.log(
@@ -104,6 +105,29 @@ async function main() {
         console.log(
             `Resgates de consumidores *@demo.local removidos: ${removidos.count}`,
         );
+    }
+
+    const usuarioCasa = await prisma.usuario.findUnique({
+        where: { email: "loja.aprovada@demo.local" },
+    });
+    const casaDoReal = usuarioCasa
+        ? await prisma.lojista.findUnique({ where: { usuarioId: usuarioCasa.id } })
+        : null;
+    if (casaDoReal) {
+        await prisma.recompensa.updateMany({
+            where: { lojistaId: casaDoReal.id, nome: "Chaveiro da loja" },
+            data: { estoque: 10, dataFim: null, ativa: true, custoPontos: 50 },
+        });
+        await prisma.recompensa.updateMany({
+            where: { lojistaId: casaDoReal.id, nome: "Cupom 10% de desconto" },
+            data: {
+                estoque: null,
+                ativa: true,
+                custoPontos: 100,
+                dataFim: fimDoDiaCivilNoFuso({ ano: 2026, mes: 12, dia: 31 }),
+            },
+        });
+        console.log("Estoque das recompensas demo restaurado (Chaveiro=10, Cupom=ilimitado)");
     }
 
     for (const [email, pontos] of Object.entries(PONTOS_CONSUMIDOR_DEMO)) {
