@@ -122,6 +122,21 @@ export class ServicoPromocao {
         return this.paraResposta(atualizado);
     }
 
+    async reativar(usuarioId: number, idParam: string): Promise<RespostaPromocao> {
+        const { lojistaId } = await resolverLojistaAprovado(
+            this.repositorioLojista,
+            usuarioId,
+        );
+        const existente = await this.obterDoLojista(idParam, lojistaId);
+        if (existente.ativa) {
+            return this.paraResposta(existente);
+        }
+        const atualizado = await this.repositorioPromocao.atualizar(existente.id, {
+            ativa: true,
+        });
+        return this.paraResposta(atualizado);
+    }
+
     async deletar(usuarioId: number, idParam: string): Promise<void> {
         const { lojistaId } = await resolverLojistaAprovado(
             this.repositorioLojista,

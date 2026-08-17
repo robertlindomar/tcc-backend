@@ -73,6 +73,28 @@ describe("ServicoPromocao por status do lojista", () => {
         expect(repositorioPromocaoMock.atualizar).not.toHaveBeenCalled();
     });
 
+    it("PENDENTE nao reativa promocao", async () => {
+        repositorioLojistaMock.buscarPorUsuarioId.mockResolvedValue(
+            lojistaFake({ status: StatusLojista.PENDENTE }),
+        );
+
+        await expect(servico.reativar(20, "7")).rejects.toMatchObject({
+            statusCode: 403,
+        });
+        expect(repositorioPromocaoMock.atualizar).not.toHaveBeenCalled();
+    });
+
+    it("REJEITADO nao reativa promocao", async () => {
+        repositorioLojistaMock.buscarPorUsuarioId.mockResolvedValue(
+            lojistaFake({ status: StatusLojista.REJEITADO }),
+        );
+
+        await expect(servico.reativar(20, "7")).rejects.toMatchObject({
+            statusCode: 403,
+        });
+        expect(repositorioPromocaoMock.atualizar).not.toHaveBeenCalled();
+    });
+
     it("REJEITADO nao cria promocao", async () => {
         repositorioLojistaMock.buscarPorUsuarioId.mockResolvedValue(
             lojistaFake({ status: StatusLojista.REJEITADO }),

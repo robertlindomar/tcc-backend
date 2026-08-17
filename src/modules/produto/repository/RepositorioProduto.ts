@@ -22,6 +22,7 @@ export class RepositorioProduto {
         valor: number;
         categoriaId: number | null;
         lojistaId: number;
+        urlImagem: string;
     }): Promise<Produto> {
         try {
             const criado = await this.prisma.produto.create({ data: dados });

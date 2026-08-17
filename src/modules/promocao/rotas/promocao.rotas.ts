@@ -16,6 +16,7 @@ export function RotasPromocao() {
     router.get("/:id", tratarAsync(controller.buscar.bind(controller)));
     router.post("/", tratarAsync(controller.criar.bind(controller)));
     router.patch("/:id/desativar", tratarAsync(controller.desativar.bind(controller)));
+    router.patch("/:id/reativar", tratarAsync(controller.reativar.bind(controller)));
     router.put("/:id", tratarAsync(controller.atualizar.bind(controller)));
     router.delete("/:id", tratarAsync(controller.deletar.bind(controller)));
 

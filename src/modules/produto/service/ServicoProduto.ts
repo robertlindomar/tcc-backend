@@ -17,11 +17,19 @@ export class ServicoProduto {
         private readonly servicoUploadImagem: ServicoUploadImagem,
     ) {}
 
-    async criar(usuarioId: number, request: DTOCriarProduto): Promise<RespostaProduto> {
+    async criar(
+        usuarioId: number,
+        request: DTOCriarProduto,
+        imagem: Buffer,
+    ): Promise<RespostaProduto> {
         const { lojistaId } = await resolverLojistaAprovado(
             this.repositorioLojista,
             usuarioId,
         );
+
+        if (!imagem?.length) {
+            throw new ErroAplicacao("Imagem do produto e obrigatoria", 400);
+        }
 
         const nome = this.validarNome(request.nome);
         const valor = this.validarValor(request.valor);
@@ -30,14 +38,20 @@ export class ServicoProduto {
             lojistaId,
         );
 
-        const criado = await this.repositorioProduto.criar({
-            nome,
-            valor,
-            categoriaId,
-            lojistaId,
-        });
-
-        return this.paraResposta(criado);
+        const urlImagem = await this.servicoUploadImagem.gravar("produtos", imagem);
+        try {
+            const criado = await this.repositorioProduto.criar({
+                nome,
+                valor,
+                categoriaId,
+                lojistaId,
+                urlImagem,
+            });
+            return this.paraResposta(criado);
+        } catch (erro) {
+            await this.servicoUploadImagem.remover(urlImagem);
+            throw erro;
+        }
     }
 
     async listar(usuarioId: number): Promise<RespostaProduto[]> {
@@ -68,6 +82,9 @@ export class ServicoProduto {
             usuarioId,
         );
         const existente = await this.obterDoLojista(idParam, lojistaId);
+        if (!existente.urlImagem) {
+            throw new ErroAplicacao("Imagem do produto e obrigatoria", 400);
+        }
 
         const dados: {
             nome?: string;

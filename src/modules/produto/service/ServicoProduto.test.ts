@@ -8,6 +8,10 @@ import { Produto } from "../model/Produto";
 import { RepositorioProduto } from "../repository/RepositorioProduto";
 import { ServicoProduto } from "./ServicoProduto";
 
+const jpegMinimo = Buffer.from([
+    0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01,
+]);
+
 function lojistaFake(status: StatusLojista, id = 5): Lojista {
     const agora = new Date();
     return new Lojista({
@@ -30,6 +34,7 @@ describe("ServicoProduto", () => {
     let repositorioProdutoMock: { criar: ReturnType<typeof vi.fn> };
     let repositorioLojistaMock: { buscarPorUsuarioId: ReturnType<typeof vi.fn> };
     let repositorioCategoriaMock: { buscar: ReturnType<typeof vi.fn> };
+    let uploadMock: { gravar: ReturnType<typeof vi.fn>; remover: ReturnType<typeof vi.fn> };
     let servico: ServicoProduto;
 
     beforeEach(() => {
@@ -42,14 +47,15 @@ describe("ServicoProduto", () => {
         repositorioCategoriaMock = {
             buscar: vi.fn(),
         };
+        uploadMock = {
+            gravar: vi.fn().mockResolvedValue("/uploads/produtos/a.jpg"),
+            remover: vi.fn(),
+        };
         servico = new ServicoProduto(
             repositorioProdutoMock as unknown as RepositorioProduto,
             repositorioLojistaMock as unknown as RepositorioLojista,
             repositorioCategoriaMock as unknown as RepositorioCategoria,
-            {
-                gravar: vi.fn(),
-                remover: vi.fn(),
-            } as never,
+            uploadMock as never,
         );
     });
 
@@ -65,21 +71,27 @@ describe("ServicoProduto", () => {
                 valor: 12.5,
                 categoriaId: null,
                 lojistaId: 5,
+                urlImagem: "/uploads/produtos/a.jpg",
                 dataCriacao: agora,
                 dataAtualizacao: agora,
             }),
         );
 
-        const resultado = await servico.criar(20, {
-            nome: " Cafe ",
-            valor: 12.5,
-        });
+        const resultado = await servico.criar(
+            20,
+            {
+                nome: " Cafe ",
+                valor: 12.5,
+            },
+            jpegMinimo,
+        );
 
         expect(repositorioProdutoMock.criar).toHaveBeenCalledWith({
             nome: "Cafe",
             valor: 12.5,
             categoriaId: null,
             lojistaId: 5,
+            urlImagem: "/uploads/produtos/a.jpg",
         });
         expect(resultado).toMatchObject({
             id: 1,
@@ -96,7 +108,7 @@ describe("ServicoProduto", () => {
         repositorioCategoriaMock.buscar.mockResolvedValue(null);
 
         await expect(
-            servico.criar(20, { nome: "Cafe", valor: 10, categoriaId: 999 }),
+            servico.criar(20, { nome: "Cafe", valor: 10, categoriaId: 999 }, jpegMinimo),
         ).rejects.toMatchObject({ statusCode: 404 });
     });
 
@@ -111,7 +123,7 @@ describe("ServicoProduto", () => {
         });
 
         await expect(
-            servico.criar(20, { nome: "Cafe", valor: 10, categoriaId: 9 }),
+            servico.criar(20, { nome: "Cafe", valor: 10, categoriaId: 9 }, jpegMinimo),
         ).rejects.toMatchObject({ statusCode: 404 });
         expect(repositorioProdutoMock.criar).not.toHaveBeenCalled();
     });
@@ -122,11 +134,11 @@ describe("ServicoProduto", () => {
         );
 
         await expect(
-            servico.criar(20, { nome: "Cafe", valor: 10 }),
+            servico.criar(20, { nome: "Cafe", valor: 10 }, jpegMinimo),
         ).rejects.toBeInstanceOf(ErroAplicacao);
 
         try {
-            await servico.criar(20, { nome: "Cafe", valor: 10 });
+            await servico.criar(20, { nome: "Cafe", valor: 10 }, jpegMinimo);
         } catch (erro) {
             expect((erro as ErroAplicacao).statusCode).toBe(403);
         }

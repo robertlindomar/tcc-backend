@@ -2614,10 +2614,6 @@
             "method": "POST",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
                 "key": "Authorization",
                 "value": "Bearer {{tokenLojista}}"
               }
@@ -2632,8 +2628,12 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Cafe Especial\",\n  \"valor\": 29.9,\n  \"categoriaId\": null\n}"
+              "mode": "formdata",
+              "formdata": [
+                { "key": "nome", "value": "Cafe Especial", "type": "text" },
+                { "key": "valor", "value": "29.9", "type": "text" },
+                { "key": "arquivo", "type": "file", "src": [] }
+              ]
             }
           }
         },
@@ -2827,10 +2827,6 @@
             "method": "POST",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
                 "key": "Authorization",
                 "value": "Bearer {{tokenLojista}}"
               }
@@ -2845,8 +2841,12 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Produto Promo\",\n  \"valor\": 50\n}"
+              "mode": "formdata",
+              "formdata": [
+                { "key": "nome", "value": "Produto Promo", "type": "text" },
+                { "key": "valor", "value": "50", "type": "text" },
+                { "key": "arquivo", "type": "file", "src": [] }
+              ]
             }
           }
         },
@@ -3027,6 +3027,40 @@
                 "promocao",
                 "{{promocaoId}}",
                 "desativar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reativar Promocao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('reativada', () => pm.expect(pm.response.json().ativa).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/promocao/{{promocaoId}}/reativar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "promocao",
+                "{{promocaoId}}",
+                "reativar"
               ]
             }
           }

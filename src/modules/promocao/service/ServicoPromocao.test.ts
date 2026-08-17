@@ -180,6 +180,107 @@ describe("ServicoPromocao", () => {
         expect(resultado.statusVigencia).toBe("DESATIVADA");
     });
 
+    it("reativar desativada com validade futura fica ATIVA", async () => {
+        repositorioPromocaoMock.buscar.mockResolvedValue(
+            promocaoFake(agora, { ativa: false }),
+        );
+        repositorioProdutoMock.buscar.mockResolvedValue(produtoProprio(agora));
+        repositorioPromocaoMock.atualizar.mockResolvedValue(
+            promocaoFake(agora, { ativa: true }),
+        );
+
+        const resultado = await servico.reativar(20, "7");
+
+        expect(repositorioPromocaoMock.atualizar).toHaveBeenCalledWith(7, {
+            ativa: true,
+        });
+        expect(resultado.statusVigencia).toBe("ATIVA");
+        expect(resultado.ativa).toBe(true);
+    });
+
+    it("repetir reativacao e idempotente", async () => {
+        repositorioPromocaoMock.buscar.mockResolvedValue(
+            promocaoFake(agora, { ativa: true }),
+        );
+        repositorioProdutoMock.buscar.mockResolvedValue(produtoProprio(agora));
+
+        const resultado = await servico.reativar(20, "7");
+
+        expect(repositorioPromocaoMock.atualizar).not.toHaveBeenCalled();
+        expect(resultado.ativa).toBe(true);
+        expect(resultado.statusVigencia).toBe("ATIVA");
+    });
+
+    it("reativar com prazo vencido continua EXPIRADA", async () => {
+        const inicio = new Date(agora.getTime() - 10 * 86400000);
+        const fim = new Date(agora.getTime() - 1 * 86400000);
+        repositorioPromocaoMock.buscar.mockResolvedValue(
+            promocaoFake(agora, { ativa: false, dataInicio: inicio, dataFim: fim }),
+        );
+        repositorioProdutoMock.buscar.mockResolvedValue(produtoProprio(agora));
+        repositorioPromocaoMock.atualizar.mockResolvedValue(
+            promocaoFake(agora, { ativa: true, dataInicio: inicio, dataFim: fim }),
+        );
+
+        const resultado = await servico.reativar(20, "7");
+
+        expect(repositorioPromocaoMock.atualizar).toHaveBeenCalledWith(7, {
+            ativa: true,
+        });
+        expect(resultado.ativa).toBe(true);
+        expect(resultado.statusVigencia).toBe("EXPIRADA");
+        expect(resultado.dataFim).toEqual(fim);
+    });
+
+    it("editar duracao de expirada reinicia a janela", async () => {
+        const inicio = new Date(agora.getTime() - 10 * 86400000);
+        const fim = new Date(agora.getTime() - 1 * 86400000);
+        repositorioPromocaoMock.buscar.mockResolvedValue(
+            promocaoFake(agora, { ativa: true, dataInicio: inicio, dataFim: fim }),
+        );
+        repositorioProdutoMock.buscar.mockResolvedValue(produtoProprio(agora));
+        repositorioPromocaoMock.atualizar.mockImplementation(async (_id, dados) =>
+            promocaoFake(agora, {
+                ativa: true,
+                dataInicio: dados.dataInicio as Date,
+                dataFim: dados.dataFim as Date,
+            }),
+        );
+
+        const resultado = await servico.atualizar(20, "7", { duracaoDias: 5 });
+
+        expect(repositorioPromocaoMock.atualizar).toHaveBeenCalledWith(
+            7,
+            expect.objectContaining({
+                dataInicio: expect.any(Date),
+                dataFim: expect.any(Date),
+            }),
+        );
+        expect(resultado.statusVigencia).toBe("ATIVA");
+    });
+
+    it("outro lojista nao reativa promocao alheia", async () => {
+        repositorioPromocaoMock.buscar.mockResolvedValue(
+            promocaoFake(agora, { produtoId: 99 }),
+        );
+        repositorioProdutoMock.buscar.mockResolvedValue(
+            new Produto({
+                id: 99,
+                nome: "Alheio",
+                valor: 1,
+                categoriaId: null,
+                lojistaId: 8,
+                dataCriacao: agora,
+                dataAtualizacao: agora,
+            }),
+        );
+
+        await expect(servico.reativar(20, "7")).rejects.toMatchObject({
+            statusCode: 404,
+        });
+        expect(repositorioPromocaoMock.atualizar).not.toHaveBeenCalled();
+    });
+
     it("outro lojista nao desativa promocao alheia", async () => {
         repositorioPromocaoMock.buscar.mockResolvedValue(
             promocaoFake(agora, { produtoId: 99 }),

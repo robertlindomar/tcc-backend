@@ -15,7 +15,11 @@ export function RotasProduto() {
 
     router.get("/", tratarAsync(controller.listar.bind(controller)));
     router.get("/:id", tratarAsync(controller.buscar.bind(controller)));
-    router.post("/", tratarAsync(controller.criar.bind(controller)));
+    router.post(
+        "/",
+        receberArquivoImagem,
+        tratarAsync(controller.criar.bind(controller)),
+    );
     router.put(
         "/:id/imagem",
         receberArquivoImagem,

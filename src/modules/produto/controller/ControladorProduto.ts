@@ -25,7 +25,15 @@ export class ControladorProduto {
         if (!request.usuario) {
             throw new ErroAplicacao("Usuario nao autenticado", 401);
         }
-        const criado = await this.servicoProduto.criar(request.usuario.id, request.body);
+        const arquivo = request.file;
+        if (!arquivo) {
+            throw new ErroAplicacao("Imagem do produto e obrigatoria", 400);
+        }
+        const criado = await this.servicoProduto.criar(
+            request.usuario.id,
+            request.body,
+            arquivo.buffer,
+        );
         response.status(201).json(criado);
     }
 

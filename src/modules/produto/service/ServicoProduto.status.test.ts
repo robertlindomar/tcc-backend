@@ -8,6 +8,10 @@ import { Produto } from "../model/Produto";
 import { RepositorioProduto } from "../repository/RepositorioProduto";
 import { ServicoProduto } from "./ServicoProduto";
 
+const jpegMinimo = Buffer.from([
+    0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01,
+]);
+
 describe("ServicoProduto por status do lojista", () => {
     let repositorioProdutoMock: {
         criar: ReturnType<typeof vi.fn>;
@@ -33,7 +37,7 @@ describe("ServicoProduto por status do lojista", () => {
             repositorioLojistaMock as unknown as RepositorioLojista,
             {} as RepositorioCategoria,
             {
-                gravar: vi.fn(),
+                gravar: vi.fn().mockResolvedValue("/uploads/produtos/a.jpg"),
                 remover: vi.fn(),
             } as never,
         );
@@ -45,7 +49,7 @@ describe("ServicoProduto por status do lojista", () => {
         );
 
         await expect(
-            servico.criar(20, { nome: "Cafe", valor: 10 }),
+            servico.criar(20, { nome: "Cafe", valor: 10 }, jpegMinimo),
         ).rejects.toMatchObject({
             message: "Lojista precisa estar APROVADO para esta operacao",
             statusCode: 403,
@@ -59,7 +63,7 @@ describe("ServicoProduto por status do lojista", () => {
         );
 
         await expect(
-            servico.criar(20, { nome: "Cafe", valor: 10 }),
+            servico.criar(20, { nome: "Cafe", valor: 10 }, jpegMinimo),
         ).rejects.toMatchObject({ statusCode: 403 });
         expect(repositorioProdutoMock.criar).not.toHaveBeenCalled();
     });
@@ -76,12 +80,13 @@ describe("ServicoProduto por status do lojista", () => {
                 valor: 10,
                 categoriaId: null,
                 lojistaId: 5,
+                urlImagem: "/uploads/produtos/a.jpg",
                 dataCriacao: agora,
                 dataAtualizacao: agora,
             }),
         );
 
-        const resultado = await servico.criar(20, { nome: "Cafe", valor: 10 });
+        const resultado = await servico.criar(20, { nome: "Cafe", valor: 10 }, jpegMinimo);
 
         expect(resultado.lojistaId).toBe(5);
         expect(repositorioProdutoMock.criar).toHaveBeenCalledOnce();
