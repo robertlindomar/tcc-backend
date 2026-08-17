@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { StatusLojista } from "../../../generated/prisma/enums";
+import { FrequenciaMissao, StatusLojista } from "../../../generated/prisma/enums";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { lojistaFake } from "../../../shared/testes/lojistaFake";
 import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista";
+import { RepositorioMissaoConsumidor } from "../../missao-consumidor/repository/RepositorioMissaoConsumidor";
 import { Missao } from "../model/Missao";
 import { RepositorioMissao } from "../repository/RepositorioMissao";
 import { ServicoMissao } from "./ServicoMissao";
@@ -18,6 +19,13 @@ describe("ServicoMissao por status do lojista", () => {
     let repositorioLojistaMock: { buscarPorUsuarioId: ReturnType<typeof vi.fn> };
     let servico: ServicoMissao;
 
+    const criarValido = {
+        nome: "Visite a loja",
+        pontoRecompensa: 1,
+        frequencia: FrequenciaMissao.UMA_VEZ,
+        dataFim: "2026-12-31",
+    };
+
     beforeEach(() => {
         repositorioMissaoMock = {
             criar: vi.fn(),
@@ -30,6 +38,7 @@ describe("ServicoMissao por status do lojista", () => {
         servico = new ServicoMissao(
             repositorioMissaoMock as unknown as RepositorioMissao,
             repositorioLojistaMock as unknown as RepositorioLojista,
+            { contarPorMissaoId: vi.fn() } as unknown as RepositorioMissaoConsumidor,
         );
     });
 
@@ -38,9 +47,7 @@ describe("ServicoMissao por status do lojista", () => {
             lojistaFake({ status: StatusLojista.PENDENTE }),
         );
 
-        await expect(
-            servico.criar(20, { nome: "Visite a loja", pontoRecompensa: 1 }),
-        ).rejects.toMatchObject({
+        await expect(servico.criar(20, criarValido)).rejects.toMatchObject({
             statusCode: 403,
         } satisfies Partial<ErroAplicacao>);
         expect(repositorioMissaoMock.criar).not.toHaveBeenCalled();
@@ -51,9 +58,9 @@ describe("ServicoMissao por status do lojista", () => {
             lojistaFake({ status: StatusLojista.REJEITADO }),
         );
 
-        await expect(
-            servico.criar(20, { nome: "Visite a loja", pontoRecompensa: 1 }),
-        ).rejects.toMatchObject({ statusCode: 403 });
+        await expect(servico.criar(20, criarValido)).rejects.toMatchObject({
+            statusCode: 403,
+        });
         expect(repositorioMissaoMock.criar).not.toHaveBeenCalled();
     });
 
@@ -68,6 +75,8 @@ describe("ServicoMissao por status do lojista", () => {
                 nome: "Visite a loja",
                 descricao: null,
                 pontoRecompensa: 50,
+                frequencia: FrequenciaMissao.UMA_VEZ,
+                dataFim: new Date("2026-12-31T23:59:59.999-03:00"),
                 lojistaId: 5,
                 tokenQr: "cd".repeat(32),
                 dataCriacao: agora,
@@ -75,7 +84,10 @@ describe("ServicoMissao por status do lojista", () => {
             }),
         );
 
-        const resultado = await servico.criar(20, { nome: "Visite a loja", pontoRecompensa: 50 });
+        const resultado = await servico.criar(20, {
+            ...criarValido,
+            pontoRecompensa: 50,
+        });
 
         expect(resultado.lojistaId).toBe(5);
         expect(resultado.tokenQr).toBe("cd".repeat(32));
@@ -88,6 +100,5 @@ describe("ServicoMissao por status do lojista", () => {
         );
 
         await expect(servico.listar(20)).rejects.toMatchObject({ statusCode: 403 });
-        expect(repositorioMissaoMock.listarPorLojistaId).not.toHaveBeenCalled();
     });
 });

@@ -3,7 +3,8 @@ import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client.js";
-import { Role, StatusLojista } from "../src/generated/prisma/enums.js";
+import { FrequenciaMissao, Role, StatusLojista } from "../src/generated/prisma/enums.js";
+import { fimDoDiaCivilNoFuso } from "../src/shared/tempo/fusoNegocio";
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -300,19 +301,35 @@ async function garantirMissaoDemo(emailLojista: string) {
         return;
     }
 
-    const nome = "Visite a loja e ganhe pontos";
+    const nome = "Conheça a vitrine da loja";
+    const nomesLegado = ["Visite a loja e ganhe pontos", nome];
+    const dataFim = fimDoDiaCivilNoFuso({ ano: 2026, mes: 12, dia: 31 });
+    const descricao =
+        "Missão demo comum (não é a missão permanente Visitar loja da E3b). Escaneie o QR no lab.";
     const existente = await prisma.missao.findFirst({
-        where: { lojistaId: lojista.id, nome },
+        where: { lojistaId: lojista.id, nome: { in: nomesLegado } },
     });
     if (existente) {
+        await prisma.missao.update({
+            where: { id: existente.id },
+            data: {
+                nome,
+                descricao,
+                frequencia: FrequenciaMissao.DIARIA,
+                dataFim,
+            },
+        });
+        console.log(`Missao demo atualizada: ${nome} (loja ${lojista.nomeFantasia})`);
         return;
     }
 
     const criada = await prisma.missao.create({
         data: {
             nome,
-            descricao: "Mostre o QR da missão para o consumidor escanear (lab web).",
+            descricao,
             pontoRecompensa: 50,
+            frequencia: FrequenciaMissao.DIARIA,
+            dataFim,
             lojistaId: lojista.id,
             tokenQr: randomBytes(32).toString("hex"),
         },

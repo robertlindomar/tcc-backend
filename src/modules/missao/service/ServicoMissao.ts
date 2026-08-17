@@ -1,16 +1,32 @@
+import { FrequenciaMissao } from "../../../generated/prisma/enums";
 import { resolverLojistaAprovado } from "../../../shared/authz/resolverLojistaAprovado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { missaoEstaExpirada } from "../../../shared/tempo/calcularChavePeriodoMissao";
+import { civilNoFuso } from "../../../shared/tempo/fusoNegocio";
+import { interpretarDataFim } from "../../../shared/tempo/interpretarDataFim";
 import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista";
+import { RepositorioMissaoConsumidor } from "../../missao-consumidor/repository/RepositorioMissaoConsumidor";
 import { DTOAtualizarMissao } from "../dto/DTOAtualizarMissao";
 import { DTOCriarMissao } from "../dto/DTOCriarMissao";
 import { RespostaMissao } from "../dtos/RespostaMissao";
 import { Missao } from "../model/Missao";
 import { RepositorioMissao } from "../repository/RepositorioMissao";
 
+const FREQUENCIAS = new Set<string>(Object.values(FrequenciaMissao));
+
+function dataCivilIso(dataFim: Date | null): string | null {
+    if (!dataFim) {
+        return null;
+    }
+    const civil = civilNoFuso(dataFim);
+    return `${civil.ano}-${String(civil.mes).padStart(2, "0")}-${String(civil.dia).padStart(2, "0")}`;
+}
+
 export class ServicoMissao {
     constructor(
         private readonly repositorioMissao: RepositorioMissao,
         private readonly repositorioLojista: RepositorioLojista,
+        private readonly repositorioMissaoConsumidor: RepositorioMissaoConsumidor,
     ) {}
 
     async criar(usuarioId: number, request: DTOCriarMissao): Promise<RespostaMissao> {
@@ -22,11 +38,15 @@ export class ServicoMissao {
         const nome = this.validarNome(request.nome);
         const descricao = this.validarDescricaoOpcional(request.descricao);
         const pontoRecompensa = this.validarPontoRecompensa(request.pontoRecompensa);
+        const frequencia = this.validarFrequencia(request.frequencia);
+        const dataFim = this.validarDataFimObrigatoria(request.dataFim);
 
         const criado = await this.repositorioMissao.criar({
             nome,
             descricao,
             pontoRecompensa,
+            frequencia,
+            dataFim,
             lojistaId,
         });
 
@@ -66,6 +86,8 @@ export class ServicoMissao {
             nome?: string;
             descricao?: string | null;
             pontoRecompensa?: number;
+            frequencia?: FrequenciaMissao;
+            dataFim?: Date;
         } = {};
 
         if (request.nome !== undefined) {
@@ -76,6 +98,25 @@ export class ServicoMissao {
         }
         if (request.pontoRecompensa !== undefined) {
             dados.pontoRecompensa = this.validarPontoRecompensa(request.pontoRecompensa);
+        }
+        if (request.frequencia !== undefined) {
+            const frequencia = this.validarFrequencia(request.frequencia);
+            if (frequencia !== existente.frequencia) {
+                const conclusoes =
+                    await this.repositorioMissaoConsumidor.contarPorMissaoId(existente.id);
+                if (conclusoes > 0) {
+                    throw new ErroAplicacao(
+                        "Nao e permitido alterar a frequencia apos conclusoes",
+                        409,
+                    );
+                }
+            }
+            dados.frequencia = frequencia;
+        }
+        if (request.dataFim !== undefined) {
+            dados.dataFim = this.validarDataFimObrigatoria(request.dataFim);
+        } else if (!existente.dataFim) {
+            throw new ErroAplicacao("dataFim e obrigatoria", 400);
         }
 
         if (Object.keys(dados).length === 0) {
@@ -106,12 +147,16 @@ export class ServicoMissao {
         return missao;
     }
 
-    private paraResposta(missao: Missao): RespostaMissao {
+    private paraResposta(missao: Missao, agora: Date = new Date()): RespostaMissao {
         return {
             id: missao.id,
             nome: missao.nome,
             descricao: missao.descricao,
             pontoRecompensa: missao.pontoRecompensa,
+            frequencia: missao.frequencia,
+            dataFim: missao.dataFim,
+            dataFimCivil: dataCivilIso(missao.dataFim),
+            expirada: missaoEstaExpirada(missao.dataFim, agora),
             lojistaId: missao.lojistaId,
             tokenQr: missao.tokenQr,
             dataCriacao: missao.dataCriacao,
@@ -145,6 +190,24 @@ export class ServicoMissao {
             throw new ErroAplicacao("pontoRecompensa deve ser um inteiro maior que zero", 400);
         }
         return n;
+    }
+
+    private validarFrequencia(valor: unknown): FrequenciaMissao {
+        if (typeof valor !== "string" || !FREQUENCIAS.has(valor)) {
+            throw new ErroAplicacao("frequencia invalida", 400);
+        }
+        return valor as FrequenciaMissao;
+    }
+
+    private validarDataFimObrigatoria(valor: unknown): Date {
+        if (valor === undefined || valor === null || valor === "") {
+            throw new ErroAplicacao("dataFim e obrigatoria", 400);
+        }
+        try {
+            return interpretarDataFim(valor);
+        } catch {
+            throw new ErroAplicacao("dataFim invalida", 400);
+        }
     }
 
     private parseId(idParam: string): number {

@@ -154,6 +154,13 @@ enum StatusLojista {
   @@map("StatusLojista")
 }
 
+enum FrequenciaMissao {
+  UMA_VEZ
+  DIARIA
+  SEMANAL
+  MENSAL
+}
+
 model Associacao {
   id                 Int     @id @default(autoincrement()) @map("id_associacao")
   nomeFantasia       String  @map("nome_fantasia_associacao") @db.VarChar(255)
@@ -299,6 +306,10 @@ model Missao {
   descricao       String? @map("descricao_missao") @db.VarChar(500)
   pontoRecompensa Int     @default(0) @map("ponto_recompensa_missao")
 
+  frequencia FrequenciaMissao @default(UMA_VEZ) @map("frequencia_missao")
+  /// Null só em legado (E3) ou missão permanente de sistema (E3b). Lojista não cria com null.
+  dataFim    DateTime?        @map("data_fim")
+
   lojistaId Int     @map("id_lojista")
   lojista   Lojista @relation(fields: [lojistaId], references: [id])
 
@@ -313,8 +324,7 @@ model Missao {
   @@map("missao")
 }
 
-/// N:M missão ↔ consumidor. Presença do registro = missão concluída (sem status extra).
-/// UNIQUE (missaoId, consumidorId) impede farm de pontos.
+/// Conclusão de missão por período. UNIQUE (missão, consumidor, período) impede farm.
 model MissaoConsumidor {
   id Int @id @default(autoincrement()) @map("id_missao_consumidor")
 
@@ -324,10 +334,13 @@ model MissaoConsumidor {
   consumidorId Int        @map("id_consumidor")
   consumidor   Consumidor @relation(fields: [consumidorId], references: [id])
 
+  /// Calculada só no servidor. UMA_VEZ=UNICA; DIARIA=YYYY-MM-DD; SEMANAL=YYYY-Www; MENSAL=YYYY-MM.
+  chavePeriodo String @map("chave_periodo") @db.VarChar(16)
+
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
-  @@unique([missaoId, consumidorId])
+  @@unique([missaoId, consumidorId, chavePeriodo])
   @@index([missaoId])
   @@index([consumidorId])
   @@map("missao_consumidor")

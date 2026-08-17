@@ -1,5 +1,9 @@
 import { resolverConsumidorLogado } from "../../../shared/authz/resolverConsumidorLogado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import {
+    calcularChavePeriodoMissao,
+    missaoEstaExpirada,
+} from "../../../shared/tempo/calcularChavePeriodoMissao";
 import { Consumidor } from "../../consumidor/model/Consumidor";
 import { RespostaConsumidor } from "../../consumidor/dtos/RespostaConsumidor";
 import { RepositorioConsumidor } from "../../consumidor/repository/RepositorioConsumidor";
@@ -22,6 +26,7 @@ export class ServicoMissaoConsumidor {
     async concluirPorToken(
         usuarioId: number,
         request: DTOConcluirMissaoPorToken,
+        agora: Date = new Date(),
     ): Promise<RespostaConclusaoMissao> {
         const { consumidorId } = await resolverConsumidorLogado(
             this.repositorioConsumidor,
@@ -38,7 +43,7 @@ export class ServicoMissaoConsumidor {
             throw new ErroAplicacao("Missao nao encontrada", 404);
         }
 
-        return this.concluirParaConsumidor(missao, consumidorId);
+        return this.concluirParaConsumidor(missao, consumidorId, agora);
     }
 
     async listar(usuarioId: number): Promise<RespostaMissaoConsumidor[]> {
@@ -69,19 +74,28 @@ export class ServicoMissaoConsumidor {
     private async concluirParaConsumidor(
         missao: Missao,
         consumidorId: number,
+        agora: Date,
     ): Promise<RespostaConclusaoMissao> {
-        const jaConcluida = await this.repositorioMissaoConsumidor.buscarPorMissaoEConsumidor(
-            missao.id,
-            consumidorId,
-        );
+        if (missaoEstaExpirada(missao.dataFim, agora)) {
+            throw new ErroAplicacao("Missao expirada", 400);
+        }
+
+        const chavePeriodo = calcularChavePeriodoMissao(missao.frequencia, agora);
+        const jaConcluida =
+            await this.repositorioMissaoConsumidor.buscarPorMissaoConsumidorPeriodo(
+                missao.id,
+                consumidorId,
+                chavePeriodo,
+            );
         if (jaConcluida) {
-            throw new ErroAplicacao("Missao ja concluida", 409);
+            throw new ErroAplicacao("Missao ja concluida neste periodo", 409);
         }
 
         const { missaoConsumidor, consumidor } =
             await this.repositorioMissaoConsumidor.concluirComPontos({
                 missaoId: missao.id,
                 consumidorId,
+                chavePeriodo,
                 pontoRecompensa: missao.pontoRecompensa,
             });
 
@@ -105,6 +119,7 @@ export class ServicoMissaoConsumidor {
             id: item.id,
             missaoId: item.missaoId,
             consumidorId: item.consumidorId,
+            chavePeriodo: item.chavePeriodo,
             dataCriacao: item.dataCriacao,
             dataAtualizacao: item.dataAtualizacao,
         };

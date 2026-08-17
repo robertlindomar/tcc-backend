@@ -91,6 +91,13 @@ async function main() {
     const idsConsumidorDemo = consumidoresDemo.map((item) => item.id);
 
     if (idsConsumidorDemo.length > 0) {
+        const conclusoes = await prisma.missaoConsumidor.deleteMany({
+            where: { consumidorId: { in: idsConsumidorDemo } },
+        });
+        console.log(
+            `Conclusoes de missao *@demo.local removidas: ${conclusoes.count}`,
+        );
+
         const removidos = await prisma.resgateRecompensa.deleteMany({
             where: { consumidorId: { in: idsConsumidorDemo } },
         });

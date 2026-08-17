@@ -8,6 +8,7 @@ type RegistroMissaoConsumidor = {
     id: number;
     missaoId: number;
     consumidorId: number;
+    chavePeriodo: string;
     dataCriacao: Date;
     dataAtualizacao: Date;
 };
@@ -46,6 +47,7 @@ export class RepositorioMissaoConsumidor {
     async concluirComPontos(dados: {
         missaoId: number;
         consumidorId: number;
+        chavePeriodo: string;
         pontoRecompensa: number;
     }): Promise<{ missaoConsumidor: MissaoConsumidor; consumidor: Consumidor }> {
         try {
@@ -54,6 +56,7 @@ export class RepositorioMissaoConsumidor {
                     data: {
                         missaoId: dados.missaoId,
                         consumidorId: dados.consumidorId,
+                        chavePeriodo: dados.chavePeriodo,
                     },
                 });
 
@@ -85,7 +88,7 @@ export class RepositorioMissaoConsumidor {
                 throw erro;
             }
             if (ehViolacaoUnica(erro)) {
-                throw new ErroAplicacao("Missao ja concluida", 409);
+                throw new ErroAplicacao("Missao ja concluida neste periodo", 409);
             }
             throw new ErroAplicacao("Erro ao concluir missao", 500);
         }
@@ -100,7 +103,7 @@ export class RepositorioMissaoConsumidor {
                         select: { nome: true, pontoRecompensa: true },
                     },
                 },
-                orderBy: { id: "asc" },
+                orderBy: [{ dataCriacao: "desc" }, { id: "desc" }],
             });
             return lista.map((item) => this.paraDominioComMissao(item));
         } catch {
@@ -124,14 +127,19 @@ export class RepositorioMissaoConsumidor {
         }
     }
 
-    async buscarPorMissaoEConsumidor(
+    async buscarPorMissaoConsumidorPeriodo(
         missaoId: number,
         consumidorId: number,
+        chavePeriodo: string,
     ): Promise<MissaoConsumidor | null> {
         try {
             const item = await this.prisma.missaoConsumidor.findUnique({
                 where: {
-                    missaoId_consumidorId: { missaoId, consumidorId },
+                    missaoId_consumidorId_chavePeriodo: {
+                        missaoId,
+                        consumidorId,
+                        chavePeriodo,
+                    },
                 },
             });
             return item ? this.paraDominio(item) : null;
@@ -140,11 +148,20 @@ export class RepositorioMissaoConsumidor {
         }
     }
 
+    async contarPorMissaoId(missaoId: number): Promise<number> {
+        try {
+            return await this.prisma.missaoConsumidor.count({ where: { missaoId } });
+        } catch {
+            throw new ErroAplicacao("Erro ao contar conclusoes da missao", 500);
+        }
+    }
+
     private paraDominio(item: RegistroMissaoConsumidor): MissaoConsumidor {
         return new MissaoConsumidor({
             id: item.id,
             missaoId: item.missaoId,
             consumidorId: item.consumidorId,
+            chavePeriodo: item.chavePeriodo,
             dataCriacao: item.dataCriacao,
             dataAtualizacao: item.dataAtualizacao,
         });
@@ -155,6 +172,7 @@ export class RepositorioMissaoConsumidor {
             id: item.id,
             missaoId: item.missaoId,
             consumidorId: item.consumidorId,
+            chavePeriodo: item.chavePeriodo,
             dataCriacao: item.dataCriacao,
             dataAtualizacao: item.dataAtualizacao,
             nomeMissao: item.missao.nome,

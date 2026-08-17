@@ -1,8 +1,12 @@
+import { FrequenciaMissao } from "../../../generated/prisma/enums";
+
 type MissaoProps = {
     id: number;
     nome: string;
     descricao: string | null;
     pontoRecompensa: number;
+    frequencia: FrequenciaMissao;
+    dataFim: Date | null;
     lojistaId: number;
     tokenQr: string;
     dataCriacao: Date;
@@ -30,6 +34,14 @@ export class Missao {
 
     get pontoRecompensa() {
         return this.props.pontoRecompensa;
+    }
+
+    get frequencia() {
+        return this.props.frequencia;
+    }
+
+    get dataFim() {
+        return this.props.dataFim;
     }
 
     get lojistaId() {

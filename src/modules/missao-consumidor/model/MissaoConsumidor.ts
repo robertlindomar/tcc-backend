@@ -2,6 +2,7 @@ type MissaoConsumidorProps = {
     id: number;
     missaoId: number;
     consumidorId: number;
+    chavePeriodo: string;
     dataCriacao: Date;
     dataAtualizacao: Date;
     nomeMissao?: string | null;
@@ -25,6 +26,10 @@ export class MissaoConsumidor {
 
     get consumidorId() {
         return this.props.consumidorId;
+    }
+
+    get chavePeriodo() {
+        return this.props.chavePeriodo;
     }
 
     get dataCriacao() {

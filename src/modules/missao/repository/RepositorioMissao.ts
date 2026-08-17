@@ -1,4 +1,5 @@
 import { PrismaClient } from "../../../generated/prisma/client";
+import { FrequenciaMissao } from "../../../generated/prisma/enums";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { gerarTokenQrMissao } from "../../../shared/utils/tokenQrMissao";
 import { Missao } from "../model/Missao";
@@ -8,6 +9,8 @@ type RegistroMissao = {
     nome: string;
     descricao: string | null;
     pontoRecompensa: number;
+    frequencia: FrequenciaMissao;
+    dataFim: Date | null;
     lojistaId: number;
     tokenQr: string;
     dataCriacao: Date;
@@ -21,6 +24,8 @@ export class RepositorioMissao {
         nome: string;
         descricao: string | null;
         pontoRecompensa: number;
+        frequencia: FrequenciaMissao;
+        dataFim: Date;
         lojistaId: number;
     }): Promise<Missao> {
         try {
@@ -72,6 +77,8 @@ export class RepositorioMissao {
             nome?: string;
             descricao?: string | null;
             pontoRecompensa?: number;
+            frequencia?: FrequenciaMissao;
+            dataFim?: Date;
         },
     ): Promise<Missao> {
         try {
@@ -99,6 +106,8 @@ export class RepositorioMissao {
             nome: item.nome,
             descricao: item.descricao,
             pontoRecompensa: item.pontoRecompensa,
+            frequencia: item.frequencia,
+            dataFim: item.dataFim,
             lojistaId: item.lojistaId,
             tokenQr: item.tokenQr,
             dataCriacao: item.dataCriacao,
