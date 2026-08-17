@@ -10,6 +10,7 @@ import { StatusLojista } from "../../../generated/prisma/enums";
 import { Consumidor } from "../model/Consumidor";
 import { RepositorioConsumidor } from "../repository/RepositorioConsumidor";
 import { ServicoConsumidor } from "./ServicoConsumidor";
+import { RespostaVisitanteLoja } from "../dtos/RespostaVisitanteLoja";
 
 function consumidorFake(overrides: {
     id: number;
@@ -48,6 +49,19 @@ function lojistaFake(id: number, usuarioId: number): Lojista {
     });
 }
 
+function visitanteFake(
+    overrides: Partial<RespostaVisitanteLoja> & { id: number },
+): RespostaVisitanteLoja {
+    const agora = new Date("2026-08-17T15:00:00.000Z");
+    return {
+        id: overrides.id,
+        nome: overrides.nome ?? `Visitante ${overrides.id}`,
+        quantidadeVisitas: overrides.quantidadeVisitas ?? 1,
+        primeiraVisita: overrides.primeiraVisita ?? agora,
+        ultimaVisita: overrides.ultimaVisita ?? agora,
+    };
+}
+
 describe("ServicoConsumidor ownership", () => {
     const consumidorA = consumidorFake({ id: 1, usuarioId: 30, lojistaId: 10 });
     const consumidorB = consumidorFake({ id: 2, usuarioId: 31, lojistaId: 11 });
@@ -55,7 +69,8 @@ describe("ServicoConsumidor ownership", () => {
     let repositorioConsumidorMock: {
         buscar: ReturnType<typeof vi.fn>;
         listar: ReturnType<typeof vi.fn>;
-        listarPorLojistaId: ReturnType<typeof vi.fn>;
+        listarVisitantesPorLoja: ReturnType<typeof vi.fn>;
+        buscarVisitanteDaLoja: ReturnType<typeof vi.fn>;
         atualizar: ReturnType<typeof vi.fn>;
         deletar: ReturnType<typeof vi.fn>;
         buscarPorUsuarioId: ReturnType<typeof vi.fn>;
@@ -72,7 +87,8 @@ describe("ServicoConsumidor ownership", () => {
         repositorioConsumidorMock = {
             buscar: vi.fn(),
             listar: vi.fn(),
-            listarPorLojistaId: vi.fn(),
+            listarVisitantesPorLoja: vi.fn(),
+            buscarVisitanteDaLoja: vi.fn(),
             atualizar: vi.fn(),
             deletar: vi.fn(),
             buscarPorUsuarioId: vi.fn(),
@@ -98,7 +114,7 @@ describe("ServicoConsumidor ownership", () => {
         const resultado = await servico.buscar("1", { id: 30, role: Role.CONSUMIDOR });
 
         expect(resultado.id).toBe(1);
-        expect(resultado.usuarioId).toBe(30);
+        expect(resultado).toMatchObject({ usuarioId: 30 });
     });
 
     it("consumidor A nao acessa consumidor B", async () => {
@@ -109,26 +125,36 @@ describe("ServicoConsumidor ownership", () => {
         ).rejects.toMatchObject({ statusCode: 403 } satisfies Partial<ErroAplicacao>);
     });
 
-    it("lojista A lista somente consumidores da propria loja", async () => {
+    it("lojista A lista somente visitantes da propria loja", async () => {
         repositorioLojistaMock.buscarPorUsuarioId.mockResolvedValue(lojistaFake(10, 50));
-        repositorioConsumidorMock.listarPorLojistaId.mockResolvedValue([consumidorA]);
+        repositorioConsumidorMock.listarVisitantesPorLoja.mockResolvedValue([
+            visitanteFake({ id: 1, nome: "Robert", quantidadeVisitas: 2 }),
+        ]);
 
         const lista = await servico.listar({ id: 50, role: Role.LOJISTA });
 
-        expect(repositorioConsumidorMock.listarPorLojistaId).toHaveBeenCalledWith(10);
+        expect(repositorioConsumidorMock.listarVisitantesPorLoja).toHaveBeenCalledWith(10);
         expect(repositorioConsumidorMock.listar).not.toHaveBeenCalled();
-        expect(lista).toHaveLength(1);
-        expect(lista[0].lojistaId).toBe(10);
-        expect(lista.some((item) => item.lojistaId === 11)).toBe(false);
+        expect(lista.consumidores).toHaveLength(1);
+        expect(lista.consumidoresUnicos).toBe(1);
+        expect(lista.totalVisitas).toBe(2);
+        expect(lista.consumidores[0].id).toBe(1);
+        expect(lista.consumidores[0]).not.toHaveProperty("cpf");
+        expect(lista.consumidores[0]).not.toHaveProperty("lojistaId");
     });
 
-    it("lojista A nao acessa consumidor de lojista B por ID", async () => {
-        repositorioConsumidorMock.buscar.mockResolvedValue(consumidorB);
+    it("lojista A recebe 404 ao consultar consumidor que so visitou outra loja", async () => {
         repositorioLojistaMock.buscarPorUsuarioId.mockResolvedValue(lojistaFake(10, 50));
+        repositorioConsumidorMock.buscarVisitanteDaLoja.mockResolvedValue(null);
 
         await expect(
             servico.buscar("2", { id: 50, role: Role.LOJISTA }),
-        ).rejects.toMatchObject({ statusCode: 403 });
+        ).rejects.toMatchObject({
+            message: "Consumidor nao encontrado",
+            statusCode: 404,
+        });
+        expect(repositorioConsumidorMock.buscarVisitanteDaLoja).toHaveBeenCalledWith(2, 10);
+        expect(repositorioConsumidorMock.buscar).not.toHaveBeenCalled();
     });
 
     it("associacao nao recebe dump global de consumidores", async () => {
@@ -136,7 +162,7 @@ describe("ServicoConsumidor ownership", () => {
             servico.listar({ id: 1, role: Role.ASSOCIACAO }),
         ).rejects.toMatchObject({ statusCode: 403 });
         expect(repositorioConsumidorMock.listar).not.toHaveBeenCalled();
-        expect(repositorioConsumidorMock.listarPorLojistaId).not.toHaveBeenCalled();
+        expect(repositorioConsumidorMock.listarVisitantesPorLoja).not.toHaveBeenCalled();
     });
 
     it("consumidor nao lista outros consumidores", async () => {

@@ -7,39 +7,37 @@ import { RepositorioEndereco } from "../../endereco/repository/RepositorioEndere
 import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista";
 import { RepositorioSexo } from "../../sexo/repository/RepositorioSexo";
 import { RepositorioUsuario } from "../../usuario/repository/RepositorioUsuario";
-import { Consumidor } from "../model/Consumidor";
 import { RepositorioConsumidor } from "../repository/RepositorioConsumidor";
 import { ServicoConsumidor } from "./ServicoConsumidor";
+import { RespostaVisitanteLoja } from "../dtos/RespostaVisitanteLoja";
 
-function consumidorFake(id: number, usuarioId: number, lojistaId: number): Consumidor {
-    const agora = new Date();
-    return new Consumidor({
+function visitanteFake(id: number): RespostaVisitanteLoja {
+    const agora = new Date("2026-08-17T15:00:00.000Z");
+    return {
         id,
-        cpf: `000.000.000-0${id}`,
-        pontos: 0,
-        nivel: 1,
-        sexoId: null,
-        lojistaId,
-        usuarioId,
-        dataCriacao: agora,
-        dataAtualizacao: agora,
-    });
+        nome: `Visitante ${id}`,
+        quantidadeVisitas: 1,
+        primeiraVisita: agora,
+        ultimaVisita: agora,
+    };
 }
 
 describe("ServicoConsumidor por status do lojista", () => {
     let repositorioConsumidorMock: {
-        listarPorLojistaId: ReturnType<typeof vi.fn>;
+        listarVisitantesPorLoja: ReturnType<typeof vi.fn>;
         listar: ReturnType<typeof vi.fn>;
         buscar: ReturnType<typeof vi.fn>;
+        buscarVisitanteDaLoja: ReturnType<typeof vi.fn>;
     };
     let repositorioLojistaMock: { buscarPorUsuarioId: ReturnType<typeof vi.fn> };
     let servico: ServicoConsumidor;
 
     beforeEach(() => {
         repositorioConsumidorMock = {
-            listarPorLojistaId: vi.fn().mockResolvedValue([consumidorFake(1, 30, 5)]),
+            listarVisitantesPorLoja: vi.fn().mockResolvedValue([visitanteFake(1)]),
             listar: vi.fn(),
-            buscar: vi.fn().mockResolvedValue(consumidorFake(1, 30, 5)),
+            buscar: vi.fn(),
+            buscarVisitanteDaLoja: vi.fn().mockResolvedValue(visitanteFake(1)),
         };
         repositorioLojistaMock = { buscarPorUsuarioId: vi.fn() };
         servico = new ServicoConsumidor(
@@ -62,7 +60,7 @@ describe("ServicoConsumidor por status do lojista", () => {
             message: "Lojista precisa estar APROVADO para esta operacao",
             statusCode: 403,
         } satisfies Partial<ErroAplicacao>);
-        expect(repositorioConsumidorMock.listarPorLojistaId).not.toHaveBeenCalled();
+        expect(repositorioConsumidorMock.listarVisitantesPorLoja).not.toHaveBeenCalled();
     });
 
     it("lojista REJEITADO nao lista consumidores da loja", async () => {
@@ -73,19 +71,21 @@ describe("ServicoConsumidor por status do lojista", () => {
         await expect(
             servico.listar({ id: 20, role: Role.LOJISTA }),
         ).rejects.toMatchObject({ statusCode: 403 });
-        expect(repositorioConsumidorMock.listarPorLojistaId).not.toHaveBeenCalled();
+        expect(repositorioConsumidorMock.listarVisitantesPorLoja).not.toHaveBeenCalled();
     });
 
-    it("lojista APROVADO lista consumidores scoped da propria loja", async () => {
+    it("lojista APROVADO lista visitantes da propria loja", async () => {
         repositorioLojistaMock.buscarPorUsuarioId.mockResolvedValue(
             lojistaFake({ status: StatusLojista.APROVADO, id: 5 }),
         );
 
         const lista = await servico.listar({ id: 20, role: Role.LOJISTA });
 
-        expect(repositorioConsumidorMock.listarPorLojistaId).toHaveBeenCalledWith(5);
+        expect(repositorioConsumidorMock.listarVisitantesPorLoja).toHaveBeenCalledWith(5);
         expect(repositorioConsumidorMock.listar).not.toHaveBeenCalled();
-        expect(lista).toHaveLength(1);
+        expect(lista.consumidores).toHaveLength(1);
+        expect(lista.consumidoresUnicos).toBe(1);
+        expect(lista.totalVisitas).toBe(1);
     });
 
     it("lojista PENDENTE nao consulta consumidor por ID", async () => {
@@ -96,15 +96,22 @@ describe("ServicoConsumidor por status do lojista", () => {
         await expect(
             servico.buscar("1", { id: 20, role: Role.LOJISTA }),
         ).rejects.toMatchObject({ statusCode: 403 });
+        expect(repositorioConsumidorMock.buscarVisitanteDaLoja).not.toHaveBeenCalled();
     });
 
-    it("lojista APROVADO consulta consumidor da propria loja", async () => {
+    it("lojista APROVADO consulta visitante da propria loja", async () => {
         repositorioLojistaMock.buscarPorUsuarioId.mockResolvedValue(
             lojistaFake({ status: StatusLojista.APROVADO, id: 5 }),
         );
 
         const resultado = await servico.buscar("1", { id: 20, role: Role.LOJISTA });
 
-        expect(resultado.lojistaId).toBe(5);
+        expect(repositorioConsumidorMock.buscarVisitanteDaLoja).toHaveBeenCalledWith(1, 5);
+        expect(resultado).toMatchObject({
+            id: 1,
+            quantidadeVisitas: 1,
+        });
+        expect(resultado).not.toHaveProperty("cpf");
+        expect(resultado).not.toHaveProperty("lojistaId");
     });
 });

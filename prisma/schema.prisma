@@ -224,6 +224,8 @@ model Consumidor {
   sexoId Int?   @map("id_sexo")
   sexo   Sexo?  @relation(fields: [sexoId], references: [id])
 
+  // LEGADO E4: não usar para authz, listagem, pontos ou vínculo de propriedade.
+  // Remover a coluna só depois de auditoria de dados.
   lojistaId Int?     @map("id_lojista")
   lojista   Lojista? @relation(fields: [lojistaId], references: [id])
 

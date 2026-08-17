@@ -17,6 +17,7 @@ function consumidorFake(overrides?: Partial<{
     pontos: number;
     nivel: number;
     usuarioId: number;
+    lojistaId: number | null;
 }>): Consumidor {
     const agora = new Date();
     return new Consumidor({
@@ -25,7 +26,7 @@ function consumidorFake(overrides?: Partial<{
         pontos: overrides?.pontos ?? 50,
         nivel: overrides?.nivel ?? 1,
         sexoId: null,
-        lojistaId: null,
+        lojistaId: overrides?.lojistaId ?? null,
         usuarioId: overrides?.usuarioId ?? 30,
         dataCriacao: agora,
         dataAtualizacao: agora,
@@ -401,5 +402,82 @@ describe("ServicoMissaoConsumidor", () => {
             servico.concluirPorToken(30, { tokenQr: missaoFake().tokenQr }),
         ).rejects.toMatchObject({ statusCode: 403 });
         expect(repositorioMissaoConsumidorMock.concluirComPontos).not.toHaveBeenCalled();
+    });
+
+    it("consumidor com lojistaId legado de outra loja conclui missao normal da loja B", async () => {
+        repositorioConsumidorMock.buscarPorUsuarioId.mockResolvedValue(
+            consumidorFake({ lojistaId: 99, pontos: 200, nivel: 3 }),
+        );
+        const missao = missaoFake({ lojistaId: 2, sistema: false, pontoRecompensa: 50 });
+        repositorioMissaoMock.buscarPorTokenQr.mockResolvedValue(missao);
+        repositorioLojistaMock.buscar.mockResolvedValue(
+            lojistaFake({ status: StatusLojista.APROVADO, id: 2 }),
+        );
+        repositorioMissaoConsumidorMock.concluirComPontos.mockResolvedValue({
+            missaoConsumidor: vinculoFake(),
+            consumidor: consumidorFake({ lojistaId: 99, pontos: 250, nivel: 3 }),
+        });
+
+        const resultado = await servico.concluirPorToken(
+            30,
+            { tokenQr: missao.tokenQr },
+            meioDiaSp(2026, 8, 17),
+        );
+
+        expect(repositorioMissaoConsumidorMock.concluirComPontos).toHaveBeenCalled();
+        expect(resultado.consumidor.pontos).toBe(250);
+        expect(resultado.consumidor.lojistaId).toBe(99);
+    });
+
+    it("missao A + missao B creditam o mesmo saldo global", async () => {
+        repositorioConsumidorMock.buscarPorUsuarioId.mockResolvedValue(
+            consumidorFake({ lojistaId: null, pontos: 200, nivel: 3 }),
+        );
+        const missaoA = missaoFake({
+            id: 8,
+            lojistaId: 1,
+            sistema: true,
+            frequencia: FrequenciaMissao.DIARIA,
+            pontoRecompensa: 5,
+            dataFim: null,
+        });
+        const missaoB = missaoFake({
+            id: 9,
+            lojistaId: 2,
+            sistema: false,
+            pontoRecompensa: 50,
+        });
+
+        repositorioMissaoMock.buscarPorTokenQr.mockResolvedValueOnce(missaoA);
+        repositorioLojistaMock.buscar.mockResolvedValue(
+            lojistaFake({ status: StatusLojista.APROVADO, id: 1 }),
+        );
+        repositorioMissaoConsumidorMock.concluirComPontos.mockResolvedValueOnce({
+            missaoConsumidor: vinculoFake(),
+            consumidor: consumidorFake({ lojistaId: null, pontos: 205, nivel: 3 }),
+        });
+        const primeira = await servico.concluirPorToken(
+            30,
+            { tokenQr: missaoA.tokenQr },
+            meioDiaSp(2026, 8, 17),
+        );
+
+        repositorioMissaoMock.buscarPorTokenQr.mockResolvedValueOnce(missaoB);
+        repositorioLojistaMock.buscar.mockResolvedValue(
+            lojistaFake({ status: StatusLojista.APROVADO, id: 2 }),
+        );
+        repositorioMissaoConsumidorMock.concluirComPontos.mockResolvedValueOnce({
+            missaoConsumidor: vinculoFake(),
+            consumidor: consumidorFake({ lojistaId: null, pontos: 255, nivel: 3 }),
+        });
+        const segunda = await servico.concluirPorToken(
+            30,
+            { tokenQr: missaoB.tokenQr },
+            meioDiaSp(2026, 8, 17),
+        );
+
+        expect(primeira.consumidor.pontos).toBe(205);
+        expect(segunda.consumidor.pontos).toBe(255);
+        expect(repositorioMissaoConsumidorMock.concluirComPontos).toHaveBeenCalledTimes(2);
     });
 });

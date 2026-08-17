@@ -1,6 +1,7 @@
 import { PrismaClient } from "../../../generated/prisma/client";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { Consumidor } from "../model/Consumidor";
+import { RespostaVisitanteLoja } from "../dtos/RespostaVisitanteLoja";
 
 type RegistroConsumidor = {
     id: number;
@@ -12,6 +13,13 @@ type RegistroConsumidor = {
     usuarioId: number;
     dataCriacao: Date;
     dataAtualizacao: Date;
+};
+
+type FiltroVisitaLoja = {
+    missao: {
+        lojistaId: number;
+        sistema: true;
+    };
 };
 
 export class RepositorioConsumidor {
@@ -42,15 +50,94 @@ export class RepositorioConsumidor {
         }
     }
 
-    async listarPorLojistaId(lojistaId: number): Promise<Consumidor[]> {
+    async listarVisitantesPorLoja(lojistaId: number): Promise<RespostaVisitanteLoja[]> {
         try {
-            const lista = await this.prisma.consumidor.findMany({
-                where: { lojistaId },
-                orderBy: { id: "asc" },
+            const grupos = await this.prisma.missaoConsumidor.groupBy({
+                by: ["consumidorId"],
+                where: this.filtroVisita(lojistaId),
+                _count: { id: true },
+                _min: { dataCriacao: true },
+                _max: { dataCriacao: true },
+                orderBy: { _max: { dataCriacao: "desc" } },
             });
-            return lista.map((item) => this.paraDominio(item));
+
+            if (grupos.length === 0) {
+                return [];
+            }
+
+            const consumidores = await this.prisma.consumidor.findMany({
+                where: { id: { in: grupos.map((grupo) => grupo.consumidorId) } },
+                select: {
+                    id: true,
+                    usuario: { select: { nome: true } },
+                },
+            });
+            const nomes = new Map(
+                consumidores.map((item) => [item.id, item.usuario.nome] as const),
+            );
+
+            return grupos.flatMap((grupo) => {
+                const nome = nomes.get(grupo.consumidorId);
+                const primeiraVisita = grupo._min.dataCriacao;
+                const ultimaVisita = grupo._max.dataCriacao;
+                if (!nome || !primeiraVisita || !ultimaVisita) {
+                    return [];
+                }
+                return [
+                    {
+                        id: grupo.consumidorId,
+                        nome,
+                        quantidadeVisitas: grupo._count.id,
+                        primeiraVisita,
+                        ultimaVisita,
+                    },
+                ];
+            });
         } catch {
-            throw new ErroAplicacao("Erro ao listar consumidores do lojista", 500);
+            throw new ErroAplicacao("Erro ao listar visitantes da loja", 500);
+        }
+    }
+
+    async buscarVisitanteDaLoja(
+        consumidorId: number,
+        lojistaId: number,
+    ): Promise<RespostaVisitanteLoja | null> {
+        try {
+            const grupos = await this.prisma.missaoConsumidor.groupBy({
+                by: ["consumidorId"],
+                where: {
+                    consumidorId,
+                    ...this.filtroVisita(lojistaId),
+                },
+                _count: { id: true },
+                _min: { dataCriacao: true },
+                _max: { dataCriacao: true },
+            });
+            const grupo = grupos[0];
+            if (!grupo) {
+                return null;
+            }
+
+            const consumidor = await this.prisma.consumidor.findUnique({
+                where: { id: consumidorId },
+                select: {
+                    id: true,
+                    usuario: { select: { nome: true } },
+                },
+            });
+            if (!consumidor || !grupo._min.dataCriacao || !grupo._max.dataCriacao) {
+                return null;
+            }
+
+            return {
+                id: consumidor.id,
+                nome: consumidor.usuario.nome,
+                quantidadeVisitas: grupo._count.id,
+                primeiraVisita: grupo._min.dataCriacao,
+                ultimaVisita: grupo._max.dataCriacao,
+            };
+        } catch {
+            throw new ErroAplicacao("Erro ao buscar visitante da loja", 500);
         }
     }
 
@@ -88,7 +175,6 @@ export class RepositorioConsumidor {
         dados: {
             cpf: string;
             sexoId: number | null;
-            lojistaId: number | null;
         },
     ): Promise<Consumidor> {
         try {
@@ -108,6 +194,15 @@ export class RepositorioConsumidor {
         } catch {
             throw new ErroAplicacao("Erro ao deletar consumidor", 500);
         }
+    }
+
+    private filtroVisita(lojistaId: number): FiltroVisitaLoja {
+        return {
+            missao: {
+                lojistaId,
+                sistema: true,
+            },
+        };
     }
 
     private paraDominio(item: RegistroConsumidor): Consumidor {

@@ -236,7 +236,10 @@ async function garantirProdutosDemo(
     }
 }
 
-/** Consumidor vinculado à loja, para a tela do lojista não ficar vazia. */
+/**
+ * Consumidor demo. `lojistaId` no create é leftover legado (E4): a listagem da loja
+ * deriva de MissaoConsumidor da missão sistema Visitar loja, não deste FK.
+ */
 async function garantirConsumidorDemo(dados: {
     email: string;
     nome: string;
@@ -267,7 +270,6 @@ async function garantirConsumidorDemo(dados: {
             data: {
                 pontos: dados.pontos,
                 nivel,
-                lojistaId: lojista && existente.lojistaId !== lojista.id ? lojista.id : existente.lojistaId,
             },
         });
         console.log(`Consumidor ${dados.nome}: pontos restaurados para ${dados.pontos}`);

@@ -1829,7 +1829,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cpf\": \"123.456.789-00\",\n  \"sexoId\": {{sexoId}},\n  \"lojistaId\": {{lojistaId}}\n}"
+              "raw": "{\n  \"cpf\": \"123.456.789-00\",\n  \"sexoId\": {{sexoId}}\n}"
             }
           },
           "event": [
@@ -1892,6 +1892,7 @@
           "name": "Listar Consumidores",
           "request": {
             "method": "GET",
+            "description": "LOJISTA APROVADO: visitantes da missão sistema Visitar loja da própria loja (únicos, com quantidadeVisitas/ultimaVisita). Não usa Consumidor.lojistaId. PENDENTE/REJEITADO → 403. Associação e consumidor → 403.",
             "header": [
               {
                 "key": "Authorization",
@@ -1915,7 +1916,12 @@
                 "exec": [
                   "pm.test('Status 200 scoped do lojista autenticado', () => pm.response.to.have.status(200));",
                   "const body = pm.response.json();",
-                  "pm.test('Retorna array', () => pm.expect(body).to.be.an('array'));"
+                  "pm.test('Listagem de visitantes', () => {",
+                  "  pm.expect(body).to.be.an('object');",
+                  "  pm.expect(body.consumidores).to.be.an('array');",
+                  "  pm.expect(body.consumidoresUnicos).to.eql(body.consumidores.length);",
+                  "  pm.expect(body.totalVisitas).to.be.a('number');",
+                  "});"
                 ]
               }
             }
@@ -1980,7 +1986,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cpf\": \"123.456.789-01\",\n  \"sexoId\": {{sexoId}},\n  \"lojistaId\": null\n}"
+              "raw": "{\n  \"cpf\": \"123.456.789-01\",\n  \"sexoId\": {{sexoId}}\n}"
             }
           },
           "event": [
@@ -2502,7 +2508,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cpf\": \"{{$timestamp}}\",\n  \"sexoId\": {{sexoId}},\n  \"lojistaId\": {{lojistaId}}\n}"
+              "raw": "{\n  \"cpf\": \"{{$timestamp}}\",\n  \"sexoId\": {{sexoId}}\n}"
             }
           },
           "event": [

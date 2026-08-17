@@ -1,4 +1,3 @@
-import { StatusLojista } from "../../../generated/prisma/enums";
 import { garantirProprioId } from "../../../shared/authz/garantirProprioId";
 import { resolverLojistaAprovado } from "../../../shared/authz/resolverLojistaAprovado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
@@ -10,6 +9,10 @@ import { RepositorioUsuario } from "../../usuario/repository/RepositorioUsuario"
 import { DTOAtualizarConsumidor } from "../dto/DTOAtualizarConsumidor";
 import { DTOCriarConsumidor } from "../dto/DTOCriarConsumidor";
 import { RespostaConsumidor } from "../dtos/RespostaConsumidor";
+import {
+    RespostaListagemVisitantesLoja,
+    RespostaVisitanteLoja,
+} from "../dtos/RespostaVisitanteLoja";
 import { Consumidor } from "../model/Consumidor";
 import { RepositorioConsumidor } from "../repository/RepositorioConsumidor";
 
@@ -28,7 +31,6 @@ export class ServicoConsumidor {
     ): Promise<RespostaConsumidor> {
         const cpf = this.validarCpf(request.cpf);
         const sexoId = await this.validarSexoOpcional(request.sexoId);
-        const lojistaId = await this.validarLojistaOpcional(request.lojistaId);
 
         const usuario = await this.repositorioUsuario.buscar(usuarioId);
         if (!usuario) {
@@ -57,13 +59,15 @@ export class ServicoConsumidor {
             cpf,
             usuarioId,
             sexoId,
-            lojistaId,
+            lojistaId: null,
         });
 
         return this.paraResposta(criado);
     }
 
-    async listar(usuarioLogado: { id: number; role: Role }): Promise<RespostaConsumidor[]> {
+    async listar(
+        usuarioLogado: { id: number; role: Role },
+    ): Promise<RespostaListagemVisitantesLoja> {
         if (usuarioLogado.role === Role.ASSOCIACAO) {
             throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
         }
@@ -81,22 +85,31 @@ export class ServicoConsumidor {
             usuarioLogado.id,
         );
 
-        const lista = await this.repositorioConsumidor.listarPorLojistaId(lojistaId);
-        return lista.map((item) => this.paraResposta(item));
+        const consumidores =
+            await this.repositorioConsumidor.listarVisitantesPorLoja(lojistaId);
+        const totalVisitas = consumidores.reduce(
+            (soma, item) => soma + item.quantidadeVisitas,
+            0,
+        );
+
+        return {
+            consumidores,
+            consumidoresUnicos: consumidores.length,
+            totalVisitas,
+        };
     }
 
     async buscar(
         idParam: string,
         usuarioLogado: { id: number; role: Role },
-    ): Promise<RespostaConsumidor> {
+    ): Promise<RespostaConsumidor | RespostaVisitanteLoja> {
         const id = this.parseId(idParam);
-        const consumidor = await this.repositorioConsumidor.buscar(id);
-
-        if (!consumidor) {
-            throw new ErroAplicacao("Consumidor nao encontrado", 404);
-        }
 
         if (usuarioLogado.role === Role.CONSUMIDOR) {
+            const consumidor = await this.repositorioConsumidor.buscar(id);
+            if (!consumidor) {
+                throw new ErroAplicacao("Consumidor nao encontrado", 404);
+            }
             garantirProprioId(consumidor.usuarioId, usuarioLogado.id);
             return this.paraResposta(consumidor);
         }
@@ -106,10 +119,14 @@ export class ServicoConsumidor {
                 this.repositorioLojista,
                 usuarioLogado.id,
             );
-            if (consumidor.lojistaId !== lojistaId) {
-                throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+            const visitante = await this.repositorioConsumidor.buscarVisitanteDaLoja(
+                id,
+                lojistaId,
+            );
+            if (!visitante) {
+                throw new ErroAplicacao("Consumidor nao encontrado", 404);
             }
-            return this.paraResposta(consumidor);
+            return visitante;
         }
 
         throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
@@ -135,7 +152,6 @@ export class ServicoConsumidor {
 
         const cpf = this.validarCpf(request.cpf);
         const sexoId = await this.validarSexoOpcional(request.sexoId);
-        const lojistaId = await this.validarLojistaOpcional(request.lojistaId);
 
         if (cpf !== existente.cpf) {
             const cpfExistente = await this.repositorioConsumidor.buscarPorCpf(cpf);
@@ -147,7 +163,6 @@ export class ServicoConsumidor {
         const atualizado = await this.repositorioConsumidor.atualizar(id, {
             cpf,
             sexoId,
-            lojistaId,
         });
 
         return this.paraResposta(atualizado);
@@ -214,24 +229,6 @@ export class ServicoConsumidor {
         }
 
         return sexoId;
-    }
-
-    private async validarLojistaOpcional(valor: unknown): Promise<number | null> {
-        if (valor === undefined || valor === null || valor === "") {
-            return null;
-        }
-
-        const lojistaId = this.validarIdNumerico(valor, "lojistaId");
-        const lojista = await this.repositorioLojista.buscar(lojistaId);
-        if (!lojista) {
-            throw new ErroAplicacao("Lojista nao encontrado", 404);
-        }
-
-        if (lojista.status !== StatusLojista.APROVADO) {
-            throw new ErroAplicacao("Lojista deve estar APROVADO", 400);
-        }
-
-        return lojistaId;
     }
 
     private parseId(idParam: string): number {

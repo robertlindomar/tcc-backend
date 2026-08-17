@@ -134,6 +134,66 @@ describe("ServicoConsumidor", () => {
             usuarioId: 30,
             pontos: 0,
             nivel: 1,
+            lojistaId: null,
         });
+        expect(repositorioLojistaMock.buscar).not.toHaveBeenCalled();
+    });
+
+    it("ignora lojistaId enviado no cadastro e persiste null", async () => {
+        const agora = new Date();
+        repositorioUsuarioMock.buscar.mockResolvedValue(
+            new Usuario({
+                id: 30,
+                nome: "Consumidor Teste",
+                email: "consumidor@teste.com",
+                senha: "hash",
+                role: Role.CONSUMIDOR,
+                ativo: true,
+                dataCriacao: agora,
+                dataAtualizacao: agora,
+            }),
+        );
+        repositorioEnderecoMock.buscarPorUsuarioId.mockResolvedValue(
+            new Endereco({
+                id: 1,
+                cep: "01001-000",
+                numero: "100",
+                usuarioId: 30,
+                ruaId: 1,
+                bairroId: 1,
+                cidadeId: 1,
+                estadoId: 1,
+                dataCriacao: agora,
+                dataAtualizacao: agora,
+            }),
+        );
+        repositorioConsumidorMock.buscarPorUsuarioId.mockResolvedValue(null);
+        repositorioConsumidorMock.buscarPorCpf.mockResolvedValue(null);
+        repositorioConsumidorMock.criar.mockResolvedValue(
+            new Consumidor({
+                id: 9,
+                cpf: "123.456.789-00",
+                pontos: 0,
+                nivel: 1,
+                sexoId: null,
+                lojistaId: null,
+                usuarioId: 30,
+                dataCriacao: agora,
+                dataAtualizacao: agora,
+            }),
+        );
+
+        await servico.criar(30, {
+            cpf: "123.456.789-00",
+            lojistaId: 123,
+        } as { cpf: string; lojistaId: number });
+
+        expect(repositorioConsumidorMock.criar).toHaveBeenCalledWith({
+            cpf: "123.456.789-00",
+            usuarioId: 30,
+            sexoId: null,
+            lojistaId: null,
+        });
+        expect(repositorioLojistaMock.buscar).not.toHaveBeenCalled();
     });
 });

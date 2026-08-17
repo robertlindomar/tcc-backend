@@ -300,4 +300,18 @@ describe("ServicoRecompensa resgate", () => {
             statusCode: 400,
         });
     });
+
+    it("catalogo lista recompensas ativas sem filtrar por Consumidor.lojistaId", async () => {
+        repoConsumidor.buscar.mockResolvedValue(consumidorFake());
+        repoRecompensa.listarAtivas.mockResolvedValue([
+            recompensaFake({ id: 3, lojistaId: 5 }),
+            recompensaFake({ id: 4, lojistaId: 8, nome: "Outra loja" }),
+        ]);
+
+        const catalogo = await servico.catalogoConsumidor(30);
+
+        expect(repoRecompensa.listarAtivas).toHaveBeenCalled();
+        expect(catalogo.recompensas).toHaveLength(2);
+        expect(catalogo.recompensas.map((item) => item.lojistaId)).toEqual([5, 8]);
+    });
 });
