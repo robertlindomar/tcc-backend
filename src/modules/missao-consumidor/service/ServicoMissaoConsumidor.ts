@@ -1,3 +1,4 @@
+import { StatusLojista } from "../../../generated/prisma/enums";
 import { resolverConsumidorLogado } from "../../../shared/authz/resolverConsumidorLogado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import {
@@ -7,6 +8,7 @@ import {
 import { Consumidor } from "../../consumidor/model/Consumidor";
 import { RespostaConsumidor } from "../../consumidor/dtos/RespostaConsumidor";
 import { RepositorioConsumidor } from "../../consumidor/repository/RepositorioConsumidor";
+import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista";
 import { RepositorioMissao } from "../../missao/repository/RepositorioMissao";
 import { extrairTokenQrMissao } from "../../../shared/utils/tokenQrMissao";
 import { Missao } from "../../missao/model/Missao";
@@ -21,6 +23,7 @@ export class ServicoMissaoConsumidor {
         private readonly repositorioMissaoConsumidor: RepositorioMissaoConsumidor,
         private readonly repositorioMissao: RepositorioMissao,
         private readonly repositorioConsumidor: RepositorioConsumidor,
+        private readonly repositorioLojista: RepositorioLojista,
     ) {}
 
     async concluirPorToken(
@@ -78,6 +81,11 @@ export class ServicoMissaoConsumidor {
     ): Promise<RespostaConclusaoMissao> {
         if (missaoEstaExpirada(missao.dataFim, agora)) {
             throw new ErroAplicacao("Missao expirada", 400);
+        }
+
+        const lojista = await this.repositorioLojista.buscar(missao.lojistaId);
+        if (!lojista || lojista.status !== StatusLojista.APROVADO) {
+            throw new ErroAplicacao("Loja nao aprovada", 403);
         }
 
         const chavePeriodo = calcularChavePeriodoMissao(missao.frequencia, agora);

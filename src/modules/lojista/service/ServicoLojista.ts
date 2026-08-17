@@ -3,6 +3,7 @@ import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { Role } from "../../auth/enum/Role";
 import { RepositorioAssociacao } from "../../associacao/repository/RepositorioAssociacao";
 import { RepositorioEndereco } from "../../endereco/repository/RepositorioEndereco";
+import { RepositorioMissao } from "../../missao/repository/RepositorioMissao";
 import { RepositorioUsuario } from "../../usuario/repository/RepositorioUsuario";
 import { DTOAtualizarLojista } from "../dto/DTOAtualizarLojista";
 import { DTOCriarLojista } from "../dto/DTOCriarLojista";
@@ -25,6 +26,7 @@ export class ServicoLojista {
         private readonly repositorioUsuario: RepositorioUsuario,
         private readonly repositorioAssociacao: RepositorioAssociacao,
         private readonly repositorioEndereco: RepositorioEndereco,
+        private readonly repositorioMissao?: RepositorioMissao,
     ) {}
 
     async criar(usuarioId: number, request: DTOCriarLojista): Promise<RespostaLojista> {
@@ -67,6 +69,10 @@ export class ServicoLojista {
             associacaoId,
             enderecoId,
         });
+
+        if (this.repositorioMissao) {
+            await this.repositorioMissao.garantirSistemaVisitarLoja(criado.id);
+        }
 
         return this.paraResposta(criado);
     }

@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { FrequenciaMissao } from "../../../generated/prisma/enums";
+import { FrequenciaMissao, StatusLojista } from "../../../generated/prisma/enums";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { instanteCivilNoFuso } from "../../../shared/tempo/fusoNegocio";
+import { lojistaFake } from "../../../shared/testes/lojistaFake";
 import { Consumidor } from "../../consumidor/model/Consumidor";
 import { RepositorioConsumidor } from "../../consumidor/repository/RepositorioConsumidor";
+import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista";
 import { Missao } from "../../missao/model/Missao";
 import { RepositorioMissao } from "../../missao/repository/RepositorioMissao";
 import { MissaoConsumidor } from "../model/MissaoConsumidor";
@@ -35,6 +37,8 @@ function missaoFake(overrides?: Partial<{
     pontoRecompensa: number;
     frequencia: FrequenciaMissao;
     dataFim: Date | null;
+    sistema: boolean;
+    lojistaId: number;
 }>): Missao {
     const agora = new Date();
     return new Missao({
@@ -46,7 +50,8 @@ function missaoFake(overrides?: Partial<{
         dataFim: overrides?.dataFim === undefined
             ? new Date("2026-12-31T23:59:59.999-03:00")
             : overrides.dataFim,
-        lojistaId: 1,
+        sistema: overrides?.sistema ?? false,
+        lojistaId: overrides?.lojistaId ?? 1,
         tokenQr: "ab".repeat(32),
         dataCriacao: agora,
         dataAtualizacao: agora,
@@ -79,6 +84,7 @@ describe("ServicoMissaoConsumidor", () => {
         buscarPorTokenQr: ReturnType<typeof vi.fn>;
     };
     let repositorioConsumidorMock: { buscarPorUsuarioId: ReturnType<typeof vi.fn> };
+    let repositorioLojistaMock: { buscar: ReturnType<typeof vi.fn> };
     let servico: ServicoMissaoConsumidor;
 
     beforeEach(() => {
@@ -94,10 +100,16 @@ describe("ServicoMissaoConsumidor", () => {
         repositorioConsumidorMock = {
             buscarPorUsuarioId: vi.fn().mockResolvedValue(consumidorFake()),
         };
+        repositorioLojistaMock = {
+            buscar: vi.fn().mockResolvedValue(
+                lojistaFake({ status: StatusLojista.APROVADO, id: 1 }),
+            ),
+        };
         servico = new ServicoMissaoConsumidor(
             repositorioMissaoConsumidorMock as unknown as RepositorioMissaoConsumidor,
             repositorioMissaoMock as unknown as RepositorioMissao,
             repositorioConsumidorMock as unknown as RepositorioConsumidor,
+            repositorioLojistaMock as unknown as RepositorioLojista,
         );
     });
 
@@ -337,5 +349,57 @@ describe("ServicoMissaoConsumidor", () => {
             "2026-08-18",
             "2026-08-17",
         ]);
+    });
+
+    it("Visitar loja: primeiro scan do dia credita 5; segundo 409; dia seguinte passa", async () => {
+        const missao = missaoFake({
+            sistema: true,
+            frequencia: FrequenciaMissao.DIARIA,
+            pontoRecompensa: 5,
+            dataFim: null,
+        });
+        await concluir(missao, meioDiaSp(2026, 8, 17));
+        expect(repositorioMissaoConsumidorMock.concluirComPontos).toHaveBeenCalledWith(
+            expect.objectContaining({ chavePeriodo: "2026-08-17", pontoRecompensa: 5 }),
+        );
+
+        repositorioMissaoConsumidorMock.buscarPorMissaoConsumidorPeriodo.mockResolvedValue(
+            vinculoFake("2026-08-17"),
+        );
+        await expect(
+            servico.concluirPorToken(30, { tokenQr: missao.tokenQr }, meioDiaSp(2026, 8, 17)),
+        ).rejects.toMatchObject({ statusCode: 409 });
+
+        repositorioMissaoConsumidorMock.buscarPorMissaoConsumidorPeriodo.mockResolvedValue(null);
+        await concluir(missao, meioDiaSp(2026, 8, 18));
+        expect(repositorioMissaoConsumidorMock.concluirComPontos).toHaveBeenLastCalledWith(
+            expect.objectContaining({ chavePeriodo: "2026-08-18", pontoRecompensa: 5 }),
+        );
+    });
+
+    it("PENDENTE nao concede pontos ao escanear Visitar loja", async () => {
+        repositorioLojistaMock.buscar.mockResolvedValue(
+            lojistaFake({ status: StatusLojista.PENDENTE, id: 1 }),
+        );
+        repositorioMissaoMock.buscarPorTokenQr.mockResolvedValue(
+            missaoFake({ sistema: true, frequencia: FrequenciaMissao.DIARIA, dataFim: null }),
+        );
+        await expect(
+            servico.concluirPorToken(30, { tokenQr: missaoFake().tokenQr }),
+        ).rejects.toMatchObject({ message: "Loja nao aprovada", statusCode: 403 });
+        expect(repositorioMissaoConsumidorMock.concluirComPontos).not.toHaveBeenCalled();
+    });
+
+    it("REJEITADO nao concede pontos ao escanear Visitar loja", async () => {
+        repositorioLojistaMock.buscar.mockResolvedValue(
+            lojistaFake({ status: StatusLojista.REJEITADO, id: 1 }),
+        );
+        repositorioMissaoMock.buscarPorTokenQr.mockResolvedValue(
+            missaoFake({ sistema: true, frequencia: FrequenciaMissao.DIARIA, dataFim: null }),
+        );
+        await expect(
+            servico.concluirPorToken(30, { tokenQr: missaoFake().tokenQr }),
+        ).rejects.toMatchObject({ statusCode: 403 });
+        expect(repositorioMissaoConsumidorMock.concluirComPontos).not.toHaveBeenCalled();
     });
 });

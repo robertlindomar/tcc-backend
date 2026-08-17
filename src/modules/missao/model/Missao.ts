@@ -7,6 +7,7 @@ type MissaoProps = {
     pontoRecompensa: number;
     frequencia: FrequenciaMissao;
     dataFim: Date | null;
+    sistema: boolean;
     lojistaId: number;
     tokenQr: string;
     dataCriacao: Date;
@@ -42,6 +43,10 @@ export class Missao {
 
     get dataFim() {
         return this.props.dataFim;
+    }
+
+    get sistema() {
+        return this.props.sistema;
     }
 
     get lojistaId() {

@@ -81,6 +81,12 @@ export class ServicoMissao {
             usuarioId,
         );
         const existente = await this.obterDoLojista(idParam, lojistaId);
+        if (existente.sistema) {
+            throw new ErroAplicacao(
+                "Esta missao e obrigatoria e nao pode ser alterada",
+                409,
+            );
+        }
 
         const dados: {
             nome?: string;
@@ -133,6 +139,12 @@ export class ServicoMissao {
             usuarioId,
         );
         const existente = await this.obterDoLojista(idParam, lojistaId);
+        if (existente.sistema) {
+            throw new ErroAplicacao(
+                "Esta missão é obrigatória e não pode ser excluída.",
+                409,
+            );
+        }
         await this.repositorioMissao.deletar(existente.id);
     }
 
@@ -157,6 +169,7 @@ export class ServicoMissao {
             dataFim: missao.dataFim,
             dataFimCivil: dataCivilIso(missao.dataFim),
             expirada: missaoEstaExpirada(missao.dataFim, agora),
+            sistema: missao.sistema,
             lojistaId: missao.lojistaId,
             tokenQr: missao.tokenQr,
             dataCriacao: missao.dataCriacao,

@@ -307,8 +307,10 @@ model Missao {
   pontoRecompensa Int     @default(0) @map("ponto_recompensa_missao")
 
   frequencia FrequenciaMissao @default(UMA_VEZ) @map("frequencia_missao")
-  /// Null só em legado (E3) ou missão permanente de sistema (E3b). Lojista não cria com null.
+  /// Null: legado (sistema=false) ou permanente de sistema (E3b). Lojista não cria com null.
   dataFim    DateTime?        @map("data_fim")
+  /// Só o backend define. UNIQUE parcial (id_lojista) WHERE sistema = true na migration.
+  sistema    Boolean          @default(false) @map("sistema_missao")
 
   lojistaId Int     @map("id_lojista")
   lojista   Lojista @relation(fields: [lojistaId], references: [id])

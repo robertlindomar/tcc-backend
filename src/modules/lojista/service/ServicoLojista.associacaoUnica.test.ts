@@ -5,6 +5,7 @@ import { Role } from "../../auth/enum/Role";
 import { Associacao } from "../../associacao/model/Associacao";
 import { RepositorioAssociacao } from "../../associacao/repository/RepositorioAssociacao";
 import { RepositorioEndereco } from "../../endereco/repository/RepositorioEndereco";
+import { RepositorioMissao } from "../../missao/repository/RepositorioMissao";
 import { Usuario } from "../../usuario/model/Usuario";
 import { RepositorioUsuario } from "../../usuario/repository/RepositorioUsuario";
 import { DTOCriarLojista } from "../dto/DTOCriarLojista";
@@ -54,6 +55,7 @@ describe("ServicoLojista associacao unica", () => {
     let repositorioUsuarioMock: { buscar: ReturnType<typeof vi.fn> };
     let repositorioAssociacaoMock: { listar: ReturnType<typeof vi.fn> };
     let repositorioEnderecoMock: { buscarPorUsuarioId: ReturnType<typeof vi.fn> };
+    let repositorioMissaoMock: { garantirSistemaVisitarLoja: ReturnType<typeof vi.fn> };
     let servico: ServicoLojista;
 
     beforeEach(() => {
@@ -69,11 +71,15 @@ describe("ServicoLojista associacao unica", () => {
         repositorioEnderecoMock = {
             buscarPorUsuarioId: vi.fn().mockResolvedValue(null),
         };
+        repositorioMissaoMock = {
+            garantirSistemaVisitarLoja: vi.fn().mockResolvedValue({}),
+        };
         servico = new ServicoLojista(
             repositorioLojistaMock as unknown as RepositorioLojista,
             repositorioUsuarioMock as unknown as RepositorioUsuario,
             repositorioAssociacaoMock as unknown as RepositorioAssociacao,
             repositorioEnderecoMock as unknown as RepositorioEndereco,
+            repositorioMissaoMock as unknown as RepositorioMissao,
         );
     });
 
@@ -94,6 +100,7 @@ describe("ServicoLojista associacao unica", () => {
         );
         expect(resultado.associacaoId).toBe(3);
         expect(resultado.status).toBe(StatusLojista.PENDENTE);
+        expect(repositorioMissaoMock.garantirSistemaVisitarLoja).toHaveBeenCalledWith(8);
     });
 
     it("nao cria perfil quando nao existe associacao", async () => {

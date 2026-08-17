@@ -12,6 +12,7 @@ function missaoFake(overrides?: Partial<{
     frequencia: FrequenciaMissao;
     dataFim: Date | null;
     pontoRecompensa: number;
+    sistema: boolean;
 }>): Missao {
     const agora = new Date("2026-08-17T15:00:00.000Z");
     return new Missao({
@@ -21,6 +22,7 @@ function missaoFake(overrides?: Partial<{
         pontoRecompensa: overrides?.pontoRecompensa ?? 20,
         frequencia: overrides?.frequencia ?? FrequenciaMissao.SEMANAL,
         dataFim: overrides?.dataFim ?? new Date("2026-09-30T23:59:59.999-03:00"),
+        sistema: overrides?.sistema ?? false,
         lojistaId: 5,
         tokenQr: "cd".repeat(32),
         dataCriacao: agora,
@@ -40,6 +42,7 @@ describe("ServicoMissao frequencia e validade", () => {
         criar: ReturnType<typeof vi.fn>;
         atualizar: ReturnType<typeof vi.fn>;
         buscar: ReturnType<typeof vi.fn>;
+        deletar: ReturnType<typeof vi.fn>;
     };
     let repositorioMissaoConsumidorMock: { contarPorMissaoId: ReturnType<typeof vi.fn> };
     let servico: ServicoMissao;
@@ -49,6 +52,7 @@ describe("ServicoMissao frequencia e validade", () => {
             criar: vi.fn(),
             atualizar: vi.fn(),
             buscar: vi.fn(),
+            deletar: vi.fn(),
         };
         repositorioMissaoConsumidorMock = {
             contarPorMissaoId: vi.fn().mockResolvedValue(0),
@@ -144,6 +148,52 @@ describe("ServicoMissao frequencia e validade", () => {
             expect.objectContaining({ dataFim: expect.any(Date) }),
         );
         expect(repositorioMissaoMock.atualizar.mock.calls[0][1].tokenQr).toBeUndefined();
+    });
+
+    it("over-post sistema=true na criacao normal e ignorado", async () => {
+        repositorioMissaoMock.criar.mockResolvedValue(missaoFake());
+        await servico.criar(20, { ...criarValido, sistema: true } as never);
+        expect(repositorioMissaoMock.criar).toHaveBeenCalledWith(
+            expect.not.objectContaining({ sistema: true }),
+        );
+        expect(repositorioMissaoMock.criar.mock.calls[0][0].sistema).toBeUndefined();
+    });
+
+    it("criar missao normal continua exigindo dataFim", async () => {
+        await expect(
+            servico.criar(20, {
+                nome: "M",
+                pontoRecompensa: 5,
+                frequencia: FrequenciaMissao.DIARIA,
+            } as never),
+        ).rejects.toMatchObject({ message: "dataFim e obrigatoria", statusCode: 400 });
+    });
+
+    it("DELETE de missao de sistema retorna 409", async () => {
+        repositorioMissaoMock.buscar.mockResolvedValue(missaoFake({ sistema: true, dataFim: null }));
+        repositorioMissaoMock.deletar = vi.fn();
+        await expect(servico.deletar(20, "4")).rejects.toMatchObject({
+            message: "Esta missão é obrigatória e não pode ser excluída.",
+            statusCode: 409,
+        });
+        expect(repositorioMissaoMock.deletar).not.toHaveBeenCalled();
+    });
+
+    it("alterar frequencia ou validade de missao de sistema retorna 409", async () => {
+        repositorioMissaoMock.buscar.mockResolvedValue(
+            missaoFake({
+                sistema: true,
+                frequencia: FrequenciaMissao.DIARIA,
+                dataFim: null,
+            }),
+        );
+        await expect(
+            servico.atualizar(20, "4", { frequencia: FrequenciaMissao.MENSAL }),
+        ).rejects.toMatchObject({ statusCode: 409 });
+        await expect(
+            servico.atualizar(20, "4", { dataFim: "2026-12-31" }),
+        ).rejects.toMatchObject({ statusCode: 409 });
+        expect(repositorioMissaoMock.atualizar).not.toHaveBeenCalled();
     });
 });
 

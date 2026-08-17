@@ -5,6 +5,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client.js";
 import { FrequenciaMissao, Role, StatusLojista } from "../src/generated/prisma/enums.js";
 import { fimDoDiaCivilNoFuso } from "../src/shared/tempo/fusoNegocio";
+import { RepositorioMissao } from "../src/modules/missao/repository/RepositorioMissao";
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -307,7 +308,7 @@ async function garantirMissaoDemo(emailLojista: string) {
     const descricao =
         "Missão demo comum (não é a missão permanente Visitar loja da E3b). Escaneie o QR no lab.";
     const existente = await prisma.missao.findFirst({
-        where: { lojistaId: lojista.id, nome: { in: nomesLegado } },
+        where: { lojistaId: lojista.id, sistema: false, nome: { in: nomesLegado } },
     });
     if (existente) {
         await prisma.missao.update({
@@ -317,6 +318,7 @@ async function garantirMissaoDemo(emailLojista: string) {
                 descricao,
                 frequencia: FrequenciaMissao.DIARIA,
                 dataFim,
+                sistema: false,
             },
         });
         console.log(`Missao demo atualizada: ${nome} (loja ${lojista.nomeFantasia})`);
@@ -330,11 +332,23 @@ async function garantirMissaoDemo(emailLojista: string) {
             pontoRecompensa: 50,
             frequencia: FrequenciaMissao.DIARIA,
             dataFim,
+            sistema: false,
             lojistaId: lojista.id,
             tokenQr: randomBytes(32).toString("hex"),
         },
     });
     console.log(`Missao demo criada: ${criada.nome} (loja ${lojista.nomeFantasia})`);
+}
+
+async function garantirMissoesVisitarLoja() {
+    const lojistas = await prisma.lojista.findMany({ select: { id: true, nomeFantasia: true } });
+    const repo = new RepositorioMissao(prisma);
+    for (const lojista of lojistas) {
+        const missao = await repo.garantirSistemaVisitarLoja(lojista.id);
+        console.log(
+            `Missao sistema: ${missao.nome} (loja ${lojista.nomeFantasia}, token persistente)`,
+        );
+    }
 }
 
 async function garantirRecompensasDemo(emailLojista: string) {
@@ -598,6 +612,7 @@ async function main() {
     });
 
     await garantirMissaoDemo("loja.aprovada@demo.local");
+    await garantirMissoesVisitarLoja();
     await garantirRecompensasDemo("loja.aprovada@demo.local");
 
     await garantirCampanhasDemo(associacao.id);

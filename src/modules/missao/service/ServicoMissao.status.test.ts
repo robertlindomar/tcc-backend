@@ -77,6 +77,7 @@ describe("ServicoMissao por status do lojista", () => {
                 pontoRecompensa: 50,
                 frequencia: FrequenciaMissao.UMA_VEZ,
                 dataFim: new Date("2026-12-31T23:59:59.999-03:00"),
+                sistema: false,
                 lojistaId: 5,
                 tokenQr: "cd".repeat(32),
                 dataCriacao: agora,
