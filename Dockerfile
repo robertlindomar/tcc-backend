@@ -10,8 +10,9 @@ COPY package.json package-lock.json ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
 
+# ignore-scripts: evita prisma generate no postinstall antes do COPY completo
 # Inclui devDependencies (prisma CLI + tsx) — API roda com tsx, sem build tsc
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 COPY . .
 
