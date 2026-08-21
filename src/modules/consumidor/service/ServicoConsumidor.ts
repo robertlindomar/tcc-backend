@@ -9,6 +9,7 @@ import { RepositorioUsuario } from "../../usuario/repository/RepositorioUsuario"
 import { DTOAtualizarConsumidor } from "../dto/DTOAtualizarConsumidor";
 import { DTOCriarConsumidor } from "../dto/DTOCriarConsumidor";
 import { RespostaConsumidor } from "../dtos/RespostaConsumidor";
+import { RespostaPerfilConsumidorAtual } from "../dtos/RespostaPerfilConsumidorAtual";
 import {
     RespostaListagemVisitantesLoja,
     RespostaVisitanteLoja,
@@ -63,6 +64,52 @@ export class ServicoConsumidor {
         });
 
         return this.paraResposta(criado);
+    }
+
+    async buscarAtual(
+        usuarioLogado: { id: number; role: Role },
+    ): Promise<RespostaPerfilConsumidorAtual> {
+        if (usuarioLogado.role !== Role.CONSUMIDOR) {
+            throw new ErroAplicacao("Este aplicativo e destinado aos consumidores", 403);
+        }
+
+        const usuario = await this.repositorioUsuario.buscar(usuarioLogado.id);
+        if (!usuario) {
+            throw new ErroAplicacao("Usuario nao encontrado", 401);
+        }
+        if (!usuario.ativo) {
+            throw new ErroAplicacao("Usuario inativo. Contate o administrador.", 403);
+        }
+        if (usuario.role !== Role.CONSUMIDOR) {
+            throw new ErroAplicacao("Este aplicativo e destinado aos consumidores", 403);
+        }
+
+        const consumidor = await this.repositorioConsumidor.buscarPorUsuarioId(usuario.id);
+        if (!consumidor) {
+            throw new ErroAplicacao("Perfil de consumidor nao encontrado", 404);
+        }
+
+        return {
+            usuario: {
+                id: usuario.id,
+                nome: usuario.nome,
+                email: usuario.email,
+                role: Role.CONSUMIDOR,
+                ativo: usuario.ativo,
+                dataCriacao: usuario.dataCriacao,
+                dataAtualizacao: usuario.dataAtualizacao,
+            },
+            consumidor: {
+                id: consumidor.id,
+                cpf: consumidor.cpf,
+                pontos: consumidor.pontos,
+                nivel: consumidor.nivel,
+                sexoId: consumidor.sexoId,
+                usuarioId: consumidor.usuarioId,
+                dataCriacao: consumidor.dataCriacao,
+                dataAtualizacao: consumidor.dataAtualizacao,
+            },
+        };
     }
 
     async listar(

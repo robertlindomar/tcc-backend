@@ -1,0 +1,40 @@
+# Uso local / demo. No Coolify prefira app Dockerfile + Postgres gerenciado
+# (veja README) ou o compose da raiz do TCC com variáveis ${...}.
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: tcc
+      POSTGRES_PASSWORD: tcc
+      POSTGRES_DB: tccdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tcc -d tccdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://tcc:tcc@db:5432/tccdb
+      SECRET_KEY: troque-este-segredo-docker
+      PORT: "3000"
+      FUSO_NEGOCIO: America/Sao_Paulo
+      # Seed só em demo local — em Coolify use false
+      RUN_SEED: "true"
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  uploads:

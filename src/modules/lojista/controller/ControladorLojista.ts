@@ -18,6 +18,20 @@ export class ControladorLojista {
         response.status(200).json(lista);
     }
 
+    async catalogo(_request: Request, response: Response, _next: NextFunction): Promise<void> {
+        const lista = await this.servicoLojista.listarCatalogo();
+        response.status(200).json(lista);
+    }
+
+    async catalogoDetalhe(
+        request: Request,
+        response: Response,
+        _next: NextFunction,
+    ): Promise<void> {
+        const item = await this.servicoLojista.buscarCatalogo(request.params.id);
+        response.status(200).json(item);
+    }
+
     async buscar(request: Request, response: Response, _next: NextFunction): Promise<void> {
         if (!request.usuario) {
             throw new ErroAplicacao("Usuario nao autenticado", 401);

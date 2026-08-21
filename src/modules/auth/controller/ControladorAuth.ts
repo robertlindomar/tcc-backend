@@ -1,11 +1,13 @@
 import { NextFunction, Request, Response } from "express";
 import { ServicoCadastro } from "../service/ServicoCadastro";
+import { ServicoCadastroConsumidor } from "../service/ServicoCadastroConsumidor";
 import { ServicoLogin } from "../service/ServicoLogin";
 
 export class ControladorAuth {
     constructor(
         private readonly servicoLogin: ServicoLogin,
         private readonly servicoCadastro: ServicoCadastro,
+        private readonly servicoCadastroConsumidor: ServicoCadastroConsumidor,
     ) {}
 
     async login(request: Request, response: Response, _next: NextFunction): Promise<void> {
@@ -15,6 +17,15 @@ export class ControladorAuth {
 
     async cadastro(request: Request, response: Response, _next: NextFunction): Promise<void> {
         const criado = await this.servicoCadastro.executar(request.body);
+        response.status(201).json(criado);
+    }
+
+    async cadastroConsumidor(
+        request: Request,
+        response: Response,
+        _next: NextFunction,
+    ): Promise<void> {
+        const criado = await this.servicoCadastroConsumidor.executar(request.body);
         response.status(201).json(criado);
     }
 }

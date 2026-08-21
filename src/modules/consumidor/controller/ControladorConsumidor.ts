@@ -11,6 +11,16 @@ export class ControladorConsumidor {
         response.status(200).json(lista);
     }
 
+    async buscarAtual(
+        request: Request,
+        response: Response,
+        _next: NextFunction,
+    ): Promise<void> {
+        const usuario = exigirUsuario(request);
+        const perfil = await this.servicoConsumidor.buscarAtual(usuario);
+        response.status(200).json(perfil);
+    }
+
     async buscar(request: Request, response: Response, _next: NextFunction): Promise<void> {
         const usuario = exigirUsuario(request);
         const item = await this.servicoConsumidor.buscar(request.params.id, usuario);

@@ -8,6 +8,10 @@ export function RotasAuth() {
 
     router.post("/login", tratarAsync(controller.login.bind(controller)));
     router.post("/cadastro", tratarAsync(controller.cadastro.bind(controller)));
+    router.post(
+        "/cadastro-consumidor",
+        tratarAsync(controller.cadastroConsumidor.bind(controller)),
+    );
 
     return router;
 }

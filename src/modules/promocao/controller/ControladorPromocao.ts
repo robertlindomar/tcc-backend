@@ -5,6 +5,13 @@ import { ServicoPromocao } from "../service/ServicoPromocao";
 export class ControladorPromocao {
     constructor(private readonly servicoPromocao: ServicoPromocao) {}
 
+    async catalogo(request: Request, response: Response, _next: NextFunction): Promise<void> {
+        const lojistaId =
+            typeof request.query.lojistaId === "string" ? request.query.lojistaId : "";
+        const lista = await this.servicoPromocao.listarCatalogo(lojistaId);
+        response.status(200).json(lista);
+    }
+
     async listar(request: Request, response: Response, _next: NextFunction): Promise<void> {
         if (!request.usuario) {
             throw new ErroAplicacao("Usuario nao autenticado", 401);

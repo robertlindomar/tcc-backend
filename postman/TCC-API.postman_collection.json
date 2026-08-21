@@ -280,6 +280,56 @@
           }
         },
         {
+          "name": "Cadastro consumidor atomico",
+          "description": "Cria usuario, endereco consultado no ViaCEP e perfil consumidor em uma unica transacao. O papel e fixado pelo servidor e lojistaId nao faz parte do contrato.",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const sufixo = String(Date.now());",
+                  "pm.collectionVariables.set('consumidorMobileEmail', `mobile.${sufixo}@teste.local`);",
+                  "pm.collectionVariables.set('consumidorMobileCpf', sufixo.slice(-11));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Perfil sem lojista legado', () => pm.expect(body.consumidor.lojistaId).to.be.undefined);",
+                  "pm.test('Pontos e nivel iniciais', () => { pm.expect(body.consumidor.pontos).to.eql(0); pm.expect(body.consumidor.nivel).to.eql(1); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Consumidor Mobile\",\n  \"email\": \"{{consumidorMobileEmail}}\",\n  \"senha\": \"senha123\",\n  \"cpf\": \"{{consumidorMobileCpf}}\",\n  \"cep\": \"01001-000\",\n  \"numero\": \"100\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/cadastro-consumidor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "cadastro-consumidor"
+              ]
+            }
+          }
+        },
+        {
           "name": "Login senha errada",
           "event": [
             {
@@ -1550,6 +1600,44 @@
           ]
         },
         {
+          "name": "Catalogo Lojas Consumidor",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista/catalogo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista",
+                "catalogo"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Array', () => pm.expect(body).to.be.an('array'));",
+                  "if (body.length) {",
+                  "  pm.test('Sem CNPJ', () => pm.expect(body[0].cnpj).to.be.undefined);",
+                  "  pm.collectionVariables.set('lojistaCatalogoId', body[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Listar Lojistas PENDENTE",
           "request": {
             "method": "GET",
@@ -1812,6 +1900,42 @@
     {
       "name": "Consumidor",
       "item": [
+        {
+          "name": "Meu perfil consumidor",
+          "description": "Perfil autenticado para o app mobile. Nunca retorna Consumidor.lojistaId.",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/consumidor/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "consumidor",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Dados para Home mobile', () => { pm.expect(body.usuario.nome).to.be.a('string'); pm.expect(body.consumidor.pontos).to.be.a('number'); pm.expect(body.consumidor.nivel).to.be.a('number'); });",
+                  "pm.test('Nao vaza lojista legado', () => pm.expect(body.consumidor.lojistaId).to.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Criar Consumidor",
           "request": {
@@ -2680,6 +2804,45 @@
               ],
               "path": [
                 "produto"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Catalogo Produtos Consumidor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/produto/catalogo?lojistaId={{lojistaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "produto",
+                "catalogo"
+              ],
+              "query": [
+                {
+                  "key": "lojistaId",
+                  "value": "{{lojistaId}}"
+                }
               ]
             }
           }

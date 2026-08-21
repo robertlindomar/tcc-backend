@@ -11,6 +11,16 @@ export function RotasLojista() {
 
     router.use(garantirAutenticado);
 
+    router.get(
+        "/catalogo",
+        garantirPapel(Role.CONSUMIDOR),
+        tratarAsync(controller.catalogo.bind(controller)),
+    );
+    router.get(
+        "/catalogo/:id",
+        garantirPapel(Role.CONSUMIDOR),
+        tratarAsync(controller.catalogoDetalhe.bind(controller)),
+    );
     router.get("/", tratarAsync(controller.listar.bind(controller)));
     router.get("/:id", tratarAsync(controller.buscar.bind(controller)));
     router.post(

@@ -10,6 +10,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.get("/health", (_req, res) => {
+    res.status(200).json({ ok: true });
+});
 app.use(
     "/uploads",
     express.static(diretorioUploads(), {
@@ -23,8 +26,8 @@ app.use(middlewareErro);
 
 // Middleware de tratamento de erros (sempre no final)
 app.use(middlewareErro);
-// Iniciar servidor
-const PORT = process.env.PORT;
-app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta http://localhost:${PORT}`);
+// Iniciar servidor (0.0.0.0: Docker / Coolify / LAN mobile)
+const PORT = Number(process.env.PORT) || 3000;
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Servidor rodando na porta http://0.0.0.0:${PORT}`);
 });

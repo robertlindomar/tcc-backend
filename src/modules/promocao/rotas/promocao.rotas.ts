@@ -10,6 +10,13 @@ export function RotasPromocao() {
     const controller = criarControladorPromocao();
 
     router.use(garantirAutenticado);
+
+    router.get(
+        "/catalogo",
+        garantirPapel(Role.CONSUMIDOR),
+        tratarAsync(controller.catalogo.bind(controller)),
+    );
+
     router.use(garantirPapel(Role.LOJISTA));
 
     router.get("/", tratarAsync(controller.listar.bind(controller)));

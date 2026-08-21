@@ -46,6 +46,25 @@ export class RepositorioPromocao {
         }
     }
 
+    async listarCatalogoPorLojistaId(lojistaId: number): Promise<
+        Array<{ promocao: Promocao; produtoNome: string; produtoValor: number }>
+    > {
+        try {
+            const lista = await this.prisma.promocao.findMany({
+                where: { produto: { lojistaId } },
+                include: { produto: { select: { nome: true, valor: true } } },
+                orderBy: { id: "asc" },
+            });
+            return lista.map((item) => ({
+                promocao: this.paraDominio(item),
+                produtoNome: item.produto.nome,
+                produtoValor: decimalParaNumero(item.produto.valor),
+            }));
+        } catch {
+            throw new ErroAplicacao("Erro ao listar catalogo de promocoes", 500);
+        }
+    }
+
     async buscar(id: number): Promise<Promocao | null> {
         try {
             const item = await this.prisma.promocao.findUnique({ where: { id } });

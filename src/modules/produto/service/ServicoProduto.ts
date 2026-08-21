@@ -1,3 +1,4 @@
+import { garantirLojaCatalogo } from "../../../shared/authz/garantirLojaCatalogo";
 import { resolverLojistaAprovado } from "../../../shared/authz/resolverLojistaAprovado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { ServicoUploadImagem } from "../../../shared/upload/ServicoUploadImagem";
@@ -52,6 +53,17 @@ export class ServicoProduto {
             await this.servicoUploadImagem.remover(urlImagem);
             throw erro;
         }
+    }
+
+    async listarCatalogo(lojistaIdParam: string): Promise<RespostaProduto[]> {
+        const { lojistaId } = await garantirLojaCatalogo(
+            this.repositorioLojista,
+            lojistaIdParam,
+        );
+        const lista = await this.repositorioProduto.listarPorLojistaId(lojistaId);
+        return lista
+            .filter((item) => Boolean(item.urlImagem))
+            .map((item) => this.paraResposta(item));
     }
 
     async listar(usuarioId: number): Promise<RespostaProduto[]> {

@@ -1,5 +1,7 @@
 import { StatusLojista } from "../../../generated/prisma/enums";
+import { garantirLojaCatalogo } from "../../../shared/authz/garantirLojaCatalogo";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { formatarEnderecoTexto } from "../../endereco/utils/formatarEnderecoTexto";
 import { Role } from "../../auth/enum/Role";
 import { RepositorioAssociacao } from "../../associacao/repository/RepositorioAssociacao";
 import { RepositorioEndereco } from "../../endereco/repository/RepositorioEndereco";
@@ -8,6 +10,8 @@ import { RepositorioUsuario } from "../../usuario/repository/RepositorioUsuario"
 import { DTOAtualizarLojista } from "../dto/DTOAtualizarLojista";
 import { DTOCriarLojista } from "../dto/DTOCriarLojista";
 import { DTORejeitarLojista } from "../dto/DTORejeitarLojista";
+import { RespostaCatalogoLoja } from "../dtos/RespostaCatalogoLoja";
+import { RespostaCatalogoLojaDetalhe } from "../dtos/RespostaCatalogoLojaDetalhe";
 import { RespostaLojista } from "../dtos/RespostaLojista";
 import { Lojista } from "../model/Lojista";
 import { RepositorioLojista } from "../repository/RepositorioLojista";
@@ -114,6 +118,25 @@ export class ServicoLojista {
         }
 
         throw new ErroAplicacao("Acesso nao autorizado para este perfil", 403);
+    }
+
+    async listarCatalogo(): Promise<RespostaCatalogoLoja[]> {
+        const lista = await this.repositorioLojista.listar(StatusLojista.APROVADO);
+        return lista.map((item) => this.paraRespostaCatalogo(item));
+    }
+
+    async buscarCatalogo(idParam: string): Promise<RespostaCatalogoLojaDetalhe> {
+        const { lojista } = await garantirLojaCatalogo(this.repositorioLojista, idParam);
+        let enderecoTexto: string | null = null;
+        if (lojista.enderecoId) {
+            const endereco = await this.repositorioEndereco.buscarPorId(lojista.enderecoId);
+            enderecoTexto = endereco ? formatarEnderecoTexto(endereco) : null;
+        }
+        return {
+            id: lojista.id,
+            nomeFantasia: lojista.nomeFantasia,
+            enderecoTexto,
+        };
     }
 
     async buscar(
@@ -342,6 +365,13 @@ export class ServicoLojista {
             justificativaRejeicao,
         });
         return this.paraResposta(atualizado);
+    }
+
+    private paraRespostaCatalogo(lojista: Lojista): RespostaCatalogoLoja {
+        return {
+            id: lojista.id,
+            nomeFantasia: lojista.nomeFantasia,
+        };
     }
 
     private paraResposta(lojista: Lojista): RespostaLojista {

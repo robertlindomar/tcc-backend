@@ -1,4 +1,5 @@
 import { FrequenciaMissao } from "../../../generated/prisma/enums";
+import { garantirLojaCatalogo } from "../../../shared/authz/garantirLojaCatalogo";
 import { resolverLojistaAprovado } from "../../../shared/authz/resolverLojistaAprovado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { missaoEstaExpirada } from "../../../shared/tempo/calcularChavePeriodoMissao";
@@ -8,6 +9,7 @@ import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista"
 import { RepositorioMissaoConsumidor } from "../../missao-consumidor/repository/RepositorioMissaoConsumidor";
 import { DTOAtualizarMissao } from "../dto/DTOAtualizarMissao";
 import { DTOCriarMissao } from "../dto/DTOCriarMissao";
+import { RespostaCatalogoMissao } from "../dtos/RespostaCatalogoMissao";
 import { RespostaMissao } from "../dtos/RespostaMissao";
 import { Missao } from "../model/Missao";
 import { RepositorioMissao } from "../repository/RepositorioMissao";
@@ -60,6 +62,24 @@ export class ServicoMissao {
         );
         const lista = await this.repositorioMissao.listarPorLojistaId(lojistaId);
         return lista.map((item) => this.paraResposta(item));
+    }
+
+    async listarCatalogo(lojistaIdParam: string): Promise<RespostaCatalogoMissao[]> {
+        const { lojistaId } = await garantirLojaCatalogo(
+            this.repositorioLojista,
+            lojistaIdParam,
+        );
+        const agora = new Date();
+        const lista = await this.repositorioMissao.listarPorLojistaId(lojistaId);
+        return lista
+            .filter((item) => !missaoEstaExpirada(item.dataFim, agora))
+            .map((item) => ({
+                id: item.id,
+                nome: item.nome,
+                descricao: item.descricao,
+                pontoRecompensa: item.pontoRecompensa,
+                sistema: item.sistema,
+            }));
     }
 
     async buscar(usuarioId: number, idParam: string): Promise<RespostaMissao> {

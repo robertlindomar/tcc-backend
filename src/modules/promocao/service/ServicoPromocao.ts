@@ -1,3 +1,5 @@
+import { civilNoFuso } from "../../../shared/tempo/fusoNegocio";
+import { garantirLojaCatalogo } from "../../../shared/authz/garantirLojaCatalogo";
 import { resolverLojistaAprovado } from "../../../shared/authz/resolverLojistaAprovado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import {
@@ -8,9 +10,11 @@ import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista"
 import { RepositorioProduto } from "../../produto/repository/RepositorioProduto";
 import { DTOAtualizarPromocao } from "../dto/DTOAtualizarPromocao";
 import { DTOCriarPromocao } from "../dto/DTOCriarPromocao";
+import { RespostaCatalogoPromocao } from "../dtos/RespostaCatalogoPromocao";
 import { RespostaPromocao } from "../dtos/RespostaPromocao";
 import { Promocao } from "../model/Promocao";
 import { RepositorioPromocao } from "../repository/RepositorioPromocao";
+import { calcularPercentualDesconto } from "../utils/calcularPercentualDesconto";
 
 export class ServicoPromocao {
     constructor(
@@ -51,6 +55,36 @@ export class ServicoPromocao {
         );
         const lista = await this.repositorioPromocao.listarPorLojistaId(lojistaId);
         return lista.map((item) => this.paraResposta(item));
+    }
+
+    async listarCatalogo(lojistaIdParam: string): Promise<RespostaCatalogoPromocao[]> {
+        const { lojistaId } = await garantirLojaCatalogo(
+            this.repositorioLojista,
+            lojistaIdParam,
+        );
+        const lista = await this.repositorioPromocao.listarCatalogoPorLojistaId(lojistaId);
+        return lista
+            .filter(
+                ({ promocao }) =>
+                    calcularStatusVigenciaPromocao({
+                        ativa: promocao.ativa,
+                        dataInicio: promocao.dataInicio,
+                        dataFim: promocao.dataFim,
+                    }) === "ATIVA",
+            )
+            .map(({ promocao, produtoNome, produtoValor }) => {
+                const civil = civilNoFuso(promocao.dataFim);
+                return {
+                    id: promocao.id,
+                    descricao: promocao.descricao,
+                    preco: promocao.preco,
+                    produtoId: promocao.produtoId,
+                    produtoNome,
+                    percentualDesconto: calcularPercentualDesconto(produtoValor, promocao.preco),
+                    dataFim: promocao.dataFim,
+                    dataFimCivil: `${civil.ano}-${String(civil.mes).padStart(2, "0")}-${String(civil.dia).padStart(2, "0")}`,
+                };
+            });
     }
 
     async buscar(usuarioId: number, idParam: string): Promise<RespostaPromocao> {
