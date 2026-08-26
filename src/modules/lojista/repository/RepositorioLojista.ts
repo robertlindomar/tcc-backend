@@ -3,6 +3,10 @@ import { StatusLojista } from "../../../generated/prisma/enums";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { Lojista } from "../model/Lojista";
 
+const incluirUsuarioEmail = {
+    usuario: { select: { email: true } },
+} as const;
+
 type RegistroLojista = {
     id: number;
     nomeFantasia: string;
@@ -16,6 +20,7 @@ type RegistroLojista = {
     justificativaRejeicao: string | null;
     dataCriacao: Date;
     dataAtualizacao: Date;
+    usuario?: { email: string } | null;
 };
 
 export class RepositorioLojista {
@@ -32,7 +37,10 @@ export class RepositorioLojista {
         enderecoId: number | null;
     }): Promise<Lojista> {
         try {
-            const criado = await this.prisma.lojista.create({ data: dados });
+            const criado = await this.prisma.lojista.create({
+                data: dados,
+                include: incluirUsuarioEmail,
+            });
             return this.paraDominio(criado);
         } catch {
             throw new ErroAplicacao("Erro ao criar lojista", 500);
@@ -44,6 +52,7 @@ export class RepositorioLojista {
             const lista = await this.prisma.lojista.findMany({
                 where: status ? { status } : undefined,
                 orderBy: { id: "asc" },
+                include: incluirUsuarioEmail,
             });
             return lista.map((item) => this.paraDominio(item));
         } catch {
@@ -62,6 +71,7 @@ export class RepositorioLojista {
                     ...(status ? { status } : {}),
                 },
                 orderBy: { id: "asc" },
+                include: incluirUsuarioEmail,
             });
             return lista.map((item) => this.paraDominio(item));
         } catch {
@@ -71,7 +81,10 @@ export class RepositorioLojista {
 
     async buscar(id: number): Promise<Lojista | null> {
         try {
-            const item = await this.prisma.lojista.findUnique({ where: { id } });
+            const item = await this.prisma.lojista.findUnique({
+                where: { id },
+                include: incluirUsuarioEmail,
+            });
             return item ? this.paraDominio(item) : null;
         } catch {
             throw new ErroAplicacao("Erro ao buscar lojista por ID", 500);
@@ -82,6 +95,7 @@ export class RepositorioLojista {
         try {
             const item = await this.prisma.lojista.findUnique({
                 where: { usuarioId },
+                include: incluirUsuarioEmail,
             });
             return item ? this.paraDominio(item) : null;
         } catch {
@@ -91,7 +105,10 @@ export class RepositorioLojista {
 
     async buscarPorCnpj(cnpj: string): Promise<Lojista | null> {
         try {
-            const item = await this.prisma.lojista.findUnique({ where: { cnpj } });
+            const item = await this.prisma.lojista.findUnique({
+                where: { cnpj },
+                include: incluirUsuarioEmail,
+            });
             return item ? this.paraDominio(item) : null;
         } catch {
             throw new ErroAplicacao("Erro ao buscar lojista por CNPJ", 500);
@@ -112,6 +129,7 @@ export class RepositorioLojista {
             const atualizado = await this.prisma.lojista.update({
                 where: { id },
                 data: dados,
+                include: incluirUsuarioEmail,
             });
             return this.paraDominio(atualizado);
         } catch {
@@ -137,6 +155,7 @@ export class RepositorioLojista {
             const atualizado = await this.prisma.lojista.update({
                 where: { id },
                 data,
+                include: incluirUsuarioEmail,
             });
             return this.paraDominio(atualizado);
         } catch {
@@ -161,6 +180,7 @@ export class RepositorioLojista {
             inscricaoEstadual: item.inscricaoEstadual,
             status: item.status,
             usuarioId: item.usuarioId,
+            email: item.usuario?.email ?? "",
             associacaoId: item.associacaoId,
             enderecoId: item.enderecoId,
             justificativaRejeicao: item.justificativaRejeicao,

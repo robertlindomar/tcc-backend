@@ -8,6 +8,8 @@ type LojistaProps = {
     inscricaoEstadual: number | null;
     status: StatusLojista;
     usuarioId: number;
+    /** E-mail do usuário dono do perfil (via join); vazio se não carregado. */
+    email?: string;
     associacaoId: number;
     enderecoId: number | null;
     justificativaRejeicao: string | null;
@@ -19,7 +21,7 @@ export class Lojista {
     private readonly props: LojistaProps;
 
     constructor(props: LojistaProps) {
-        this.props = { ...props };
+        this.props = { ...props, email: props.email ?? "" };
     }
 
     get id() {
@@ -48,6 +50,10 @@ export class Lojista {
 
     get usuarioId() {
         return this.props.usuarioId;
+    }
+
+    get email() {
+        return this.props.email ?? "";
     }
 
     get associacaoId() {

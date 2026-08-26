@@ -383,6 +383,7 @@ export class ServicoLojista {
             inscricaoEstadual: lojista.inscricaoEstadual,
             status: lojista.status,
             usuarioId: lojista.usuarioId,
+            email: lojista.email,
             associacaoId: lojista.associacaoId,
             enderecoId: lojista.enderecoId,
             justificativaRejeicao: lojista.justificativaRejeicao,

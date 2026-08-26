@@ -8,6 +8,7 @@ export interface RespostaLojista {
     inscricaoEstadual: number | null;
     status: StatusLojista;
     usuarioId: number;
+    email: string;
     associacaoId: number;
     enderecoId: number | null;
     justificativaRejeicao: string | null;
