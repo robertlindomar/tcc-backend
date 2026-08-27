@@ -21,6 +21,8 @@ type EnderecoComRelacoes = {
     id: number;
     cep: string;
     numero: string | null;
+    latitude: number | null;
+    longitude: number | null;
     usuarioId: number;
     ruaId: number;
     bairroId: number;
@@ -46,6 +48,8 @@ export class RepositorioEndereco {
                 data: {
                     cep: endereco.cep,
                     numero: endereco.numero,
+                    latitude: endereco.latitude,
+                    longitude: endereco.longitude,
                     usuarioId: endereco.usuarioId,
                     ruaId: endereco.ruaId,
                     bairroId: endereco.bairroId,
@@ -66,6 +70,8 @@ export class RepositorioEndereco {
         dados: {
             cep: string;
             numero: string | null;
+            latitude: number | null;
+            longitude: number | null;
             ruaId: number;
             bairroId: number;
             cidadeId: number;
@@ -146,6 +152,8 @@ export class RepositorioEndereco {
             id: endereco.id,
             cep: endereco.cep,
             numero: endereco.numero,
+            latitude: endereco.latitude,
+            longitude: endereco.longitude,
             usuarioId: endereco.usuarioId,
             rua: {
                 id: endereco.rua.id,

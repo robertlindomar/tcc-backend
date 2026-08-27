@@ -13,6 +13,8 @@ function enderecoFake(id: number, usuarioId: number): RespostaEndereco {
         id,
         cep: "01001-000",
         numero: "100",
+        latitude: null,
+        longitude: null,
         usuarioId,
         rua: { id: 1, nome: "Rua A" },
         bairro: { id: 1, nome: "Centro" },

@@ -2,6 +2,8 @@ export interface RespostaEndereco {
     id: number;
     cep: string;
     numero: string | null;
+    latitude: number | null;
+    longitude: number | null;
     usuarioId: number;
     rua: {
         id: number;

@@ -4,6 +4,8 @@ type EnderecoProps = {
     id: number;
     cep: string;
     numero: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
     usuarioId: number;
     ruaId: number;
     bairroId: number;
@@ -38,6 +40,14 @@ export class Endereco {
 
     get numero() {
         return this.props.numero;
+    }
+
+    get latitude() {
+        return this.props.latitude ?? null;
+    }
+
+    get longitude() {
+        return this.props.longitude ?? null;
     }
 
     get usuarioId() {

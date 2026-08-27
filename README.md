@@ -22,6 +22,23 @@ docker compose up --build
 
 API em `http://localhost:3000` (`0.0.0.0`, útil para mobile na LAN). Entrypoint: migrate + seed se `RUN_SEED=true`.
 
+## Contas demo (senha: `senha123`)
+
+| E-mail | Papel |
+|---|---|
+| `associacao@gmail.com` | Associação |
+| `lojista1@gmail.com` | Lojista **APROVADO** (Casa do Real) |
+| `lojista2@gmail.com` | Lojista PENDENTE (Ótica Visão) |
+| `lojista3@gmail.com` | Lojista REJEITADO |
+| `lojista4@gmail.com` | Lojista PENDENTE (sem endereço) |
+| `usuario1@gmail.com` | Consumidor (320 pts) |
+| `usuario2@gmail.com` | Consumidor (200 pts) |
+| `usuario3@gmail.com` | Consumidor (100 pts) |
+| `usuario4@gmail.com` | Consumidor (0 pts) |
+
+Migração VPS (e-mails antigos `@demo.local`): `prisma/sql/migrar-emails-demo-vps.sql`  
+Banco **vazio** na VPS: `prisma/sql/seed-demo-vps.sql` ou `RUN_SEED=true` no deploy.
+
 ## Coolify (VM)
 
 Recomendado: **dois apps Dockerfile** + **Postgres do Coolify**.

@@ -15,6 +15,7 @@ import { RespostaCatalogoLojaDetalhe } from "../dtos/RespostaCatalogoLojaDetalhe
 import { RespostaLojista } from "../dtos/RespostaLojista";
 import { Lojista } from "../model/Lojista";
 import { RepositorioLojista } from "../repository/RepositorioLojista";
+import { calcularDistanciaKm } from "../utils/calcularDistanciaKm";
 
 const STATUS_VALIDOS = Object.values(StatusLojista);
 const TAMANHO_MAX_JUSTIFICATIVA_REJEICAO = 500;
@@ -120,22 +121,70 @@ export class ServicoLojista {
         throw new ErroAplicacao("Acesso nao autorizado para este perfil", 403);
     }
 
-    async listarCatalogo(): Promise<RespostaCatalogoLoja[]> {
+    async listarCatalogo(
+        latitudeQuery?: unknown,
+        longitudeQuery?: unknown,
+    ): Promise<RespostaCatalogoLoja[]> {
         const lista = await this.repositorioLojista.listar(StatusLojista.APROVADO);
-        return lista.map((item) => this.paraRespostaCatalogo(item));
+        const localizacaoConsumidor = this.parseLocalizacaoCatalogo(
+            latitudeQuery,
+            longitudeQuery,
+        );
+
+        if (!localizacaoConsumidor) {
+            return lista.map((item) => this.paraRespostaCatalogo(item));
+        }
+
+        const catalogo = await Promise.all(
+            lista.map(async (item) => {
+                if (!item.enderecoId) {
+                    return { ...this.paraRespostaCatalogo(item), distanciaKm: null };
+                }
+
+                const endereco = await this.repositorioEndereco.buscarPorId(item.enderecoId);
+                if (endereco?.latitude === null || endereco?.longitude === null || !endereco) {
+                    return { ...this.paraRespostaCatalogo(item), distanciaKm: null };
+                }
+
+                const distanciaKm = calcularDistanciaKm(localizacaoConsumidor, {
+                    latitude: endereco.latitude,
+                    longitude: endereco.longitude,
+                });
+                return {
+                    ...this.paraRespostaCatalogo(item),
+                    distanciaKm,
+                };
+            }),
+        );
+
+        return catalogo.sort((a, b) => {
+            if (a.distanciaKm === null) return b.distanciaKm === null ? a.id - b.id : 1;
+            if (b.distanciaKm === null) return -1;
+            return a.distanciaKm - b.distanciaKm || a.id - b.id;
+        }).map((item) => ({
+            ...item,
+            distanciaKm:
+                item.distanciaKm === null ? null : Number(item.distanciaKm.toFixed(2)),
+        }));
     }
 
     async buscarCatalogo(idParam: string): Promise<RespostaCatalogoLojaDetalhe> {
         const { lojista } = await garantirLojaCatalogo(this.repositorioLojista, idParam);
         let enderecoTexto: string | null = null;
+        let latitude: number | null = null;
+        let longitude: number | null = null;
         if (lojista.enderecoId) {
             const endereco = await this.repositorioEndereco.buscarPorId(lojista.enderecoId);
             enderecoTexto = endereco ? formatarEnderecoTexto(endereco) : null;
+            latitude = endereco?.latitude ?? null;
+            longitude = endereco?.longitude ?? null;
         }
         return {
             id: lojista.id,
             nomeFantasia: lojista.nomeFantasia,
             enderecoTexto,
+            latitude,
+            longitude,
         };
     }
 
@@ -435,6 +484,35 @@ export class ServicoLojista {
         }
 
         return statusQuery as StatusLojista;
+    }
+
+    private parseLocalizacaoCatalogo(
+        latitudeQuery: unknown,
+        longitudeQuery: unknown,
+    ): { latitude: number; longitude: number } | null {
+        const ausente = (valor: unknown) =>
+            valor === undefined ||
+            valor === null ||
+            (typeof valor === "string" && valor.trim() === "");
+        if (ausente(latitudeQuery) && ausente(longitudeQuery)) {
+            return null;
+        }
+        if (ausente(latitudeQuery) || ausente(longitudeQuery)) {
+            throw new ErroAplicacao("Latitude e longitude devem ser informadas juntas", 400);
+        }
+        if (typeof latitudeQuery !== "string" || typeof longitudeQuery !== "string") {
+            throw new ErroAplicacao("Localizacao do consumidor invalida", 400);
+        }
+
+        const latitude = Number(latitudeQuery);
+        const longitude = Number(longitudeQuery);
+        if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+            throw new ErroAplicacao("Latitude invalida", 400);
+        }
+        if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+            throw new ErroAplicacao("Longitude invalida", 400);
+        }
+        return { latitude, longitude };
     }
 
     private validarJustificativaRejeicao(valor: unknown): string {

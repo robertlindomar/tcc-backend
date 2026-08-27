@@ -8,6 +8,8 @@ describe("formatarEnderecoTexto", () => {
                 id: 1,
                 cep: "15730000",
                 numero: "123",
+                latitude: null,
+                longitude: null,
                 usuarioId: 9,
                 rua: { id: 1, nome: "Rua Dez" },
                 bairro: { id: 1, nome: "Centro" },

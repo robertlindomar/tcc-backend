@@ -18,8 +18,11 @@ export class ControladorLojista {
         response.status(200).json(lista);
     }
 
-    async catalogo(_request: Request, response: Response, _next: NextFunction): Promise<void> {
-        const lista = await this.servicoLojista.listarCatalogo();
+    async catalogo(request: Request, response: Response, _next: NextFunction): Promise<void> {
+        const lista = await this.servicoLojista.listarCatalogo(
+            request.query.lat,
+            request.query.lng,
+        );
         response.status(200).json(lista);
     }
 

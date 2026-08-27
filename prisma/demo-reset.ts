@@ -3,10 +3,11 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client.js";
 import { Role, StatusLojista } from "../src/generated/prisma/enums.js";
 import { fimDoDiaCivilNoFuso } from "../src/shared/tempo/fusoNegocio";
+import { EMAILS_DEMO, LISTA_EMAILS_DEMO } from "./contas-demo";
 
 /**
- * Devolve contas *@demo.local ao estado inicial da apresentação.
- * Só toca em usuários cujo e-mail termina com @demo.local.
+ * Devolve contas demo ao estado inicial da apresentação.
+ * Só toca nos e-mails listados em LISTA_EMAILS_DEMO (+ legado migrável).
  */
 const connectionString = process.env.DATABASE_URL;
 
@@ -18,21 +19,20 @@ const prisma = new PrismaClient({
     adapter: new PrismaPg(connectionString),
 });
 
-const SUFIXO_DEMO = "@demo.local";
-
 const STATUS_INICIAL = {
-    "loja.pendente@demo.local": StatusLojista.PENDENTE,
-    "loja.aprovada@demo.local": StatusLojista.APROVADO,
-    "loja.rejeitada@demo.local": StatusLojista.REJEITADO,
-    "loja.pendente2@demo.local": StatusLojista.PENDENTE,
-    "loja.pendente3@demo.local": StatusLojista.PENDENTE,
+    [EMAILS_DEMO.LOJISTA2]: StatusLojista.PENDENTE,
+    [EMAILS_DEMO.LOJISTA1]: StatusLojista.APROVADO,
+    [EMAILS_DEMO.LOJISTA3]: StatusLojista.REJEITADO,
+    [EMAILS_DEMO.LOJISTA4]: StatusLojista.PENDENTE,
 } as const;
 
 const JUSTIFICATIVA_REJEICAO_DEMO = "CNPJ informado esta incorreto.";
 
 const PONTOS_CONSUMIDOR_DEMO: Record<string, number> = {
-    "cliente1@demo.local": 320,
-    "cliente2@demo.local": 200,
+    [EMAILS_DEMO.USUARIO1]: 320,
+    [EMAILS_DEMO.USUARIO2]: 200,
+    [EMAILS_DEMO.USUARIO3]: 100,
+    [EMAILS_DEMO.USUARIO4]: 0,
 };
 
 function nivelDePontos(pontos: number): number {
@@ -80,7 +80,7 @@ async function main() {
     const consumidoresDemo = await prisma.consumidor.findMany({
         where: {
             usuario: {
-                email: { endsWith: SUFIXO_DEMO },
+                email: { in: LISTA_EMAILS_DEMO },
                 role: Role.CONSUMIDOR,
             },
         },
@@ -96,19 +96,19 @@ async function main() {
             where: { consumidorId: { in: idsConsumidorDemo } },
         });
         console.log(
-            `Conclusoes de missao *@demo.local removidas: ${conclusoes.count} (visitas e missoes lab)`,
+            `Conclusoes de missao demo removidas: ${conclusoes.count} (visitas e missoes lab)`,
         );
 
         const removidos = await prisma.resgateRecompensa.deleteMany({
             where: { consumidorId: { in: idsConsumidorDemo } },
         });
         console.log(
-            `Resgates de consumidores *@demo.local removidos: ${removidos.count}`,
+            `Resgates de consumidores demo removidos: ${removidos.count}`,
         );
     }
 
     const usuarioCasa = await prisma.usuario.findUnique({
-        where: { email: "loja.aprovada@demo.local" },
+        where: { email: EMAILS_DEMO.LOJISTA1 },
     });
     const casaDoReal = usuarioCasa
         ? await prisma.lojista.findUnique({ where: { usuarioId: usuarioCasa.id } })

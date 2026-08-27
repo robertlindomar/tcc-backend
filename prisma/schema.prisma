@@ -38,6 +38,8 @@ model Endereco {
 
   cep    String  @map("cep_endereco") @db.VarChar(9)
   numero String? @map("numero_endereco") @db.VarChar(20)
+  latitude  Float? @map("latitude_endereco")
+  longitude Float? @map("longitude_endereco")
 
   usuarioId Int     @unique @map("id_usuario")
   usuario   Usuario @relation(fields: [usuarioId], references: [id])

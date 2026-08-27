@@ -1600,7 +1600,7 @@
           ]
         },
         {
-          "name": "Catalogo Lojas Consumidor",
+          "name": "Catalogo Lojas por Proximidade",
           "request": {
             "method": "GET",
             "header": [
@@ -1610,13 +1610,23 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/lojista/catalogo",
+              "raw": "{{baseUrl}}/lojista/catalogo?lat=-23.550520&lng=-46.633308",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "lojista",
                 "catalogo"
+              ],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "-23.550520"
+                },
+                {
+                  "key": "lng",
+                  "value": "-46.633308"
+                }
               ]
             }
           },
@@ -1628,6 +1638,12 @@
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "const body = pm.response.json();",
                   "pm.test('Array', () => pm.expect(body).to.be.an('array'));",
+                  "const comDistancia = body.filter((item) => typeof item.distanciaKm === 'number');",
+                  "pm.test('Distancia em km quando a loja possui coordenadas', () => pm.expect(comDistancia.length).to.be.greaterThan(0));",
+                  "pm.test('Ordenado por proximidade', () => {",
+                  "  const distancias = comDistancia.map((item) => item.distanciaKm);",
+                  "  pm.expect(distancias).to.eql([...distancias].sort((a, b) => a - b));",
+                  "});",
                   "if (body.length) {",
                   "  pm.test('Sem CNPJ', () => pm.expect(body[0].cnpj).to.be.undefined);",
                   "  pm.collectionVariables.set('lojistaCatalogoId', body[0].id);",

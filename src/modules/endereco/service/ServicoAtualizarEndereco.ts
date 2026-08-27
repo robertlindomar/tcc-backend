@@ -7,6 +7,7 @@ import { RespostaEndereco } from "../dtos/RespostaEndereco";
 import { RepositorioEndereco } from "../repository/RepositorioEndereco";
 import { normalizarCep, parseId } from "../utils/enderecoUtils";
 import { resolverGeografiaViaCep } from "./resolverGeografiaViaCep";
+import { validarCoordenadasEndereco } from "../utils/validarCoordenadasEndereco";
 
 export class ServicoAtualizarEndereco {
     constructor(
@@ -30,9 +31,19 @@ export class ServicoAtualizarEndereco {
 
         garantirProprioId(enderecoAtual.usuarioId, usuarioLogadoId);
 
-        if (!dto.cep && dto.numero === undefined) {
+        if (
+            !dto.cep &&
+            dto.numero === undefined &&
+            dto.latitude === undefined &&
+            dto.longitude === undefined
+        ) {
             throw new ErroAplicacao("Informe ao menos um campo para atualizar");
         }
+
+        const coordenadas = validarCoordenadasEndereco(
+            dto.latitude === undefined ? enderecoAtual.latitude : dto.latitude,
+            dto.longitude === undefined ? enderecoAtual.longitude : dto.longitude,
+        );
 
         if (dto.cep) {
             const cep = normalizarCep(dto.cep);
@@ -46,6 +57,8 @@ export class ServicoAtualizarEndereco {
                     {
                         cep,
                         numero: dto.numero !== undefined ? dto.numero : enderecoAtual.numero,
+                        latitude: coordenadas.latitude,
+                        longitude: coordenadas.longitude,
                         ruaId: geografia.ruaId,
                         bairroId: geografia.bairroId,
                         cidadeId: geografia.cidadeId,
@@ -59,6 +72,8 @@ export class ServicoAtualizarEndereco {
         return this.repositorioEndereco.atualizar(id, {
             cep: enderecoAtual.cep,
             numero: dto.numero !== undefined ? dto.numero : enderecoAtual.numero,
+            latitude: coordenadas.latitude,
+            longitude: coordenadas.longitude,
             ruaId: enderecoAtual.rua.id,
             bairroId: enderecoAtual.bairro.id,
             cidadeId: enderecoAtual.cidade.id,

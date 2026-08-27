@@ -6,6 +6,7 @@ import { PrismaClient } from "../src/generated/prisma/client.js";
 import { FrequenciaMissao, Role, StatusLojista } from "../src/generated/prisma/enums.js";
 import { fimDoDiaCivilNoFuso } from "../src/shared/tempo/fusoNegocio";
 import { RepositorioMissao } from "../src/modules/missao/repository/RepositorioMissao";
+import { EMAILS_DEMO, SENHA_DEMO } from "./contas-demo";
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -17,14 +18,11 @@ const prisma = new PrismaClient({
     adapter: new PrismaPg(connectionString),
 });
 
-const SENHA_DEMO = "senha123";
-
 /**
  * Conta de associação da demonstração. Precisa nascer do seed para a senha ser
- * conhecida: contas criadas fora dele (ex.: associacao@gmail.com) têm senha que
- * o seed não pode adivinhar nem sobrescrever.
+ * conhecida: contas criadas fora dele têm senha que o seed não pode adivinhar.
  */
-const EMAIL_ASSOCIACAO_DEMO = "associacao@demo.local";
+const EMAIL_ASSOCIACAO_DEMO = EMAILS_DEMO.ASSOCIACAO;
 
 const NOMES_SEXO = ["Masculino", "Feminino"] as const;
 
@@ -92,6 +90,8 @@ async function garantirEnderecoDemo(dados: {
     cidade: string;
     estado: string;
     uf: string;
+    latitude: number;
+    longitude: number;
 }) {
     const usuario = await prisma.usuario.findUnique({
         where: { email: dados.emailLojista },
@@ -139,6 +139,8 @@ async function garantirEnderecoDemo(dados: {
             data: {
                 cep: dados.cep,
                 numero: dados.numero,
+                latitude: dados.latitude,
+                longitude: dados.longitude,
                 usuarioId: usuario.id,
                 ruaId: rua.id,
                 bairroId: bairro.id,
@@ -149,6 +151,15 @@ async function garantirEnderecoDemo(dados: {
         console.log(
             `Endereço demo criado para ${dados.emailLojista} (id=${endereco.id})`,
         );
+    } else if (
+        endereco.latitude !== dados.latitude ||
+        endereco.longitude !== dados.longitude
+    ) {
+        endereco = await prisma.endereco.update({
+            where: { id: endereco.id },
+            data: { latitude: dados.latitude, longitude: dados.longitude },
+        });
+        console.log(`Coordenadas demo atualizadas para ${dados.emailLojista}`);
     }
 
     if (lojista.enderecoId !== endereco.id) {
@@ -526,7 +537,7 @@ async function main() {
 
     const lojasDemo = [
         {
-            email: "loja.pendente@demo.local",
+            email: EMAILS_DEMO.LOJISTA2,
             nomeUsuario: "Demo Loja Pendente",
             nomeFantasia: "Ótica Visão",
             razaoSocial: "Otica Visao LTDA",
@@ -534,7 +545,7 @@ async function main() {
             statusInicial: StatusLojista.PENDENTE,
         },
         {
-            email: "loja.aprovada@demo.local",
+            email: EMAILS_DEMO.LOJISTA1,
             nomeUsuario: "Demo Loja Aprovada",
             nomeFantasia: "Casa do Real",
             razaoSocial: "Casa do Real Comercio LTDA",
@@ -542,7 +553,7 @@ async function main() {
             statusInicial: StatusLojista.APROVADO,
         },
         {
-            email: "loja.rejeitada@demo.local",
+            email: EMAILS_DEMO.LOJISTA3,
             nomeUsuario: "Demo Loja Rejeitada",
             nomeFantasia: "Estilo Kids",
             razaoSocial: "Estilo Kids LTDA",
@@ -551,19 +562,11 @@ async function main() {
             justificativaRejeicao: "CNPJ informado esta incorreto.",
         },
         {
-            email: "loja.pendente2@demo.local",
+            email: EMAILS_DEMO.LOJISTA4,
             nomeUsuario: "Demo Loja Pendente 2",
             nomeFantasia: "Sabor & Cia",
             razaoSocial: "Sabor e Cia LTDA",
             cnpj: "55.555.555/0001-55",
-            statusInicial: StatusLojista.PENDENTE,
-        },
-        {
-            email: "loja.pendente3@demo.local",
-            nomeUsuario: "Demo Loja Pendente 3",
-            nomeFantasia: "Tech Smart",
-            razaoSocial: "Tech Smart LTDA",
-            cnpj: "66.666.666/0001-66",
             statusInicial: StatusLojista.PENDENTE,
         },
     ] as const;
@@ -578,7 +581,7 @@ async function main() {
     // Endereço pronto nas duas lojas do roteiro; "Sabor & Cia" fica sem, para
     // demonstrar o cadastro de endereço ao vivo.
     await garantirEnderecoDemo({
-        emailLojista: "loja.pendente@demo.local",
+        emailLojista: EMAILS_DEMO.LOJISTA2,
         cep: "15775-000",
         numero: "1250",
         rua: "Avenida Navarro de Andrade",
@@ -586,9 +589,11 @@ async function main() {
         cidade: "Santa Fé do Sul",
         estado: "São Paulo",
         uf: "SP",
+        latitude: -20.21121,
+        longitude: -50.92529,
     });
     await garantirEnderecoDemo({
-        emailLojista: "loja.aprovada@demo.local",
+        emailLojista: EMAILS_DEMO.LOJISTA1,
         cep: "15775-000",
         numero: "480",
         rua: "Rua Nove",
@@ -596,43 +601,59 @@ async function main() {
         cidade: "Santa Fé do Sul",
         estado: "São Paulo",
         uf: "SP",
+        latitude: -20.20988,
+        longitude: -50.92704,
     });
 
-    await garantirCategoriasDemo("loja.aprovada@demo.local", [
+    await garantirCategoriasDemo(EMAILS_DEMO.LOJISTA1, [
         "Alimentos",
         "Bebidas",
         "Vestuário",
     ]);
-    await garantirCategoriasDemo("loja.pendente@demo.local", ["Vestuário"]);
+    await garantirCategoriasDemo(EMAILS_DEMO.LOJISTA2, ["Vestuário"]);
 
-    await garantirProdutosDemo("loja.aprovada@demo.local", [
+    await garantirProdutosDemo(EMAILS_DEMO.LOJISTA1, [
         { nome: "Cesta de café da manhã", valor: 89.9, categoria: "Alimentos" },
         { nome: "Vinho tinto seco 750ml", valor: 54.5, categoria: "Bebidas" },
         { nome: "Camiseta algodão premium", valor: 79.9, categoria: "Vestuário" },
     ]);
-    await garantirProdutosDemo("loja.pendente@demo.local", [
+    await garantirProdutosDemo(EMAILS_DEMO.LOJISTA2, [
         { nome: "Óculos de sol polarizado", valor: 249.9, categoria: "Vestuário" },
         { nome: "Armação infantil flexível", valor: 189.0, categoria: "Vestuário" },
     ]);
 
     await garantirConsumidorDemo({
-        email: "cliente1@demo.local",
+        email: EMAILS_DEMO.USUARIO1,
         nome: "Ana Souza",
         cpf: "111.222.333-44",
         pontos: 320,
-        emailLojista: "loja.pendente@demo.local",
+        emailLojista: EMAILS_DEMO.LOJISTA2,
     });
     await garantirConsumidorDemo({
-        email: "cliente2@demo.local",
+        email: EMAILS_DEMO.USUARIO2,
         nome: "Bruno Lima",
         cpf: "222.333.444-55",
         pontos: 200,
-        emailLojista: "loja.aprovada@demo.local",
+        emailLojista: EMAILS_DEMO.LOJISTA1,
+    });
+    await garantirConsumidorDemo({
+        email: EMAILS_DEMO.USUARIO3,
+        nome: "Carlos Silva",
+        cpf: "333.444.555-66",
+        pontos: 100,
+        emailLojista: EMAILS_DEMO.LOJISTA1,
+    });
+    await garantirConsumidorDemo({
+        email: EMAILS_DEMO.USUARIO4,
+        nome: "Diana Costa",
+        cpf: "444.555.666-77",
+        pontos: 0,
+        emailLojista: EMAILS_DEMO.LOJISTA2,
     });
 
-    await garantirMissaoDemo("loja.aprovada@demo.local");
+    await garantirMissaoDemo(EMAILS_DEMO.LOJISTA1);
     await garantirMissoesVisitarLoja();
-    await garantirRecompensasDemo("loja.aprovada@demo.local");
+    await garantirRecompensasDemo(EMAILS_DEMO.LOJISTA1);
 
     await garantirCampanhasDemo(associacao.id);
 
@@ -641,15 +662,19 @@ async function main() {
     });
 
     console.log("\n=== Credenciais DEMO (somente desenvolvimento) ===");
-    console.log(`Senha das contas *@demo.local: ${SENHA_DEMO}`);
+    console.log(`Senha das contas demo: ${SENHA_DEMO}`);
     console.log(
         `Pré-cadastros PENDENTE na associação id=${associacao.id}: ${pendentes}`,
     );
-    console.log(`${EMAIL_ASSOCIACAO_DEMO}     → ASSOCIACAO`);
-    console.log("loja.pendente@demo.local  → LOJISTA PENDENTE (com endereço)");
-    console.log("loja.aprovada@demo.local  → LOJISTA APROVADO (com endereço)");
-    console.log("loja.rejeitada@demo.local → LOJISTA REJEITADO");
-    console.log("loja.pendente2@demo.local → LOJISTA PENDENTE (sem endereço)");
+    console.log(`${EMAILS_DEMO.ASSOCIACAO} → ASSOCIACAO`);
+    console.log(`${EMAILS_DEMO.LOJISTA1} → LOJISTA APROVADO (Casa do Real, com endereço)`);
+    console.log(`${EMAILS_DEMO.LOJISTA2} → LOJISTA PENDENTE (Ótica Visão, com endereço)`);
+    console.log(`${EMAILS_DEMO.LOJISTA3} → LOJISTA REJEITADO`);
+    console.log(`${EMAILS_DEMO.LOJISTA4} → LOJISTA PENDENTE (Sabor & Cia, sem endereço)`);
+    console.log(`${EMAILS_DEMO.USUARIO1} → CONSUMIDOR (320 pts)`);
+    console.log(`${EMAILS_DEMO.USUARIO2} → CONSUMIDOR (200 pts)`);
+    console.log(`${EMAILS_DEMO.USUARIO3} → CONSUMIDOR (100 pts)`);
+    console.log(`${EMAILS_DEMO.USUARIO4} → CONSUMIDOR (0 pts)`);
     console.log("Re-seed NÃO altera status de lojistas já existentes.");
 }
 

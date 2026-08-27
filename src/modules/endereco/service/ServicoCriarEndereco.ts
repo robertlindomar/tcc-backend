@@ -7,6 +7,7 @@ import { Endereco } from "../model/Endereco";
 import { RepositorioEndereco } from "../repository/RepositorioEndereco";
 import { normalizarCep } from "../utils/enderecoUtils";
 import { resolverGeografiaViaCep } from "./resolverGeografiaViaCep";
+import { validarCoordenadasEndereco } from "../utils/validarCoordenadasEndereco";
 
 export class ServicoCriarEndereco {
     constructor(
@@ -24,6 +25,7 @@ export class ServicoCriarEndereco {
         }
 
         const cep = normalizarCep(dto.cep);
+        const coordenadas = validarCoordenadasEndereco(dto.latitude, dto.longitude);
         const usuarioId = usuarioLogadoId;
 
         const usuario = await this.prisma.usuario.findUnique({
@@ -51,6 +53,8 @@ export class ServicoCriarEndereco {
                 id: 0,
                 cep,
                 numero: dto.numero ?? null,
+                latitude: coordenadas.latitude,
+                longitude: coordenadas.longitude,
                 usuarioId,
                 ruaId: geografia.ruaId,
                 bairroId: geografia.bairroId,
