@@ -211,6 +211,22 @@ describe("ServicoRecompensa CRUD", () => {
         expect(repoRecompensa.atualizar).not.toHaveBeenCalled();
         expect(resultado.ativa).toBe(false);
     });
+
+    it("reativar torna ativa=true", async () => {
+        repoRecompensa.buscar.mockResolvedValue(recompensaFake({ ativa: false }));
+        repoRecompensa.atualizar.mockResolvedValue(recompensaFake({ ativa: true }));
+        const resultado = await servico.reativar(20, "3");
+        expect(repoRecompensa.atualizar).toHaveBeenCalledWith(3, { ativa: true });
+        expect(resultado.ativa).toBe(true);
+        expect(resultado.situacao).toBe("DISPONIVEL");
+    });
+
+    it("reativar repetido e idempotente", async () => {
+        repoRecompensa.buscar.mockResolvedValue(recompensaFake({ ativa: true }));
+        const resultado = await servico.reativar(20, "3");
+        expect(repoRecompensa.atualizar).not.toHaveBeenCalled();
+        expect(resultado.ativa).toBe(true);
+    });
 });
 
 describe("ServicoRecompensa por status do lojista", () => {

@@ -26,6 +26,11 @@ export function RotasRecompensa() {
         garantirPapel(Role.LOJISTA),
         tratarAsync(controller.desativar.bind(controller)),
     );
+    router.patch(
+        "/:id/reativar",
+        garantirPapel(Role.LOJISTA),
+        tratarAsync(controller.reativar.bind(controller)),
+    );
 
     router.get("/", garantirPapel(Role.LOJISTA), tratarAsync(controller.listar.bind(controller)));
     router.get("/:id", garantirPapel(Role.LOJISTA), tratarAsync(controller.buscar.bind(controller)));

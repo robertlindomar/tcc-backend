@@ -130,6 +130,21 @@ export class ServicoRecompensa {
         return this.paraResposta(atualizado);
     }
 
+    async reativar(usuarioId: number, idParam: string): Promise<RespostaRecompensa> {
+        const { lojistaId } = await resolverLojistaAprovado(
+            this.repositorioLojista,
+            usuarioId,
+        );
+        const existente = await this.obterDoLojista(idParam, lojistaId);
+        if (existente.ativa) {
+            return this.paraResposta(existente);
+        }
+        const atualizado = await this.repositorioRecompensa.atualizar(existente.id, {
+            ativa: true,
+        });
+        return this.paraResposta(atualizado);
+    }
+
     async deletar(usuarioId: number, idParam: string): Promise<void> {
         const { lojistaId } = await resolverLojistaAprovado(
             this.repositorioLojista,
