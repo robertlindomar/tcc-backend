@@ -1,4 +1,7 @@
+import { Role } from "../../auth/enum/Role";
+import { RepositorioAssociacao } from "../../associacao/repository/RepositorioAssociacao";
 import { resolverConsumidorLogado } from "../../../shared/authz/resolverConsumidorLogado";
+import { resolverGestaoRecompensaLojista } from "../../../shared/authz/resolverGestaoRecompensaLojista";
 import { resolverLojistaAprovado } from "../../../shared/authz/resolverLojistaAprovado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { civilNoFuso } from "../../../shared/tempo/fusoNegocio";
@@ -27,12 +30,18 @@ function dataCivilIso(dataFim: Date | null): string | null {
     return `${civil.ano}-${String(civil.mes).padStart(2, "0")}-${String(civil.dia).padStart(2, "0")}`;
 }
 
+type UsuarioGestor = {
+    id: number;
+    role: Role;
+};
+
 export class ServicoRecompensa {
     constructor(
         private readonly repositorioRecompensa: RepositorioRecompensa,
         private readonly repositorioResgate: RepositorioResgateRecompensa,
         private readonly repositorioLojista: RepositorioLojista,
         private readonly repositorioConsumidor: RepositorioConsumidor,
+        private readonly repositorioAssociacao: RepositorioAssociacao,
     ) {}
 
     async criar(usuarioId: number, request: DTOCriarRecompensa): Promise<RespostaRecompensa> {
@@ -58,6 +67,22 @@ export class ServicoRecompensa {
         const { lojistaId } = await resolverLojistaAprovado(
             this.repositorioLojista,
             usuarioId,
+        );
+        const lista = await this.repositorioRecompensa.listarPorLojistaId(lojistaId);
+        return lista.map((item) => this.paraResposta(item, agora));
+    }
+
+    async listarDaLoja(
+        usuario: UsuarioGestor,
+        lojistaIdParam: string,
+        agora: Date = new Date(),
+    ): Promise<RespostaRecompensa[]> {
+        const lojistaId = this.parseLojistaId(lojistaIdParam);
+        await resolverGestaoRecompensaLojista(
+            this.repositorioLojista,
+            this.repositorioAssociacao,
+            usuario,
+            lojistaId,
         );
         const lista = await this.repositorioRecompensa.listarPorLojistaId(lojistaId);
         return lista.map((item) => this.paraResposta(item, agora));
@@ -115,12 +140,8 @@ export class ServicoRecompensa {
         return this.paraResposta(atualizado);
     }
 
-    async desativar(usuarioId: number, idParam: string): Promise<RespostaRecompensa> {
-        const { lojistaId } = await resolverLojistaAprovado(
-            this.repositorioLojista,
-            usuarioId,
-        );
-        const existente = await this.obterDoLojista(idParam, lojistaId);
+    async desativar(usuario: UsuarioGestor, idParam: string): Promise<RespostaRecompensa> {
+        const existente = await this.obterRecompensaGestao(usuario, idParam);
         if (!existente.ativa) {
             return this.paraResposta(existente);
         }
@@ -130,12 +151,8 @@ export class ServicoRecompensa {
         return this.paraResposta(atualizado);
     }
 
-    async reativar(usuarioId: number, idParam: string): Promise<RespostaRecompensa> {
-        const { lojistaId } = await resolverLojistaAprovado(
-            this.repositorioLojista,
-            usuarioId,
-        );
-        const existente = await this.obterDoLojista(idParam, lojistaId);
+    async reativar(usuario: UsuarioGestor, idParam: string): Promise<RespostaRecompensa> {
+        const existente = await this.obterRecompensaGestao(usuario, idParam);
         if (existente.ativa) {
             return this.paraResposta(existente);
         }
@@ -239,6 +256,24 @@ export class ServicoRecompensa {
         if (!recompensa || recompensa.lojistaId !== lojistaId) {
             throw new ErroAplicacao("Recompensa nao encontrada", 404);
         }
+        return recompensa;
+    }
+
+    private async obterRecompensaGestao(
+        usuario: UsuarioGestor,
+        idParam: string,
+    ): Promise<Recompensa> {
+        const id = this.parseId(idParam, "recompensa");
+        const recompensa = await this.repositorioRecompensa.buscar(id);
+        if (!recompensa) {
+            throw new ErroAplicacao("Recompensa nao encontrada", 404);
+        }
+        await resolverGestaoRecompensaLojista(
+            this.repositorioLojista,
+            this.repositorioAssociacao,
+            usuario,
+            recompensa.lojistaId,
+        );
         return recompensa;
     }
 
@@ -351,6 +386,14 @@ export class ServicoRecompensa {
                 recurso === "resgate" ? "ID do resgate invalido" : "ID da recompensa invalido",
                 400,
             );
+        }
+        return id;
+    }
+
+    private parseLojistaId(idParam: string): number {
+        const id = Number(idParam);
+        if (!Number.isInteger(id) || id <= 0) {
+            throw new ErroAplicacao("ID do lojista invalido", 400);
         }
         return id;
     }

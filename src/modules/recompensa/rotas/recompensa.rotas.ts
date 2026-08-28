@@ -23,13 +23,19 @@ export function RotasRecompensa() {
     );
     router.patch(
         "/:id/desativar",
-        garantirPapel(Role.LOJISTA),
+        garantirPapel(Role.LOJISTA, Role.ASSOCIACAO),
         tratarAsync(controller.desativar.bind(controller)),
     );
     router.patch(
         "/:id/reativar",
-        garantirPapel(Role.LOJISTA),
+        garantirPapel(Role.LOJISTA, Role.ASSOCIACAO),
         tratarAsync(controller.reativar.bind(controller)),
+    );
+
+    router.get(
+        "/loja/:lojistaId",
+        garantirPapel(Role.ASSOCIACAO),
+        tratarAsync(controller.listarDaLoja.bind(controller)),
     );
 
     router.get("/", garantirPapel(Role.LOJISTA), tratarAsync(controller.listar.bind(controller)));
