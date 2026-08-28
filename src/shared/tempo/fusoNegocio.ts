@@ -97,7 +97,7 @@ export function instanteCivilNoFuso(
     return new Date(millis);
 }
 
-function adicionarDiasCivil(data: DataCivil, dias: number): DataCivil {
+export function adicionarDiasCivil(data: DataCivil, dias: number): DataCivil {
     const utc = new Date(Date.UTC(data.ano, data.mes - 1, data.dia + dias));
     return {
         ano: utc.getUTCFullYear(),

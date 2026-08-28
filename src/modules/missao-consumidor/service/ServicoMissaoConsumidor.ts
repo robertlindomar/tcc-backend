@@ -1,8 +1,9 @@
-import { StatusLojista } from "../../../generated/prisma/enums";
+import { FrequenciaMissao, StatusLojista } from "../../../generated/prisma/enums";
 import { resolverConsumidorLogado } from "../../../shared/authz/resolverConsumidorLogado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import {
     calcularChavePeriodoMissao,
+    calcularInicioProximoPeriodoMissao,
     missaoEstaExpirada,
 } from "../../../shared/tempo/calcularChavePeriodoMissao";
 import { Consumidor } from "../../consumidor/model/Consumidor";
@@ -96,16 +97,32 @@ export class ServicoMissaoConsumidor {
                 chavePeriodo,
             );
         if (jaConcluida) {
-            throw new ErroAplicacao("Missao ja concluida neste periodo", 409);
+            throw this.erroMissaoJaConcluida(missao.frequencia, agora);
         }
 
-        const { missaoConsumidor, consumidor } =
-            await this.repositorioMissaoConsumidor.concluirComPontos({
+        let missaoConsumidor: MissaoConsumidor;
+        let consumidor: Consumidor;
+
+        try {
+            const resultado = await this.repositorioMissaoConsumidor.concluirComPontos({
                 missaoId: missao.id,
                 consumidorId,
                 chavePeriodo,
                 pontoRecompensa: missao.pontoRecompensa,
             });
+            missaoConsumidor = resultado.missaoConsumidor;
+            consumidor = resultado.consumidor;
+        } catch (erro) {
+            if (
+                erro instanceof ErroAplicacao &&
+                erro.statusCode === 409 &&
+                (erro.message === "Missao ja concluida neste periodo" ||
+                    erro.message === "Missao ja concluida")
+            ) {
+                throw this.erroMissaoJaConcluida(missao.frequencia, agora);
+            }
+            throw erro;
+        }
 
         return {
             missaoConsumidor: this.paraResposta(missaoConsumidor, {
@@ -154,6 +171,22 @@ export class ServicoMissaoConsumidor {
             dataCriacao: consumidor.dataCriacao,
             dataAtualizacao: consumidor.dataAtualizacao,
         };
+    }
+
+    private erroMissaoJaConcluida(frequencia: FrequenciaMissao, agora: Date): ErroAplicacao {
+        if (frequencia === FrequenciaMissao.UMA_VEZ) {
+            return new ErroAplicacao("Missao ja concluida", 409, {
+                frequencia,
+                repetivel: false,
+            });
+        }
+
+        const disponivelEm = calcularInicioProximoPeriodoMissao(frequencia, agora);
+        return new ErroAplicacao("Missao ja concluida neste periodo", 409, {
+            frequencia,
+            repetivel: true,
+            disponivelEm: disponivelEm?.toISOString() ?? null,
+        });
     }
 
     private parseId(idParam: string): number {

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { FrequenciaMissao } from "../../generated/prisma/enums";
-import { calcularChavePeriodoMissao, missaoEstaExpirada } from "./calcularChavePeriodoMissao";
+import {
+    calcularChavePeriodoMissao,
+    calcularInicioProximoPeriodoMissao,
+    missaoEstaExpirada,
+} from "./calcularChavePeriodoMissao";
 import { fimDoDiaCivilNoFuso, instanteCivilNoFuso } from "./fusoNegocio";
 
 describe("calcularChavePeriodoMissao", () => {
@@ -85,6 +89,59 @@ describe("calcularChavePeriodoMissao", () => {
         expect(
             calcularChavePeriodoMissao(FrequenciaMissao.MENSAL, meioDiaSp(2027, 1, 1)),
         ).toBe("2027-01");
+    });
+});
+
+describe("calcularInicioProximoPeriodoMissao", () => {
+    const meioDiaSp = (ano: number, mes: number, dia: number) =>
+        instanteCivilNoFuso({
+            ano,
+            mes,
+            dia,
+            hora: 12,
+            minuto: 0,
+            segundo: 0,
+        });
+
+    const meiaNoiteSp = (ano: number, mes: number, dia: number) =>
+        instanteCivilNoFuso({
+            ano,
+            mes,
+            dia,
+            hora: 0,
+            minuto: 0,
+            segundo: 0,
+        });
+
+    it("UMA_VEZ retorna null", () => {
+        expect(
+            calcularInicioProximoPeriodoMissao(FrequenciaMissao.UMA_VEZ, meioDiaSp(2026, 8, 17)),
+        ).toBeNull();
+    });
+
+    it("DIARIA: proximo periodo e meia-noite do dia seguinte", () => {
+        const asQuinze = instanteCivilNoFuso({
+            ano: 2026,
+            mes: 8,
+            dia: 17,
+            hora: 15,
+            minuto: 30,
+            segundo: 0,
+        });
+        const proximo = calcularInicioProximoPeriodoMissao(FrequenciaMissao.DIARIA, asQuinze);
+        expect(proximo).toEqual(meiaNoiteSp(2026, 8, 18));
+    });
+
+    it("SEMANAL: proximo periodo e segunda-feira 00:00 da semana seguinte", () => {
+        const sexta = meioDiaSp(2026, 8, 21);
+        const proximo = calcularInicioProximoPeriodoMissao(FrequenciaMissao.SEMANAL, sexta);
+        expect(proximo).toEqual(meiaNoiteSp(2026, 8, 24));
+    });
+
+    it("MENSAL: proximo periodo e dia 1 do mes seguinte", () => {
+        const ultimoDia = meioDiaSp(2026, 8, 31);
+        const proximo = calcularInicioProximoPeriodoMissao(FrequenciaMissao.MENSAL, ultimoDia);
+        expect(proximo).toEqual(meiaNoiteSp(2026, 9, 1));
     });
 });
 

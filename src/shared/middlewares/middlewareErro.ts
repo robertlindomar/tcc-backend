@@ -3,7 +3,10 @@ import { ErroAplicacao } from "../erros/ErroAplicacao";
 
 export const middlewareErro: ErrorRequestHandler = (err, req, res, next) => {
     if (err instanceof ErroAplicacao) {
-        res.status(err.statusCode).json({ error: err.message });
+        res.status(err.statusCode).json({
+            error: err.message,
+            ...(err.detalhes ?? {}),
+        });
         return;
     }
     res.status(500).json({ error: "Erro interno do servidor" });

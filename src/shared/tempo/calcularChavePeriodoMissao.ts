@@ -1,5 +1,11 @@
 import { FrequenciaMissao } from "../../generated/prisma/enums";
-import { civilNoFuso, FUSO_NEGOCIO_TCC } from "./fusoNegocio";
+import {
+    adicionarDiasCivil,
+    civilNoFuso,
+    DataCivil,
+    FUSO_NEGOCIO_TCC,
+    instanteCivilNoFuso,
+} from "./fusoNegocio";
 
 export const CHAVE_PERIODO_UNICA = "UNICA";
 
@@ -34,6 +40,51 @@ export function calcularChavePeriodoMissao(
         return `${civil.ano}-${String(civil.mes).padStart(2, "0")}`;
     }
     return isoSemana(civil.ano, civil.mes, civil.dia);
+}
+
+function inicioDoDiaCivil(data: DataCivil, fuso: string): Date {
+    return instanteCivilNoFuso(
+        { ...data, hora: 0, minuto: 0, segundo: 0 },
+        fuso,
+    );
+}
+
+function segundaDaSemanaIso(civil: DataCivil): DataCivil {
+    const utc = new Date(Date.UTC(civil.ano, civil.mes - 1, civil.dia));
+    const diaSemana = utc.getUTCDay();
+    const diasDesdeSegunda = (diaSemana + 6) % 7;
+    return adicionarDiasCivil(civil, -diasDesdeSegunda);
+}
+
+/**
+ * Início do próximo período em que a missão pode ser concluída novamente.
+ * Null para UMA_VEZ (missão não repete).
+ */
+export function calcularInicioProximoPeriodoMissao(
+    frequencia: FrequenciaMissao,
+    agora: Date,
+    fuso: string = FUSO_NEGOCIO_TCC,
+): Date | null {
+    if (frequencia === FrequenciaMissao.UMA_VEZ) {
+        return null;
+    }
+
+    const civil = civilNoFuso(agora, fuso);
+
+    if (frequencia === FrequenciaMissao.DIARIA) {
+        const proximoDia = adicionarDiasCivil(civil, 1);
+        return inicioDoDiaCivil(proximoDia, fuso);
+    }
+
+    if (frequencia === FrequenciaMissao.MENSAL) {
+        const proximoMes = civil.mes === 12 ? 1 : civil.mes + 1;
+        const proximoAno = civil.mes === 12 ? civil.ano + 1 : civil.ano;
+        return inicioDoDiaCivil({ ano: proximoAno, mes: proximoMes, dia: 1 }, fuso);
+    }
+
+    const segundaAtual = segundaDaSemanaIso(civil);
+    const segundaSeguinte = adicionarDiasCivil(segundaAtual, 7);
+    return inicioDoDiaCivil(segundaSeguinte, fuso);
 }
 
 /** Válida enquanto agora <= dataFim. Null = legado/permanente (não expirada nesta fatia). */

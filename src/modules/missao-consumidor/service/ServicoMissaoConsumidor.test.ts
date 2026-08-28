@@ -167,8 +167,9 @@ describe("ServicoMissaoConsumidor", () => {
         await expect(
             servico.concluirPorToken(30, { tokenQr: missaoFake().tokenQr }, meioDiaSp(2026, 9, 17)),
         ).rejects.toMatchObject({
-            message: "Missao ja concluida neste periodo",
+            message: "Missao ja concluida",
             statusCode: 409,
+            detalhes: { frequencia: FrequenciaMissao.UMA_VEZ, repetivel: false },
         });
         expect(repositorioMissaoConsumidorMock.concluirComPontos).not.toHaveBeenCalled();
     });
@@ -185,7 +186,21 @@ describe("ServicoMissaoConsumidor", () => {
         );
         await expect(
             servico.concluirPorToken(30, { tokenQr: missao.tokenQr }, meioDiaSp(2026, 8, 17)),
-        ).rejects.toMatchObject({ statusCode: 409 });
+        ).rejects.toMatchObject({
+            statusCode: 409,
+            detalhes: {
+                frequencia: FrequenciaMissao.DIARIA,
+                repetivel: true,
+                disponivelEm: instanteCivilNoFuso({
+                    ano: 2026,
+                    mes: 8,
+                    dia: 18,
+                    hora: 0,
+                    minuto: 0,
+                    segundo: 0,
+                }).toISOString(),
+            },
+        });
 
         repositorioMissaoConsumidorMock.buscarPorMissaoConsumidorPeriodo.mockResolvedValue(null);
         await concluir(missao, meioDiaSp(2026, 8, 18));
