@@ -67,6 +67,11 @@ export function RotasResgateRecompensa() {
         garantirPapel(Role.LOJISTA),
         tratarAsync(controller.confirmarEntrega.bind(controller)),
     );
+    router.patch(
+        "/:id/recusar",
+        garantirPapel(Role.LOJISTA),
+        tratarAsync(controller.recusarResgate.bind(controller)),
+    );
     router.get(
         "/",
         garantirPapel(Role.CONSUMIDOR),

@@ -238,3 +238,227 @@ describe("RepositorioResgateRecompensa.confirmarEntrega", () => {
         ).rejects.toMatchObject({ statusCode: 404 });
     });
 });
+
+describe("RepositorioResgateRecompensa.recusarResgate", () => {
+    it("PENDENTE_ENTREGA → RECUSADO credita pontos e restaura estoque finito", async () => {
+        const agora = new Date("2026-08-17T18:00:00.000Z");
+        let pontosConsumidor = 10;
+        let estoque = 0;
+        let statusAtual = StatusResgateRecompensa.PENDENTE_ENTREGA;
+        const prisma = {
+            $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+                fn({
+                    $executeRaw: async () => undefined,
+                    resgateRecompensa: {
+                        findUnique: async () => ({
+                            id: 1,
+                            recompensaId: 3,
+                            consumidorId: 9,
+                            custoPontosSnapshot: 50,
+                            nomeRecompensaSnapshot: "Chaveiro da loja",
+                            status: statusAtual,
+                            dataEntrega: null,
+                            dataCriacao: agora,
+                            recompensa: { id: 3, lojistaId: 5, estoque },
+                            consumidor: { usuario: { nome: "Bruno Lima" } },
+                        }),
+                        update: async ({ data }: { data: { status: StatusResgateRecompensa } }) => {
+                            statusAtual = data.status;
+                            return {
+                                id: 1,
+                                recompensaId: 3,
+                                consumidorId: 9,
+                                custoPontosSnapshot: 50,
+                                nomeRecompensaSnapshot: "Chaveiro da loja",
+                                status: statusAtual,
+                                dataEntrega: null,
+                                dataCriacao: agora,
+                                consumidor: { usuario: { nome: "Bruno Lima" } },
+                            };
+                        },
+                    },
+                    consumidor: {
+                        update: async ({
+                            data,
+                        }: {
+                            data: { pontos?: { increment: number }; nivel?: number };
+                        }) => {
+                            if (data.pontos) {
+                                pontosConsumidor += data.pontos.increment;
+                            }
+                            return {
+                                id: 9,
+                                pontos: pontosConsumidor,
+                                nivel: data.nivel ?? 1,
+                            };
+                        },
+                    },
+                    recompensa: {
+                        update: async ({
+                            data,
+                        }: {
+                            data: { estoque: { increment: number } };
+                        }) => {
+                            estoque += data.estoque.increment;
+                            return { id: 3, estoque };
+                        },
+                    },
+                }),
+        };
+
+        const repo = new RepositorioResgateRecompensa(prisma as never);
+        const resultado = await repo.recusarResgate({ resgateId: 1, lojistaId: 5 });
+
+        expect(resultado.status).toBe(StatusResgateRecompensa.RECUSADO);
+        expect(pontosConsumidor).toBe(60);
+        expect(estoque).toBe(1);
+    });
+
+    it("estoque null nao incrementa", async () => {
+        const agora = new Date("2026-08-17T18:00:00.000Z");
+        let estoqueUpdateChamado = false;
+        const prisma = {
+            $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+                fn({
+                    $executeRaw: async () => undefined,
+                    resgateRecompensa: {
+                        findUnique: async () => ({
+                            id: 1,
+                            recompensaId: 3,
+                            consumidorId: 9,
+                            custoPontosSnapshot: 50,
+                            nomeRecompensaSnapshot: "Chaveiro",
+                            status: StatusResgateRecompensa.PENDENTE_ENTREGA,
+                            dataEntrega: null,
+                            dataCriacao: agora,
+                            recompensa: { id: 3, lojistaId: 5, estoque: null },
+                            consumidor: { usuario: { nome: "Bruno Lima" } },
+                        }),
+                        update: async () => ({
+                            id: 1,
+                            recompensaId: 3,
+                            consumidorId: 9,
+                            custoPontosSnapshot: 50,
+                            nomeRecompensaSnapshot: "Chaveiro",
+                            status: StatusResgateRecompensa.RECUSADO,
+                            dataEntrega: null,
+                            dataCriacao: agora,
+                            consumidor: { usuario: { nome: "Bruno Lima" } },
+                        }),
+                    },
+                    consumidor: {
+                        update: async ({
+                            data,
+                        }: {
+                            data: { pontos?: { increment: number }; nivel?: number };
+                        }) => ({
+                            id: 9,
+                            pontos: 50 + (data.pontos?.increment ?? 0),
+                            nivel: data.nivel ?? 1,
+                        }),
+                    },
+                    recompensa: {
+                        update: async () => {
+                            estoqueUpdateChamado = true;
+                            throw new Error("nao deve mexer estoque ilimitado");
+                        },
+                    },
+                }),
+        };
+
+        const repo = new RepositorioResgateRecompensa(prisma as never);
+        const resultado = await repo.recusarResgate({ resgateId: 1, lojistaId: 5 });
+        expect(resultado.status).toBe(StatusResgateRecompensa.RECUSADO);
+        expect(estoqueUpdateChamado).toBe(false);
+    });
+
+    it("idempotente: RECUSADO nao altera pontos nem estoque", async () => {
+        const agora = new Date("2026-08-17T18:00:00.000Z");
+        const prisma = {
+            $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+                fn({
+                    $executeRaw: async () => undefined,
+                    resgateRecompensa: {
+                        findUnique: async () => ({
+                            id: 1,
+                            recompensaId: 3,
+                            consumidorId: 9,
+                            custoPontosSnapshot: 50,
+                            nomeRecompensaSnapshot: "Chaveiro",
+                            status: StatusResgateRecompensa.RECUSADO,
+                            dataEntrega: null,
+                            dataCriacao: agora,
+                            recompensa: { id: 3, lojistaId: 5, estoque: 2 },
+                            consumidor: { usuario: { nome: "Bruno Lima" } },
+                        }),
+                        update: async () => {
+                            throw new Error("nao deve atualizar resgate ja recusado");
+                        },
+                    },
+                    consumidor: {
+                        update: async () => {
+                            throw new Error("nao deve mexer pontos");
+                        },
+                    },
+                    recompensa: {
+                        update: async () => {
+                            throw new Error("nao deve mexer estoque");
+                        },
+                    },
+                }),
+        };
+
+        const repo = new RepositorioResgateRecompensa(prisma as never);
+        const resultado = await repo.recusarResgate({ resgateId: 1, lojistaId: 5 });
+        expect(resultado.status).toBe(StatusResgateRecompensa.RECUSADO);
+    });
+
+    it("ENTREGUE nao pode ser recusado (400)", async () => {
+        const agora = new Date("2026-08-17T18:00:00.000Z");
+        const prisma = {
+            $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+                fn({
+                    $executeRaw: async () => undefined,
+                    resgateRecompensa: {
+                        findUnique: async () => ({
+                            id: 1,
+                            recompensaId: 3,
+                            consumidorId: 9,
+                            custoPontosSnapshot: 50,
+                            nomeRecompensaSnapshot: "Chaveiro",
+                            status: StatusResgateRecompensa.ENTREGUE,
+                            dataEntrega: agora,
+                            dataCriacao: agora,
+                            recompensa: { id: 3, lojistaId: 5, estoque: 2 },
+                            consumidor: { usuario: { nome: "Bruno Lima" } },
+                        }),
+                    },
+                }),
+        };
+        const repo = new RepositorioResgateRecompensa(prisma as never);
+        await expect(repo.recusarResgate({ resgateId: 1, lojistaId: 5 })).rejects.toMatchObject({
+            message: "Resgate entregue nao pode ser recusado",
+            statusCode: 400,
+        } satisfies Partial<ErroAplicacao>);
+    });
+
+    it("outro lojista recebe 404", async () => {
+        const prisma = {
+            $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+                fn({
+                    $executeRaw: async () => undefined,
+                    resgateRecompensa: {
+                        findUnique: async () => ({
+                            id: 1,
+                            recompensa: { id: 3, lojistaId: 5, estoque: null },
+                            status: StatusResgateRecompensa.PENDENTE_ENTREGA,
+                        }),
+                    },
+                }),
+        };
+        const repo = new RepositorioResgateRecompensa(prisma as never);
+        await expect(repo.recusarResgate({ resgateId: 1, lojistaId: 99 })).rejects.toMatchObject({
+            statusCode: 404,
+        });
+    });
+});

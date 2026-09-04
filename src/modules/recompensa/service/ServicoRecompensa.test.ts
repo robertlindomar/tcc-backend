@@ -544,6 +544,7 @@ describe("ServicoRecompensa resgate", () => {
 describe("ServicoRecompensa entrega", () => {
     let repoResgate: {
         confirmarEntrega: ReturnType<typeof vi.fn>;
+        recusarResgate: ReturnType<typeof vi.fn>;
         listarPorLojistaId: ReturnType<typeof vi.fn>;
         resgatarComDebito: ReturnType<typeof vi.fn>;
         listarPorConsumidorId: ReturnType<typeof vi.fn>;
@@ -554,6 +555,7 @@ describe("ServicoRecompensa entrega", () => {
     beforeEach(() => {
         repoResgate = {
             confirmarEntrega: vi.fn(),
+            recusarResgate: vi.fn(),
             listarPorLojistaId: vi.fn(),
             resgatarComDebito: vi.fn(),
             listarPorConsumidorId: vi.fn(),
@@ -639,5 +641,38 @@ describe("ServicoRecompensa entrega", () => {
             statusCode: 403,
         });
         expect(repoResgate.confirmarEntrega).not.toHaveBeenCalled();
+    });
+
+    it("lojista dono recusa PENDENTE_ENTREGA para RECUSADO", async () => {
+        repoResgate.recusarResgate.mockResolvedValue(
+            resgateFake({ status: StatusResgateRecompensa.RECUSADO, dataEntrega: null }),
+        );
+
+        const resultado = await servico.recusarResgate(20, "1");
+
+        expect(repoResgate.recusarResgate).toHaveBeenCalledWith({
+            resgateId: 1,
+            lojistaId: 5,
+        });
+        expect(resultado.status).toBe(StatusResgateRecompensa.RECUSADO);
+        expect(resultado.dataEntrega).toBeNull();
+    });
+
+    it("recusar ENTREGUE propaga 400", async () => {
+        repoResgate.recusarResgate.mockRejectedValue(
+            new ErroAplicacao("Resgate entregue nao pode ser recusado", 400),
+        );
+        await expect(servico.recusarResgate(20, "1")).rejects.toMatchObject({
+            statusCode: 400,
+        });
+    });
+
+    it("recusar cross-tenant propaga 404", async () => {
+        repoResgate.recusarResgate.mockRejectedValue(
+            new ErroAplicacao("Resgate nao encontrado", 404),
+        );
+        await expect(servico.recusarResgate(20, "1")).rejects.toMatchObject({
+            statusCode: 404,
+        });
     });
 });

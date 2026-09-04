@@ -159,4 +159,19 @@ export class ControladorRecompensa {
         );
         response.status(200).json(atualizado);
     }
+
+    async recusarResgate(
+        request: Request,
+        response: Response,
+        _next: NextFunction,
+    ): Promise<void> {
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
+        const atualizado = await this.servicoRecompensa.recusarResgate(
+            request.usuario.id,
+            request.params.id,
+        );
+        response.status(200).json(atualizado);
+    }
 }

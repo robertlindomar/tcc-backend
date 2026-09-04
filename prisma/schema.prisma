@@ -159,6 +159,7 @@ enum StatusLojista {
 enum StatusResgateRecompensa {
   PENDENTE_ENTREGA
   ENTREGUE
+  RECUSADO
 }
 
 enum FrequenciaMissao {

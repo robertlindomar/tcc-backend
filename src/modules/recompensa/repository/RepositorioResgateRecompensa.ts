@@ -176,6 +176,9 @@ export class RepositorioResgateRecompensa {
                 if (resgate.status === StatusResgateRecompensa.ENTREGUE) {
                     return resgate;
                 }
+                if (resgate.status === StatusResgateRecompensa.RECUSADO) {
+                    throw new ErroAplicacao("Resgate recusado nao pode ser entregue", 400);
+                }
 
                 return tx.resgateRecompensa.update({
                     where: { id: resgate.id },
@@ -195,6 +198,79 @@ export class RepositorioResgateRecompensa {
                 throw erro;
             }
             throw new ErroAplicacao("Erro ao confirmar entrega", 500);
+        }
+    }
+
+    async recusarResgate(dados: {
+        resgateId: number;
+        lojistaId: number;
+    }): Promise<ResgateRecompensa> {
+        try {
+            const resultado = await this.prisma.$transaction(async (tx) => {
+                await tx.$executeRaw`
+                    SELECT id_resgate_recompensa FROM resgate_recompensa
+                    WHERE id_resgate_recompensa = ${dados.resgateId}
+                    FOR UPDATE
+                `;
+
+                const resgate = await tx.resgateRecompensa.findUnique({
+                    where: { id: dados.resgateId },
+                    include: {
+                        recompensa: { select: { id: true, lojistaId: true, estoque: true } },
+                        consumidor: { select: { usuario: { select: { nome: true } } } },
+                    },
+                });
+                if (!resgate || resgate.recompensa.lojistaId !== dados.lojistaId) {
+                    throw new ErroAplicacao("Resgate nao encontrado", 404);
+                }
+                if (resgate.status === StatusResgateRecompensa.RECUSADO) {
+                    return resgate;
+                }
+                if (resgate.status === StatusResgateRecompensa.ENTREGUE) {
+                    throw new ErroAplicacao("Resgate entregue nao pode ser recusado", 400);
+                }
+
+                await tx.$executeRaw`
+                    SELECT id_consumidor FROM consumidor
+                    WHERE id_consumidor = ${resgate.consumidorId}
+                    FOR UPDATE
+                `;
+
+                const consumidorAtual = await tx.consumidor.update({
+                    where: { id: resgate.consumidorId },
+                    data: { pontos: { increment: resgate.custoPontosSnapshot } },
+                });
+                const nivel = calcularNivelConsumidor(consumidorAtual.pontos);
+                await tx.consumidor.update({
+                    where: { id: resgate.consumidorId },
+                    data: { nivel },
+                });
+
+                if (resgate.recompensa.estoque !== null) {
+                    await tx.recompensa.update({
+                        where: { id: resgate.recompensa.id },
+                        data: { estoque: { increment: 1 } },
+                    });
+                }
+
+                return tx.resgateRecompensa.update({
+                    where: { id: resgate.id },
+                    data: {
+                        status: StatusResgateRecompensa.RECUSADO,
+                        dataEntrega: null,
+                    },
+                    include: {
+                        consumidor: { select: { usuario: { select: { nome: true } } } },
+                    },
+                });
+            });
+
+            return this.paraDominio(resultado);
+        } catch (erro) {
+            if (erro instanceof ErroAplicacao) {
+                throw erro;
+            }
+            throw new ErroAplicacao("Erro ao recusar resgate", 500);
         }
     }
 
@@ -225,7 +301,10 @@ export class RepositorioResgateRecompensa {
             const entregues = lista.filter(
                 (item) => item.status === StatusResgateRecompensa.ENTREGUE,
             );
-            return [...pendentes, ...entregues].map((item) => this.paraDominio(item));
+            const recusados = lista.filter(
+                (item) => item.status === StatusResgateRecompensa.RECUSADO,
+            );
+            return [...pendentes, ...entregues, ...recusados].map((item) => this.paraDominio(item));
         } catch {
             throw new ErroAplicacao("Erro ao listar resgates da loja", 500);
         }

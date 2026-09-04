@@ -250,6 +250,22 @@ export class ServicoRecompensa {
         return this.paraRespostaResgate(resgate);
     }
 
+    async recusarResgate(
+        usuarioId: number,
+        idParam: string,
+    ): Promise<RespostaResgateRecompensa> {
+        const { lojistaId } = await resolverLojistaAprovado(
+            this.repositorioLojista,
+            usuarioId,
+        );
+        const id = this.parseId(idParam, "resgate");
+        const resgate = await this.repositorioResgate.recusarResgate({
+            resgateId: id,
+            lojistaId,
+        });
+        return this.paraRespostaResgate(resgate);
+    }
+
     private async obterDoLojista(idParam: string, lojistaId: number): Promise<Recompensa> {
         const id = this.parseId(idParam, "recompensa");
         const recompensa = await this.repositorioRecompensa.buscar(id);

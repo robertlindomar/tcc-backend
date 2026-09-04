@@ -5362,6 +5362,23 @@
               "path": ["resgate-recompensa", "{{resgateId}}", "confirmar-entrega"]
             }
           }
+        },
+        {
+          "name": "Recusar resgate",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLojista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/resgate-recompensa/{{resgateId}}/recusar",
+              "host": ["{{baseUrl}}"],
+              "path": ["resgate-recompensa", "{{resgateId}}", "recusar"]
+            }
+          }
         }
       ]
     }
