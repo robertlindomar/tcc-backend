@@ -364,6 +364,13 @@ model Campanha {
   descricao String? @map("descricao_campanha") @db.VarChar(500)
   qrcode    String? @map("qrcode_campanha") @db.VarChar(500)
 
+  /// Início do período de elegibilidade NFC-e (instante no fuso FUSO_NEGOCIO).
+  dataInicio DateTime @map("data_inicio_campanha")
+  /// Fim do período (inclusive no dia civil). Compra deve estar em [dataInicio, dataFim].
+  dataFim DateTime @map("data_fim_campanha")
+  /// Reais por 1 ticket (ex.: 10.00). Sempre > 0. Decimal(10,2) como produto/promoção.
+  valorPorTicket Decimal @map("valor_por_ticket_campanha") @db.Decimal(10, 2)
+
   associacaoId Int        @map("id_associacao")
   associacao   Associacao @relation(fields: [associacaoId], references: [id])
 
@@ -373,6 +380,7 @@ model Campanha {
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
   @@index([associacaoId])
+  @@index([dataFim])
   @@map("campanha")
 }
 

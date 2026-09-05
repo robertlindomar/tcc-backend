@@ -1,5 +1,6 @@
 import { PrismaClient } from "../../../generated/prisma/client";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { decimalParaNumero } from "../../../shared/utils/decimalParaNumero";
 import { Campanha } from "../model/Campanha";
 
 type RegistroCampanha = {
@@ -7,6 +8,9 @@ type RegistroCampanha = {
     nome: string;
     descricao: string | null;
     qrcode: string | null;
+    dataInicio: Date;
+    dataFim: Date;
+    valorPorTicket: { toString(): string } | number;
     associacaoId: number;
     dataCriacao: Date;
     dataAtualizacao: Date;
@@ -19,6 +23,9 @@ export class RepositorioCampanha {
         nome: string;
         descricao: string | null;
         qrcode: string | null;
+        dataInicio: Date;
+        dataFim: Date;
+        valorPorTicket: number;
         associacaoId: number;
     }): Promise<Campanha> {
         try {
@@ -41,6 +48,21 @@ export class RepositorioCampanha {
         }
     }
 
+    async listarVigentesEm(agora: Date = new Date()): Promise<Campanha[]> {
+        try {
+            const lista = await this.prisma.campanha.findMany({
+                where: {
+                    dataInicio: { lte: agora },
+                    dataFim: { gte: agora },
+                },
+                orderBy: { id: "asc" },
+            });
+            return lista.map((item) => this.paraDominio(item));
+        } catch {
+            throw new ErroAplicacao("Erro ao listar campanhas vigentes", 500);
+        }
+    }
+
     async buscar(id: number): Promise<Campanha | null> {
         try {
             const item = await this.prisma.campanha.findUnique({ where: { id } });
@@ -56,6 +78,9 @@ export class RepositorioCampanha {
             nome?: string;
             descricao?: string | null;
             qrcode?: string | null;
+            dataInicio?: Date;
+            dataFim?: Date;
+            valorPorTicket?: number;
         },
     ): Promise<Campanha> {
         try {
@@ -83,6 +108,9 @@ export class RepositorioCampanha {
             nome: item.nome,
             descricao: item.descricao,
             qrcode: item.qrcode,
+            dataInicio: item.dataInicio,
+            dataFim: item.dataFim,
+            valorPorTicket: decimalParaNumero(item.valorPorTicket),
             associacaoId: item.associacaoId,
             dataCriacao: item.dataCriacao,
             dataAtualizacao: item.dataAtualizacao,

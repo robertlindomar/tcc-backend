@@ -424,14 +424,29 @@ async function garantirRecompensasDemo(emailLojista: string) {
 }
 
 async function garantirCampanhasDemo(associacaoId: number) {
+    const agora = new Date();
+    const dataInicio = new Date(agora);
+    dataInicio.setUTCMonth(0, 1);
+    dataInicio.setUTCHours(0, 0, 0, 0);
+    const dataFim = new Date(agora);
+    dataFim.setUTCFullYear(dataFim.getUTCFullYear() + 1);
+    dataFim.setUTCMonth(11, 31);
+    dataFim.setUTCHours(23, 59, 59, 999);
+
     const campanhas = [
         {
             nome: "Natal Premiado 2026",
             descricao: "Compre nas lojas participantes e concorra a prêmios.",
+            dataInicio,
+            dataFim,
+            valorPorTicket: 10,
         },
         {
             nome: "Semana do Comércio Local",
             descricao: "Campanha de valorização dos comércios da cidade.",
+            dataInicio,
+            dataFim,
+            valorPorTicket: 10,
         },
     ] as const;
 

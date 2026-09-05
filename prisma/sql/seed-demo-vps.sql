@@ -93,9 +93,9 @@ INSERT INTO recompensa (id_recompensa, nome_recompensa, descricao_recompensa, cu
   (2, 'Cupom 10% de desconto',  'Válido na loja física (demonstração).', 100, true, NULL, '2026-12-31 23:59:59', 2, NOW(), NOW());
 
 -- ========== Campanhas + sorteios ==========
-INSERT INTO campanha (id_campanha, nome_campanha, descricao_campanha, qrcode_campanha, id_associacao, data_criacao, data_atualizacao) VALUES
-  (1, 'Natal Premiado 2026',        'Compre nas lojas participantes e concorra a prêmios.',     NULL, 1, NOW(), NOW()),
-  (2, 'Semana do Comércio Local',   'Campanha de valorização dos comércios da cidade.',         NULL, 1, NOW(), NOW());
+INSERT INTO campanha (id_campanha, nome_campanha, descricao_campanha, qrcode_campanha, data_inicio_campanha, data_fim_campanha, valor_por_ticket_campanha, id_associacao, data_criacao, data_atualizacao) VALUES
+  (1, 'Natal Premiado 2026',        'Compre nas lojas participantes e concorra a prêmios.',     NULL, '2026-01-01 00:00:00', '2026-12-31 23:59:59', 10.00, 1, NOW(), NOW()),
+  (2, 'Semana do Comércio Local',   'Campanha de valorização dos comércios da cidade.',         NULL, '2026-01-01 00:00:00', '2026-12-31 23:59:59', 10.00, 1, NOW(), NOW());
 
 INSERT INTO sorteio (id_sorteio, qrcode_sorteio, id_campanha, data_criacao, data_atualizacao) VALUES
   (1, NULL, 1, NOW(), NOW()),

@@ -4003,7 +4003,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nome\": \"Campanha Natal\",\n  \"descricao\": \"Campanha de fim de ano\",\n  \"qrcode\": null\n}"
+              "raw": "{\n  \"nome\": \"Campanha Natal\",\n  \"descricao\": \"Campanha de fim de ano\",\n  \"qrcode\": null,\n  \"dataInicio\": \"2026-09-01\",\n  \"dataFim\": \"2026-12-31\",\n  \"valorPorTicket\": 10\n}"
             }
           }
         },

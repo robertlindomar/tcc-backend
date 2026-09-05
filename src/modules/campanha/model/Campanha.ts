@@ -3,6 +3,9 @@ type CampanhaProps = {
     nome: string;
     descricao: string | null;
     qrcode: string | null;
+    dataInicio: Date;
+    dataFim: Date;
+    valorPorTicket: number;
     associacaoId: number;
     dataCriacao: Date;
     dataAtualizacao: Date;
@@ -29,6 +32,18 @@ export class Campanha {
 
     get qrcode() {
         return this.props.qrcode;
+    }
+
+    get dataInicio() {
+        return this.props.dataInicio;
+    }
+
+    get dataFim() {
+        return this.props.dataFim;
+    }
+
+    get valorPorTicket() {
+        return this.props.valorPorTicket;
     }
 
     get associacaoId() {
