@@ -171,6 +171,14 @@
     {
       "key": "enderecoIdB",
       "value": ""
+    },
+    {
+      "key": "payloadNfceDemo",
+      "value": "35260944444444000144650010000000011123456780"
+    },
+    {
+      "key": "payloadNfceDemoResidual",
+      "value": "35260944444444000144650010000000021123456781"
     }
   ],
   "item": [
@@ -2784,9 +2792,21 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "nome", "value": "Cafe Especial", "type": "text" },
-                { "key": "valor", "value": "29.9", "type": "text" },
-                { "key": "arquivo", "type": "file", "src": [] }
+                {
+                  "key": "nome",
+                  "value": "Cafe Especial",
+                  "type": "text"
+                },
+                {
+                  "key": "valor",
+                  "value": "29.9",
+                  "type": "text"
+                },
+                {
+                  "key": "arquivo",
+                  "type": "file",
+                  "src": []
+                }
               ]
             }
           }
@@ -3036,9 +3056,21 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "nome", "value": "Produto Promo", "type": "text" },
-                { "key": "valor", "value": "50", "type": "text" },
-                { "key": "arquivo", "type": "file", "src": [] }
+                {
+                  "key": "nome",
+                  "value": "Produto Promo",
+                  "type": "text"
+                },
+                {
+                  "key": "valor",
+                  "value": "50",
+                  "type": "text"
+                },
+                {
+                  "key": "arquivo",
+                  "type": "file",
+                  "src": []
+                }
               ]
             }
           }
@@ -4175,6 +4207,178 @@
       ]
     },
     {
+      "name": "NFC-e",
+      "item": [
+        {
+          "name": "Processar NFC-e (demo R$55)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('ticketsGerados', () => pm.expect(body.ticketsGerados).to.be.a('number'));",
+                  "pm.test('residualApos', () => pm.expect(body.residualApos).to.be.a('number'));",
+                  "pm.test('ticketsTotaisCampanha', () => pm.expect(body.ticketsTotaisCampanha).to.be.a('number'));",
+                  "pm.test('modoSimulado', () => pm.expect(body.modoSimulado).to.eql(true));",
+                  "pm.collectionVariables.set('campanhaId', body.campanhaId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/nfce/processar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "nfce",
+                "processar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payloadQr\": \"{{payloadNfceDemo}}\",\n  \"campanhaId\": {{campanhaId}}\n}"
+            },
+            "description": "Adaptador DEMO (não é SEFAZ). Fixture R$55 com loja Casa do Real. Exige campanha vigente com valorPorTicket=10 e lojista APROVADO."
+          }
+        },
+        {
+          "name": "Processar NFC-e residual (demo R$5)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('modoSimulado', () => pm.expect(body.modoSimulado).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/nfce/processar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "nfce",
+                "processar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payloadQr\": \"{{payloadNfceDemoResidual}}\",\n  \"campanhaId\": {{campanhaId}}\n}"
+            },
+            "description": "Segunda nota demo (R$5) para acumular residual da primeira (R$5) → 1 ticket."
+          }
+        },
+        {
+          "name": "Processar NFC-e - Replay (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/nfce/processar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "nfce",
+                "processar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payloadQr\": \"{{payloadNfceDemo}}\",\n  \"campanhaId\": {{campanhaId}}\n}"
+            },
+            "description": "Reenvia a mesma chave → Nota fiscal ja utilizada."
+          }
+        },
+        {
+          "name": "Processar NFC-e - Sem Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/nfce/processar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "nfce",
+                "processar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payloadQr\": \"{{payloadNfceDemo}}\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Sorteio",
       "item": [
         {
@@ -5261,8 +5465,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/recompensa",
-              "host": ["{{baseUrl}}"],
-              "path": ["recompensa"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recompensa"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -5282,8 +5490,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/recompensa/catalogo",
-              "host": ["{{baseUrl}}"],
-              "path": ["recompensa", "catalogo"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recompensa",
+                "catalogo"
+              ]
             }
           }
         },
@@ -5303,8 +5516,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/recompensa/{{recompensaId}}/resgatar",
-              "host": ["{{baseUrl}}"],
-              "path": ["recompensa", "{{recompensaId}}", "resgatar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recompensa",
+                "{{recompensaId}}",
+                "resgatar"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -5324,8 +5543,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/resgate-recompensa",
-              "host": ["{{baseUrl}}"],
-              "path": ["resgate-recompensa"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "resgate-recompensa"
+              ]
             }
           }
         },
@@ -5341,8 +5564,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/resgate-recompensa/loja",
-              "host": ["{{baseUrl}}"],
-              "path": ["resgate-recompensa", "loja"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "resgate-recompensa",
+                "loja"
+              ]
             }
           }
         },
@@ -5358,8 +5586,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/resgate-recompensa/{{resgateId}}/confirmar-entrega",
-              "host": ["{{baseUrl}}"],
-              "path": ["resgate-recompensa", "{{resgateId}}", "confirmar-entrega"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "resgate-recompensa",
+                "{{resgateId}}",
+                "confirmar-entrega"
+              ]
             }
           }
         },
@@ -5375,8 +5609,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/resgate-recompensa/{{resgateId}}/recusar",
-              "host": ["{{baseUrl}}"],
-              "path": ["resgate-recompensa", "{{resgateId}}", "recusar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "resgate-recompensa",
+                "{{resgateId}}",
+                "recusar"
+              ]
             }
           }
         }
