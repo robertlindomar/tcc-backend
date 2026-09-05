@@ -214,6 +214,7 @@ model Lojista {
   missoes      Missao[]
   categorias   Categoria[]
   recompensas  Recompensa[]
+  processamentosNfce ProcessamentoNfce[]
 
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
@@ -242,6 +243,8 @@ model Consumidor {
 
   missaoConsumidores MissaoConsumidor[]
   resgates           ResgateRecompensa[]
+  processamentosNfce ProcessamentoNfce[]
+  residuaisTicket    ResidualTicketCampanha[]
 
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
@@ -374,7 +377,9 @@ model Campanha {
   associacaoId Int        @map("id_associacao")
   associacao   Associacao @relation(fields: [associacaoId], references: [id])
 
-  sorteios Sorteio[]
+  sorteios             Sorteio[]
+  processamentosNfce   ProcessamentoNfce[]
+  residuaisTicket      ResidualTicketCampanha[]
 
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
@@ -382,6 +387,58 @@ model Campanha {
   @@index([associacaoId])
   @@index([dataFim])
   @@map("campanha")
+}
+
+/// Uma NFC-e processada (chave UNIQUE global). Gera tickets e atualiza residual da campanha.
+model ProcessamentoNfce {
+  id Int @id @default(autoincrement()) @map("id_processamento_nfce")
+
+  /// Chave de acesso da NFC-e (44 dígitos). UNIQUE em todo o sistema.
+  chaveAcesso String @unique @map("chave_acesso_nfce") @db.VarChar(44)
+
+  campanhaId Int      @map("id_campanha")
+  campanha   Campanha @relation(fields: [campanhaId], references: [id], onDelete: Restrict)
+
+  consumidorId Int        @map("id_consumidor")
+  consumidor   Consumidor @relation(fields: [consumidorId], references: [id], onDelete: Restrict)
+
+  lojistaId Int     @map("id_lojista")
+  lojista   Lojista @relation(fields: [lojistaId], references: [id], onDelete: Restrict)
+
+  valorNota       Decimal  @map("valor_nota_nfce") @db.Decimal(10, 2)
+  ticketsGerados  Int      @map("tickets_gerados_nfce")
+  residualAntes   Decimal  @map("residual_antes_nfce") @db.Decimal(10, 2)
+  residualApos    Decimal  @map("residual_apos_nfce") @db.Decimal(10, 2)
+  dataEmissao     DateTime @map("data_emissao_nfce")
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  @@index([campanhaId])
+  @@index([consumidorId])
+  @@index([lojistaId])
+  @@map("processamento_nfce")
+}
+
+/// Saldo residual + total de tickets do consumidor em uma campanha (não cruza campanhas).
+model ResidualTicketCampanha {
+  id Int @id @default(autoincrement()) @map("id_residual_ticket_campanha")
+
+  consumidorId Int        @map("id_consumidor")
+  consumidor   Consumidor @relation(fields: [consumidorId], references: [id], onDelete: Restrict)
+
+  campanhaId Int      @map("id_campanha")
+  campanha   Campanha @relation(fields: [campanhaId], references: [id], onDelete: Restrict)
+
+  valorResidual Decimal @default(0) @map("valor_residual") @db.Decimal(10, 2)
+  ticketsTotais Int     @default(0) @map("tickets_totais")
+
+  dataCriacao     DateTime @default(now()) @map("data_criacao")
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  @@unique([consumidorId, campanhaId])
+  @@index([campanhaId])
+  @@map("residual_ticket_campanha")
 }
 
 model Sorteio {
