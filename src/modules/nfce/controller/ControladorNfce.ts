@@ -12,6 +12,19 @@ export class ControladorNfce {
         private readonly repositorioConsumidor: RepositorioConsumidor,
     ) {}
 
+    async listarCampanhasVigentes(
+        request: Request,
+        response: Response,
+        _next: NextFunction,
+    ): Promise<void> {
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
+        await resolverConsumidorLogado(this.repositorioConsumidor, request.usuario.id);
+        const lista = await this.servicoProcessarNfce.listarCampanhasVigentes();
+        response.status(200).json(lista);
+    }
+
     async processar(
         request: Request,
         response: Response,

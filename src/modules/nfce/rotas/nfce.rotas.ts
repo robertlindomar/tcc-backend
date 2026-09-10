@@ -12,6 +12,10 @@ export function RotasNfce(controller: ControladorNfce = criarControladorNfce()) 
     router.use(garantirAutenticado);
     router.use(garantirPapel(Role.CONSUMIDOR));
 
+    router.get(
+        "/campanhas-vigentes",
+        tratarAsync(controller.listarCampanhasVigentes.bind(controller)),
+    );
     router.post("/processar", tratarAsync(controller.processar.bind(controller)));
 
     return router;

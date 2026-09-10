@@ -1,8 +1,11 @@
 import { StatusLojista } from "../../../generated/prisma/enums";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { civilNoFuso } from "../../../shared/tempo/fusoNegocio";
+import { Campanha } from "../../campanha/model/Campanha";
 import { RepositorioCampanha } from "../../campanha/repository/RepositorioCampanha";
 import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista";
 import { AdaptadorLeituraNfce } from "../adaptador/AdaptadorLeituraNfce";
+import { RespostaCampanhaVigente } from "../dtos/RespostaCampanhaVigente";
 import {
     RepositorioProcessamentoNfce,
     ResultadoCreditoNfce,
@@ -21,9 +24,14 @@ export type ResultadoProcessarNfce = ResultadoCreditoNfce & {
     modoSimulado: true;
 };
 
+function dataCivilIso(data: Date): string {
+    const civil = civilNoFuso(data);
+    return `${civil.ano}-${String(civil.mes).padStart(2, "0")}-${String(civil.dia).padStart(2, "0")}`;
+}
+
 /**
  * Orquestra elegibilidade G13/G14 + crédito atômico de tickets.
- * Sem HTTP (F2.5); sem SEFAZ real.
+ * Sem SEFAZ real.
  */
 export class ServicoProcessarNfce {
     constructor(
@@ -32,6 +40,11 @@ export class ServicoProcessarNfce {
         private readonly repositorioLojista: RepositorioLojista,
         private readonly repositorioProcessamento: RepositorioProcessamentoNfce,
     ) {}
+
+    async listarCampanhasVigentes(agora: Date = new Date()): Promise<RespostaCampanhaVigente[]> {
+        const vigentes = await this.repositorioCampanha.listarVigentesEm(agora);
+        return vigentes.map((campanha) => this.paraCampanhaVigente(campanha));
+    }
 
     async processar(entrada: EntradaProcessarNfce): Promise<ResultadoProcessarNfce> {
         if (!Number.isInteger(entrada.consumidorId) || entrada.consumidorId <= 0) {
@@ -86,6 +99,16 @@ export class ServicoProcessarNfce {
         return {
             ...credito,
             modoSimulado: true,
+        };
+    }
+
+    private paraCampanhaVigente(campanha: Campanha): RespostaCampanhaVigente {
+        return {
+            id: campanha.id,
+            nome: campanha.nome,
+            dataInicioCivil: dataCivilIso(campanha.dataInicio),
+            dataFimCivil: dataCivilIso(campanha.dataFim),
+            valorPorTicket: campanha.valorPorTicket,
         };
     }
 

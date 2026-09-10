@@ -54,6 +54,9 @@ describe("POST /nfce/processar (rotas)", () => {
     function criarApp() {
         const controller = {
             processar: processarMock,
+            listarCampanhasVigentes: vi.fn(async (_req, res) => {
+                res.status(200).json([{ id: 1, nome: "Natal" }]);
+            }),
         } as unknown as ControladorNfce;
         const app = express();
         app.use(express.json());
@@ -61,6 +64,18 @@ describe("POST /nfce/processar (rotas)", () => {
         app.use(middlewareErro);
         return app;
     }
+
+    it("GET /nfce/campanhas-vigentes lista para CONSUMIDOR", async () => {
+        const app = criarApp();
+        await comServidor(app, async (baseUrl) => {
+            const resposta = await fetch(`${baseUrl}/nfce/campanhas-vigentes`, {
+                headers: { Authorization: `Bearer ${tokenPara(Role.CONSUMIDOR)}` },
+            });
+            expect(resposta.status).toBe(200);
+            const body = await resposta.json();
+            expect(body).toEqual([{ id: 1, nome: "Natal" }]);
+        });
+    });
 
     it("CONSUMIDOR autenticado chama processar", async () => {
         const app = criarApp();

@@ -4210,6 +4210,42 @@
       "name": "NFC-e",
       "item": [
         {
+          "name": "Listar campanhas vigentes (NFC-e)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Array', () => pm.expect(body).to.be.an('array'));",
+                  "if (body.length === 1) { pm.collectionVariables.set('campanhaId', body[0].id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/nfce/campanhas-vigentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "nfce",
+                "campanhas-vigentes"
+              ]
+            },
+            "description": "Lista campanhas vigentes para o consumidor escolher ao processar NFC-e."
+          }
+        },
+        {
           "name": "Processar NFC-e (demo R$55)",
           "event": [
             {
