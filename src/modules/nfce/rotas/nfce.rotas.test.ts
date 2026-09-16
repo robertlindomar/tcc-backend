@@ -87,13 +87,16 @@ describe("POST /nfce/processar (rotas)", () => {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    payloadQr: "35260944444444000144650010000000011123456780",
+                    payloadQr: "35260838281946000146650010000042331599885707",
                     campanhaId: 1,
                 }),
             });
             expect(resposta.status).toBe(201);
             expect(processarMock).toHaveBeenCalledOnce();
-            const body = await resposta.json();
+            const body = (await resposta.json()) as {
+                modoSimulado: boolean;
+                ticketsGerados: number;
+            };
             expect(body.modoSimulado).toBe(true);
             expect(body.ticketsGerados).toBe(5);
         });

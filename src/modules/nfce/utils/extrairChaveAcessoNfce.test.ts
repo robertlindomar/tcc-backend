@@ -5,7 +5,7 @@ import {
     formatarCnpj,
 } from "./extrairChaveAcessoNfce";
 
-const CHAVE = "35260944444444000144650010000000011123456780";
+const CHAVE = "35260838281946000146650010000042331599885707";
 
 describe("extrairChaveAcessoNfce", () => {
     it("aceita chave crua de 44 digitos", () => {
@@ -28,7 +28,7 @@ describe("extrairChaveAcessoNfce", () => {
 
 describe("extrairCnpjDaChaveAcesso", () => {
     it("le CNPJ das posicoes 7-20", () => {
-        expect(extrairCnpjDaChaveAcesso(CHAVE)).toBe("44444444000144");
-        expect(formatarCnpj(extrairCnpjDaChaveAcesso(CHAVE))).toBe("44.444.444/0001-44");
+        expect(extrairCnpjDaChaveAcesso(CHAVE)).toBe("38281946000146");
+        expect(formatarCnpj(extrairCnpjDaChaveAcesso(CHAVE))).toBe("38.281.946/0001-46");
     });
 });

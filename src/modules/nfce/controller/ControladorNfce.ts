@@ -86,7 +86,9 @@ export class ControladorNfce {
             ticketsTotaisCampanha: resultado.ticketsTotaisCampanha,
             lojistaId: resultado.lojistaId,
             dataEmissao: resultado.dataEmissao,
-            modoSimulado: true,
+            modoSimulado: resultado.modoSimulado,
+            provider: resultado.provider,
+            statusFiscal: resultado.statusFiscal,
         };
     }
 }

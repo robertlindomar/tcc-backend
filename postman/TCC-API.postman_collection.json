@@ -174,11 +174,11 @@
     },
     {
       "key": "payloadNfceDemo",
-      "value": "35260944444444000144650010000000011123456780"
+      "value": "35260838281946000146650010000042331599885707"
     },
     {
       "key": "payloadNfceDemoResidual",
-      "value": "35260944444444000144650010000000021123456781"
+      "value": "35260838281946000146650010000042331599885707"
     }
   ],
   "item": [
@@ -4246,7 +4246,7 @@
           }
         },
         {
-          "name": "Processar NFC-e (demo R$55)",
+          "name": "Processar NFC-e (BÁSICO BRASIL R$669,86)",
           "event": [
             {
               "listen": "test",
@@ -4289,19 +4289,17 @@
               "mode": "raw",
               "raw": "{\n  \"payloadQr\": \"{{payloadNfceDemo}}\",\n  \"campanhaId\": {{campanhaId}}\n}"
             },
-            "description": "Adaptador DEMO (não é SEFAZ). Fixture R$55 com loja Casa do Real. Exige campanha vigente com valorPorTicket=10 e lojista APROVADO."
+            "description": "Adaptador DEMO (não é SEFAZ). Fixture única da nota BÁSICO BRASIL / lojista1. Exige campanha vigente com valorPorTicket=10 e lojista APROVADO."
           }
         },
         {
-          "name": "Processar NFC-e residual (demo R$5)",
+          "name": "Processar NFC-e - Replay mesma chave (409)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "const body = pm.response.json();",
-                  "pm.test('modoSimulado', () => pm.expect(body.modoSimulado).to.eql(true));"
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));"
                 ]
               }
             }
@@ -4332,7 +4330,7 @@
               "mode": "raw",
               "raw": "{\n  \"payloadQr\": \"{{payloadNfceDemoResidual}}\",\n  \"campanhaId\": {{campanhaId}}\n}"
             },
-            "description": "Segunda nota demo (R$5) para acumular residual da primeira (R$5) → 1 ticket."
+            "description": "Reenvia a mesma chave BÁSICO BRASIL → Nota fiscal ja utilizada."
           }
         },
         {

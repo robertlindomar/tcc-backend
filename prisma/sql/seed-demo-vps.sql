@@ -45,7 +45,7 @@ INSERT INTO associacao (id_associacao, nome_fantasia_associacao, razao_social_as
 -- ========== Lojistas ==========
 INSERT INTO lojista (id_lojista, nome_fantasia_lojista, razao_social_lojista, cnpj_lojista, inscricao_estadual_lojista, status_lojista, justificativa_rejeicao, id_usuario, id_associacao, id_endereco, data_criacao, data_atualizacao) VALUES
   (1, 'Ótica Visão',    'Otica Visao LTDA',              '11.111.111/0001-11', NULL, 'PENDENTE',  NULL,                              2, 1, NULL, NOW(), NOW()),
-  (2, 'Casa do Real',   'Casa do Real Comercio LTDA',    '44.444.444/0001-44', NULL, 'APROVADO',  NULL,                              3, 1, NULL, NOW(), NOW()),
+  (2, 'BÁSICO BRASIL',  'ANDREATTI & TRIVELATO ARTIGOS DO VESTUARIO LTDA', '38.281.946/0001-46', NULL, 'APROVADO',  NULL,                              3, 1, NULL, NOW(), NOW()),
   (3, 'Estilo Kids',    'Estilo Kids LTDA',              '33.333.333/0001-33', NULL, 'REJEITADO', 'CNPJ informado esta incorreto.', 4, 1, NULL, NOW(), NOW()),
   (4, 'Sabor & Cia',    'Sabor e Cia LTDA',              '55.555.555/0001-55', NULL, 'PENDENTE',  NULL,                              5, 1, NULL, NOW(), NOW());
 
@@ -87,15 +87,15 @@ INSERT INTO missao (id_missao, nome_missao, descricao_missao, ponto_recompensa_m
   (4, 'Visitar loja', 'Escaneie o QR no balcão uma vez por dia e ganhe pontos.', 5,  'DIARIA', NULL,                    true,  4, 'demo_sistema_visitar_loja_00000000000000000000000000000004', NOW(), NOW()),
   (5, 'Conheça a vitrine da loja', 'Missão demo comum (não é a missão permanente Visitar loja da E3b). Escaneie o QR no lab.', 50, 'DIARIA', '2026-12-31 23:59:59', false, 2, 'demo_missao_vitrine_casa_do_real_00000000000000000000000001', NOW(), NOW());
 
--- ========== Recompensas (Casa do Real) ==========
+-- ========== Recompensas (BÁSICO BRASIL / lojista1) ==========
 INSERT INTO recompensa (id_recompensa, nome_recompensa, descricao_recompensa, custo_pontos_recompensa, ativa_recompensa, estoque_recompensa, data_fim_recompensa, id_lojista, data_criacao, data_atualizacao) VALUES
-  (1, 'Chaveiro da loja',       'Brinde da Casa do Real.',              50,  true, 10,   NULL,                    2, NOW(), NOW()),
+  (1, 'Chaveiro da loja',       'Brinde da BÁSICO BRASIL.',              50,  true, 10,   NULL,                    2, NOW(), NOW()),
   (2, 'Cupom 10% de desconto',  'Válido na loja física (demonstração).', 100, true, NULL, '2026-12-31 23:59:59', 2, NOW(), NOW());
 
 -- ========== Campanhas + sorteios ==========
 INSERT INTO campanha (id_campanha, nome_campanha, descricao_campanha, qrcode_campanha, data_inicio_campanha, data_fim_campanha, valor_por_ticket_campanha, id_associacao, data_criacao, data_atualizacao) VALUES
-  (1, 'Natal Premiado 2026',        'Compre nas lojas participantes e concorra a prêmios.',     NULL, '2026-01-01 00:00:00', '2026-12-31 23:59:59', 10.00, 1, NOW(), NOW()),
-  (2, 'Semana do Comércio Local',   'Campanha de valorização dos comércios da cidade.',         NULL, '2026-01-01 00:00:00', '2026-12-31 23:59:59', 10.00, 1, NOW(), NOW());
+  (1, 'Natal Premiado 2026',        'Compre nas lojas participantes e concorra a prêmios.',     NULL, '2026-01-01 00:00:00', '2027-12-31 23:59:59', 10.00, 1, NOW(), NOW()),
+  (2, 'Semana do Comércio Local',   'Campanha de valorização dos comércios da cidade.',         NULL, '2026-01-01 00:00:00', '2027-12-31 23:59:59', 10.00, 1, NOW(), NOW());
 
 INSERT INTO sorteio (id_sorteio, qrcode_sorteio, id_campanha, data_criacao, data_atualizacao) VALUES
   (1, NULL, 1, NOW(), NOW()),

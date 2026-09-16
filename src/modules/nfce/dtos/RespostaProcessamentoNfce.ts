@@ -9,5 +9,7 @@ export type RespostaProcessamentoNfce = {
     ticketsTotaisCampanha: number;
     lojistaId: number;
     dataEmissao: Date;
-    modoSimulado: true;
+    modoSimulado: boolean;
+    provider: "simulado" | "sefaz";
+    statusFiscal: string;
 };

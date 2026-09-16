@@ -376,7 +376,7 @@ async function garantirRecompensasDemo(emailLojista: string) {
     const itens = [
         {
             nome: "Chaveiro da loja",
-            descricao: "Brinde da Casa do Real.",
+            descricao: "Brinde da BÁSICO BRASIL.",
             custoPontos: 50,
             estoque: 10 as number | null,
             dataFim: null as Date | null,
@@ -424,14 +424,9 @@ async function garantirRecompensasDemo(emailLojista: string) {
 }
 
 async function garantirCampanhasDemo(associacaoId: number) {
-    const agora = new Date();
-    const dataInicio = new Date(agora);
-    dataInicio.setUTCMonth(0, 1);
-    dataInicio.setUTCHours(0, 0, 0, 0);
-    const dataFim = new Date(agora);
-    dataFim.setUTCFullYear(dataFim.getUTCFullYear() + 1);
-    dataFim.setUTCMonth(11, 31);
-    dataFim.setUTCHours(23, 59, 59, 999);
+    // Cobrir emissão da NFC-e demo BÁSICO BRASIL (2026-08-15) e o ano corrente.
+    const dataInicio = new Date(Date.UTC(2026, 0, 1, 0, 0, 0, 0));
+    const dataFim = new Date(Date.UTC(2027, 11, 31, 23, 59, 59, 999));
 
     const campanhas = [
         {
@@ -455,6 +450,17 @@ async function garantirCampanhasDemo(associacaoId: number) {
             where: { nome: campanha.nome, associacaoId },
         });
         if (existente) {
+            await prisma.campanha.update({
+                where: { id: existente.id },
+                data: {
+                    dataInicio: campanha.dataInicio,
+                    dataFim: campanha.dataFim,
+                    valorPorTicket: campanha.valorPorTicket,
+                },
+            });
+            console.log(
+                `Campanha demo sincronizada: ${existente.nome} (id=${existente.id}) — vigência cobre 2026-08-15`,
+            );
             continue;
         }
         const criada = await prisma.campanha.create({
@@ -493,14 +499,47 @@ async function garantirLojistaDemo(dados: {
         where: { usuarioId: usuario.id },
     });
     if (perfil) {
+        const dadosUpdate: {
+            associacaoId?: number;
+            nomeFantasia?: string;
+            razaoSocial?: string;
+            cnpj?: string;
+        } = {};
+
         // Garante que o pré-cadastro aparece na associação que você usa no login
         if (perfil.associacaoId !== dados.associacaoId) {
+            dadosUpdate.associacaoId = dados.associacaoId;
+        }
+
+        // lojista1: sincroniza identidade NFC-e (BÁSICO BRASIL) sem alterar status
+        if (dados.email === EMAILS_DEMO.LOJISTA1) {
+            if (perfil.nomeFantasia !== dados.nomeFantasia) {
+                dadosUpdate.nomeFantasia = dados.nomeFantasia;
+            }
+            if (perfil.razaoSocial !== dados.razaoSocial) {
+                dadosUpdate.razaoSocial = dados.razaoSocial;
+            }
+            if (perfil.cnpj !== dados.cnpj) {
+                const cnpjEmUso = await prisma.lojista.findFirst({
+                    where: { cnpj: dados.cnpj, NOT: { id: perfil.id } },
+                });
+                if (cnpjEmUso) {
+                    console.log(
+                        `CNPJ ${dados.cnpj} já em uso por lojista id=${cnpjEmUso.id} — não sincroniza lojista1`,
+                    );
+                } else {
+                    dadosUpdate.cnpj = dados.cnpj;
+                }
+            }
+        }
+
+        if (Object.keys(dadosUpdate).length > 0) {
             await prisma.lojista.update({
                 where: { id: perfil.id },
-                data: { associacaoId: dados.associacaoId },
+                data: dadosUpdate,
             });
             console.log(
-                `Lojista ${dados.nomeFantasia}: associacaoId ${perfil.associacaoId} → ${dados.associacaoId} (status=${perfil.status} preservado)`,
+                `Lojista sincronizado: ${dados.nomeFantasia} (id=${perfil.id}, status=${perfil.status} preservado)`,
             );
         } else {
             console.log(
@@ -562,9 +601,9 @@ async function main() {
         {
             email: EMAILS_DEMO.LOJISTA1,
             nomeUsuario: "Demo Loja Aprovada",
-            nomeFantasia: "Casa do Real",
-            razaoSocial: "Casa do Real Comercio LTDA",
-            cnpj: "44.444.444/0001-44",
+            nomeFantasia: "BÁSICO BRASIL",
+            razaoSocial: "ANDREATTI & TRIVELATO ARTIGOS DO VESTUARIO LTDA",
+            cnpj: "38.281.946/0001-46",
             statusInicial: StatusLojista.APROVADO,
         },
         {
@@ -682,7 +721,7 @@ async function main() {
         `Pré-cadastros PENDENTE na associação id=${associacao.id}: ${pendentes}`,
     );
     console.log(`${EMAILS_DEMO.ASSOCIACAO} → ASSOCIACAO`);
-    console.log(`${EMAILS_DEMO.LOJISTA1} → LOJISTA APROVADO (Casa do Real, com endereço)`);
+    console.log(`${EMAILS_DEMO.LOJISTA1} → LOJISTA APROVADO (BÁSICO BRASIL, com endereço)`);
     console.log(`${EMAILS_DEMO.LOJISTA2} → LOJISTA PENDENTE (Ótica Visão, com endereço)`);
     console.log(`${EMAILS_DEMO.LOJISTA3} → LOJISTA REJEITADO`);
     console.log(`${EMAILS_DEMO.LOJISTA4} → LOJISTA PENDENTE (Sabor & Cia, sem endereço)`);

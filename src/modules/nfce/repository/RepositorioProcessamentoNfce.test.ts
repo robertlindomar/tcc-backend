@@ -3,7 +3,7 @@ import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { RepositorioProcessamentoNfce } from "./RepositorioProcessamentoNfce";
 
 describe("RepositorioProcessamentoNfce.processarComCredito", () => {
-    it("trava residual, cria processamento e soma tickets (R$55 / R$10 → 5 + R$5)", async () => {
+    it("trava residual, cria processamento e soma tickets (R$669,86 / R$10 → 66 + R$9,86)", async () => {
         const ordem: string[] = [];
         const prisma = {
             $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
@@ -27,12 +27,12 @@ describe("RepositorioProcessamentoNfce.processarComCredito", () => {
                             data: { valorResidual: number; ticketsTotais: { increment: number } };
                         }) => {
                             ordem.push("update-residual");
-                            expect(args.data.valorResidual).toBe(5);
-                            expect(args.data.ticketsTotais.increment).toBe(5);
+                            expect(args.data.valorResidual).toBe(9.86);
+                            expect(args.data.ticketsTotais.increment).toBe(66);
                             return {
                                 id: 7,
-                                ticketsTotais: 5,
-                                valorResidual: 5,
+                                ticketsTotais: 66,
+                                valorResidual: 9.86,
                             };
                         },
                     },
@@ -49,18 +49,20 @@ describe("RepositorioProcessamentoNfce.processarComCredito", () => {
                             };
                         }) => {
                             ordem.push("create-nfce");
-                            expect(args.data.chaveAcesso).toBe("35260944444444000144650010000000011123456780");
-                            expect(args.data.ticketsGerados).toBe(5);
+                            expect(args.data.chaveAcesso).toBe(
+                                "35260838281946000146650010000042331599885707",
+                            );
+                            expect(args.data.ticketsGerados).toBe(66);
                             expect(args.data.residualAntes).toBe(0);
-                            expect(args.data.residualApos).toBe(5);
+                            expect(args.data.residualApos).toBe(9.86);
                             return {
                                 id: 11,
                                 ...args.data,
                                 campanhaId: 1,
                                 consumidorId: 9,
                                 lojistaId: 2,
-                                valorNota: 55,
-                                dataEmissao: new Date("2026-09-04T15:00:00.000Z"),
+                                valorNota: 669.86,
+                                dataEmissao: new Date("2026-08-15T14:22:03.000Z"),
                             };
                         },
                     },
@@ -69,18 +71,18 @@ describe("RepositorioProcessamentoNfce.processarComCredito", () => {
 
         const repo = new RepositorioProcessamentoNfce(prisma as never);
         const resultado = await repo.processarComCredito({
-            chaveAcesso: "35260944444444000144650010000000011123456780",
+            chaveAcesso: "35260838281946000146650010000042331599885707",
             campanhaId: 1,
             consumidorId: 9,
             lojistaId: 2,
-            valorNota: 55,
-            dataEmissao: new Date("2026-09-04T15:00:00.000Z"),
+            valorNota: 669.86,
+            dataEmissao: new Date("2026-08-15T14:22:03.000Z"),
             valorPorTicket: 10,
         });
 
-        expect(resultado.ticketsGerados).toBe(5);
-        expect(resultado.residualApos).toBe(5);
-        expect(resultado.ticketsTotaisCampanha).toBe(5);
+        expect(resultado.ticketsGerados).toBe(66);
+        expect(resultado.residualApos).toBe(9.86);
+        expect(resultado.ticketsTotaisCampanha).toBe(66);
         expect(ordem).toEqual([
             "ensure-residual",
             "lock-residual",
@@ -113,12 +115,12 @@ describe("RepositorioProcessamentoNfce.processarComCredito", () => {
         const repo = new RepositorioProcessamentoNfce(prisma as never);
         await expect(
             repo.processarComCredito({
-                chaveAcesso: "35260944444444000144650010000000011123456780",
+                chaveAcesso: "35260838281946000146650010000042331599885707",
                 campanhaId: 1,
                 consumidorId: 9,
                 lojistaId: 2,
-                valorNota: 55,
-                dataEmissao: new Date("2026-09-04T15:00:00.000Z"),
+                valorNota: 669.86,
+                dataEmissao: new Date("2026-08-15T14:22:03.000Z"),
                 valorPorTicket: 10,
             }),
         ).rejects.toMatchObject({

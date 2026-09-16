@@ -1,24 +1,24 @@
-import {
-    AdaptadorLeituraNfce,
-    DadosNfceLida,
-} from "./AdaptadorLeituraNfce";
+import { AdaptadorNfce, NfceConsultada } from "./AdaptadorNfce";
 import { buscarFixtureNfcePorChave } from "./fixturesNfceDemo";
-import {
-    extrairChaveAcessoNfce,
-    extrairCnpjDaChaveAcesso,
-    formatarCnpj,
-} from "../utils/extrairChaveAcessoNfce";
+import { extrairChaveAcessoNfce } from "../utils/extrairChaveAcessoNfce";
+import { validarChaveAcessoNfce } from "../utils/validarChaveAcessoNfce";
+import { formatarCnpj } from "../utils/extrairChaveAcessoNfce";
 
 /**
  * Adaptador DEMO rotulado — NÃO consulta SEFAZ.
  *
- * Aceita:
- * - URL real-like com chave em `p=` / 44 dígitos (resolve via fixture)
- * - URI explícita `tcc://nfce-demo?chave=&cnpj=&valor=&data=` (YYYY-MM-DD)
- * - chave crua de 44 dígitos presente nas fixtures
+ * Aceita apenas chaves presentes em FIXTURES_NFCE_DEMO:
+ * - URL real-like com chave em `p=` / 44 dígitos
+ * - URI `tcc://nfce-demo?chave=...` (só se a chave estiver na allowlist; usa dados da fixture)
+ * - chave crua de 44 dígitos
  */
-export class AdaptadorNfceSimulado implements AdaptadorLeituraNfce {
-    async ler(payloadQr: string): Promise<DadosNfceLida> {
+export class AdaptadorNfceSimulado implements AdaptadorNfce {
+    async consultar(payloadQr: string): Promise<NfceConsultada> {
+        return this.ler(payloadQr);
+    }
+
+    /** Compatível com chamadas antigas `ler`. */
+    async ler(payloadQr: string): Promise<NfceConsultada> {
         const texto = payloadQr.trim();
         if (!texto) {
             throw new Error("PAYLOAD_NFCE_VAZIO");
@@ -29,14 +29,15 @@ export class AdaptadorNfceSimulado implements AdaptadorLeituraNfce {
         }
 
         const chave = extrairChaveAcessoNfce(texto);
-        const fixture = buscarFixtureNfcePorChave(chave);
+        const chaveValidada = validarChaveAcessoNfce(chave);
+        const fixture = buscarFixtureNfcePorChave(chaveValidada.chave);
         if (!fixture) {
             throw new Error("NFCE_DEMO_NAO_ENCONTRADA");
         }
-        return fixture;
+        return this.paraConsultada(fixture);
     }
 
-    private lerUriDemo(uri: string): DadosNfceLida {
+    private lerUriDemo(uri: string): NfceConsultada {
         let url: URL;
         try {
             url = new URL(uri);
@@ -49,32 +50,33 @@ export class AdaptadorNfceSimulado implements AdaptadorLeituraNfce {
             throw new Error("CHAVE_NFCE_INVALIDA");
         }
 
-        const cnpjParam = url.searchParams.get("cnpj");
-        const cnpjEmitente = cnpjParam
-            ? formatarCnpj(cnpjParam.replace(/\D/g, ""))
-            : formatarCnpj(extrairCnpjDaChaveAcesso(chave));
-
-        const valorRaw = url.searchParams.get("valor");
-        const valorTotal = valorRaw == null ? NaN : Number(valorRaw.replace(",", "."));
-        if (!Number.isFinite(valorTotal) || valorTotal < 0) {
-            throw new Error("VALOR_NFCE_INVALIDO");
+        const chaveValidada = validarChaveAcessoNfce(chave);
+        const fixture = buscarFixtureNfcePorChave(chaveValidada.chave);
+        if (!fixture) {
+            throw new Error("NFCE_DEMO_NAO_ENCONTRADA");
         }
+        return this.paraConsultada(fixture);
+    }
 
-        const dataRaw = url.searchParams.get("data");
-        if (!dataRaw || !/^\d{4}-\d{2}-\d{2}$/.test(dataRaw)) {
-            throw new Error("DATA_NFCE_INVALIDA");
-        }
-        const dataEmissao = new Date(`${dataRaw}T12:00:00.000Z`);
-        if (Number.isNaN(dataEmissao.getTime())) {
-            throw new Error("DATA_NFCE_INVALIDA");
-        }
-
+    private paraConsultada(fixture: {
+        chaveAcesso: string;
+        cnpjEmitente: string;
+        valorTotal: number;
+        dataEmissao: Date;
+    }): NfceConsultada {
+        const chaveValidada = validarChaveAcessoNfce(fixture.chaveAcesso);
         return {
-            chaveAcesso: chave,
-            cnpjEmitente,
-            valorTotal,
-            dataEmissao,
-            modoSimulado: true,
+            chaveAcesso: fixture.chaveAcesso,
+            cnpjEmitente: fixture.cnpjEmitente.includes("/")
+                ? fixture.cnpjEmitente
+                : formatarCnpj(fixture.cnpjEmitente),
+            valorTotal: fixture.valorTotal,
+            dataEmissao: fixture.dataEmissao,
+            status: "AUTORIZADA",
+            uf: chaveValidada.uf,
+            modelo: 65,
+            ambiente: "DEMO",
+            provider: "simulado",
         };
     }
 }

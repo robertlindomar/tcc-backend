@@ -6,6 +6,9 @@ import { Lojista } from "../../lojista/model/Lojista";
 import { AdaptadorLeituraNfce } from "../adaptador/AdaptadorLeituraNfce";
 import { ServicoProcessarNfce } from "./ServicoProcessarNfce";
 
+const CHAVE_BASICO = "35260838281946000146650010000042331599885707";
+const CNPJ_BASICO = "38.281.946/0001-46";
+
 function campanha(overrides: Partial<{
     id: number;
     dataInicio: Date;
@@ -18,8 +21,8 @@ function campanha(overrides: Partial<{
         nome: "Natal",
         descricao: null,
         qrcode: null,
-        dataInicio: overrides.dataInicio ?? new Date("2026-09-01T03:00:00.000Z"),
-        dataFim: overrides.dataFim ?? new Date("2026-09-30T02:59:59.999Z"),
+        dataInicio: overrides.dataInicio ?? new Date("2026-01-01T00:00:00.000Z"),
+        dataFim: overrides.dataFim ?? new Date("2027-12-31T23:59:59.999Z"),
         valorPorTicket: overrides.valorPorTicket ?? 10,
         associacaoId: overrides.associacaoId ?? 1,
         dataCriacao: new Date(),
@@ -35,9 +38,9 @@ function lojista(overrides: Partial<{
 }> = {}) {
     return new Lojista({
         id: overrides.id ?? 2,
-        nomeFantasia: "Casa do Real",
-        razaoSocial: "Casa do Real LTDA",
-        cnpj: overrides.cnpj ?? "44.444.444/0001-44",
+        nomeFantasia: "BÁSICO BRASIL",
+        razaoSocial: "ANDREATTI & TRIVELATO ARTIGOS DO VESTUARIO LTDA",
+        cnpj: overrides.cnpj ?? CNPJ_BASICO,
         inscricaoEstadual: null,
         status: overrides.status ?? StatusLojista.APROVADO,
         usuarioId: 10,
@@ -59,12 +62,16 @@ function criarServico(deps: {
     processamentoRepo?: { processarComCredito?: ReturnType<typeof vi.fn> };
 }) {
     const adaptador: AdaptadorLeituraNfce = {
-        ler: vi.fn().mockResolvedValue({
-            chaveAcesso: "35260944444444000144650010000000011123456780",
-            cnpjEmitente: "44.444.444/0001-44",
-            valorTotal: 55,
-            dataEmissao: new Date("2026-09-04T15:00:00.000Z"),
-            modoSimulado: true as const,
+        consultar: vi.fn().mockResolvedValue({
+            chaveAcesso: CHAVE_BASICO,
+            cnpjEmitente: CNPJ_BASICO,
+            valorTotal: 669.86,
+            dataEmissao: new Date("2026-08-15T14:22:03.000Z"),
+            status: "AUTORIZADA" as const,
+            uf: "SP",
+            modelo: 65 as const,
+            ambiente: "DEMO" as const,
+            provider: "simulado" as const,
         }),
         ...deps.adaptador,
     };
@@ -86,13 +93,13 @@ function criarServico(deps: {
             campanhaId: 1,
             consumidorId: 9,
             lojistaId: 2,
-            chaveAcesso: "35260944444444000144650010000000011123456780",
-            valorNota: 55,
-            ticketsGerados: 5,
+            chaveAcesso: CHAVE_BASICO,
+            valorNota: 669.86,
+            ticketsGerados: 66,
             residualAntes: 0,
-            residualApos: 5,
-            ticketsTotaisCampanha: 5,
-            dataEmissao: new Date("2026-09-04T15:00:00.000Z"),
+            residualApos: 9.86,
+            ticketsTotaisCampanha: 66,
+            dataEmissao: new Date("2026-08-15T14:22:03.000Z"),
         }),
         ...deps.processamentoRepo,
     };
@@ -117,17 +124,17 @@ describe("ServicoProcessarNfce", () => {
 
         const resultado = await servico.processar({
             consumidorId: 9,
-            payloadQr: "tcc://nfce-demo?chave=35260944444444000144650010000000011123456780&valor=55&data=2026-09-04",
+            payloadQr: `tcc://nfce-demo?chave=${CHAVE_BASICO}`,
         });
 
-        expect(resultado.ticketsGerados).toBe(5);
+        expect(resultado.ticketsGerados).toBe(66);
         expect(resultado.modoSimulado).toBe(true);
         expect(repositorioProcessamento.processarComCredito).toHaveBeenCalledWith(
             expect.objectContaining({
                 consumidorId: 9,
                 campanhaId: 1,
                 lojistaId: 2,
-                valorNota: 55,
+                valorNota: 669.86,
                 valorPorTicket: 10,
             }),
         );
@@ -174,12 +181,16 @@ describe("ServicoProcessarNfce", () => {
     it("data da compra fora do periodo → 400", async () => {
         const { servico } = criarServico({
             adaptador: {
-                ler: vi.fn().mockResolvedValue({
-                    chaveAcesso: "35260944444444000144650010000000011123456780",
-                    cnpjEmitente: "44.444.444/0001-44",
-                    valorTotal: 55,
-                    dataEmissao: new Date("2026-08-01T12:00:00.000Z"),
-                    modoSimulado: true as const,
+                consultar: vi.fn().mockResolvedValue({
+                    chaveAcesso: CHAVE_BASICO,
+                    cnpjEmitente: CNPJ_BASICO,
+                    valorTotal: 669.86,
+                    dataEmissao: new Date("2025-01-01T12:00:00.000Z"),
+                    status: "AUTORIZADA" as const,
+                    uf: "SP",
+                    modelo: 65 as const,
+                    ambiente: "DEMO" as const,
+                    provider: "simulado" as const,
                 }),
             },
         });
@@ -190,6 +201,50 @@ describe("ServicoProcessarNfce", () => {
             statusCode: 400,
             message: "Data da compra fora do periodo da campanha",
         });
+    });
+
+    it("NFC-e cancelada → 400", async () => {
+        const { servico } = criarServico({
+            adaptador: {
+                consultar: vi.fn().mockRejectedValue(new Error("NFCE_CANCELADA")),
+            },
+        });
+        await expect(
+            servico.processar({ consumidorId: 9, payloadQr: "qr", campanhaId: 1 }),
+        ).rejects.toMatchObject({ statusCode: 400, message: "NFC-e cancelada" });
+    });
+
+    it("valor indisponivel na fonte SEFAZ → 422", async () => {
+        const { servico } = criarServico({
+            adaptador: {
+                consultar: vi.fn().mockResolvedValue({
+                    chaveAcesso: CHAVE_BASICO,
+                    cnpjEmitente: CNPJ_BASICO,
+                    valorTotal: null,
+                    dataEmissao: null,
+                    status: "AUTORIZADA" as const,
+                    uf: "SP",
+                    modelo: 65 as const,
+                    ambiente: "PRODUCAO" as const,
+                    provider: "sefaz" as const,
+                    cStat: "100",
+                }),
+            },
+        });
+        await expect(
+            servico.processar({ consumidorId: 9, payloadQr: "qr", campanhaId: 1 }),
+        ).rejects.toMatchObject({ statusCode: 422 });
+    });
+
+    it("SEFAZ indisponivel → 503", async () => {
+        const { servico } = criarServico({
+            adaptador: {
+                consultar: vi.fn().mockRejectedValue(new Error("SEFAZ_INDISPONIVEL")),
+            },
+        });
+        await expect(
+            servico.processar({ consumidorId: 9, payloadQr: "qr", campanhaId: 1 }),
+        ).rejects.toMatchObject({ statusCode: 503, message: "SEFAZ indisponivel" });
     });
 
     it("loja de outra associacao → 400", async () => {

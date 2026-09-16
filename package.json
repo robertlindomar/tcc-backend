@@ -13,7 +13,8 @@
     "db:demo:reset": "tsx prisma/demo-reset.ts",
     "postinstall": "prisma generate",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "nfce:teste:sefaz": "tsx scripts/nfce-teste-sefaz.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

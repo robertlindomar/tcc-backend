@@ -13,6 +13,18 @@ Copie `.env.example` para `.env`. Variáveis:
 | `PORT` | HTTP (default `3000`) |
 | `FUSO_NEGOCIO` | Fuso civil global do TCC (período e validade de missões) |
 | `RUN_SEED` | `true` só em demo; em Coolify/produção use `false` |
+| `NFCE_PROVIDER` | `simulado` (default) ou `sefaz` |
+| `SEFAZ_AMBIENTE` | `homologacao` \| `producao` (só com provider sefaz) |
+| `SEFAZ_CERT_PFX_PATH` | Caminho local do A1 (fora do Git) |
+| `SEFAZ_CERT_PASSPHRASE` | Senha do PFX |
+| `NFCE_XML_DIR` | Dir. com XML procNFe para vNF/dhEmi (ConsultaProtocolo não retorna valor) |
+
+### NFC-e
+
+- **SIMULADO:** fixtures allowlist (BÁSICO BRASIL). Não consulta SEFAZ.
+- **SEFAZ:** `NFeConsultaProtocolo4` (status fiscal). Valor/data via XML do lojista.
+- Teste manual (não CI): `npm run nfce:teste:sefaz -- --chave=...`
+- Decisão: `../brain/decisions/nfce-sefaz-consulta-somente-leitura.md`
 
 ## Docker local (API + Postgres)
 
@@ -27,7 +39,7 @@ API em `http://localhost:3000` (`0.0.0.0`, útil para mobile na LAN). Entrypoint
 | E-mail | Papel |
 |---|---|
 | `associacao@gmail.com` | Associação |
-| `lojista1@gmail.com` | Lojista **APROVADO** (Casa do Real) |
+| `lojista1@gmail.com` | Lojista **APROVADO** (BÁSICO BRASIL) |
 | `lojista2@gmail.com` | Lojista PENDENTE (Ótica Visão) |
 | `lojista3@gmail.com` | Lojista REJEITADO |
 | `lojista4@gmail.com` | Lojista PENDENTE (sem endereço) |
