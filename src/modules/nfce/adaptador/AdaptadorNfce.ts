@@ -10,9 +10,9 @@ export type StatusFiscalNfce =
     | "INEXISTENTE"
     | "DESCONHECIDO";
 
-export type AmbienteNfce = "HOMOLOGACAO" | "PRODUCAO" | "DEMO";
+export type AmbienteNfce = "HOMOLOGACAO" | "PRODUCAO" | "DEMO" | "TESTE";
 
-export type ProviderNfce = "simulado" | "sefaz";
+export type ProviderNfce = "simulado" | "sefaz" | "teste";
 
 /**
  * Resultado canônico após leitura/consulta.
@@ -45,6 +45,8 @@ export type DadosNfceLida = {
 };
 
 export interface AdaptadorNfce {
+    /** Teste manual: permite ao serviço verificar o emitente antes de ler o XML. */
+    readonly validarEmitenteAntesDaConsulta?: boolean;
     consultar(payloadQr: string): Promise<NfceConsultada>;
 }
 

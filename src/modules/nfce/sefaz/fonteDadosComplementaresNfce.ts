@@ -26,7 +26,7 @@ export class FonteDadosComplementaresVazia implements FonteDadosComplementaresNf
  * Sanitizado: só extrai vNF, dhEmi, CNPJ emitente — sem persistir XML.
  */
 export class FonteXmlDiretorioLocal implements FonteDadosComplementaresNfce {
-    constructor(private readonly diretorio: string) {}
+    constructor(private readonly diretorio: string, private readonly validarIdentidade = false) {}
 
     async obterPorChave(chaveAcesso: string): Promise<DadosComplementaresNfce | null> {
         const chave = chaveAcesso.replace(/\D/g, "");
@@ -56,14 +56,32 @@ export class FonteXmlDiretorioLocal implements FonteDadosComplementaresNfce {
             return null;
         }
 
-        return extrairDadosDeXmlNfce(xml, chave);
+        return extrairDadosDeXmlNfce(xml, chave, this.validarIdentidade);
     }
 }
 
 export function extrairDadosDeXmlNfce(
     xml: string,
     chaveEsperada?: string,
+    validarIdentidade = false,
 ): DadosComplementaresNfce | null {
+    if (validarIdentidade) {
+        // Restringe os campos à mesma infNFe; nunca usa valor do QR ou do destinatário.
+        const notas = [...xml.matchAll(/<infNFe\b[^>]*\bId=["']NFe(\d{44})["'][^>]*>([\s\S]*?)<\/infNFe>/g)];
+        if (notas.length !== 1 || notas[0]![1] !== chaveEsperada) return null;
+        const conteudo = notas[0]![2]!;
+        const ide = conteudo.match(/<ide\b[^>]*>([\s\S]*?)<\/ide>/)?.[1] ?? "";
+        const emit = conteudo.match(/<emit\b[^>]*>([\s\S]*?)<\/emit>/)?.[1] ?? "";
+        const total = conteudo.match(/<ICMSTot\b[^>]*>([\s\S]*?)<\/ICMSTot>/)?.[1] ?? "";
+        if (!/<mod>\s*65\s*<\/mod>/.test(ide)) return null;
+        const cnpj = emit.match(/<CNPJ>\s*(\d{14})\s*<\/CNPJ>/)?.[1];
+        const valor = total.match(/<vNF>\s*(\d+\.\d{2})\s*<\/vNF>/)?.[1];
+        const emissao = ide.match(/<dhEmi>\s*([^<]+?)\s*<\/dhEmi>/)?.[1];
+        if (!cnpj || !valor || !emissao) return null;
+        const dataEmissao = new Date(emissao);
+        if (!Number.isFinite(Number(valor)) || Number.isNaN(dataEmissao.getTime())) return null;
+        return { cnpjEmitenteDigitos: cnpj, valorTotal: Number(valor), dataEmissao };
+    }
     const chNFe =
         xml.match(/Id="NFe(\d{44})"/i)?.[1] ??
         xml.match(/<chNFe>(\d{44})<\/chNFe>/i)?.[1];

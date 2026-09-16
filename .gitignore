@@ -7,3 +7,6 @@ node_modules
 
 # Uploads locais da demo (não versionar binários)
 /uploads/
+
+# Backups locais de banco (nunca no Git)
+/backups/

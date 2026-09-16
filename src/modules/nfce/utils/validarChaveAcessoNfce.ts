@@ -1,3 +1,5 @@
+import { extrairCnpjDaChaveAcesso } from "./extrairChaveAcessoNfce";
+
 const PESOS_DV = [2, 3, 4, 5, 6, 7, 8, 9] as const;
 
 const UF_POR_CODIGO: Record<string, string> = {
@@ -96,7 +98,7 @@ export function validarChaveAcessoNfce(chaveEntrada: string): ChaveAcessoNfceVal
         codigoUf,
         uf,
         aamm: chave.slice(2, 6),
-        cnpjEmitenteDigitos: chave.slice(6, 20),
+        cnpjEmitenteDigitos: extrairCnpjDaChaveAcesso(chave),
         modelo,
         serie: chave.slice(22, 25),
         numero: chave.slice(25, 34),

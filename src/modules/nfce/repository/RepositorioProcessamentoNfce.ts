@@ -99,7 +99,7 @@ export class RepositorioProcessamentoNfce {
                     });
                 } catch (erro) {
                     if (ehViolacaoUnica(erro)) {
-                        throw new ErroAplicacao("Nota fiscal ja utilizada", 409);
+                        throw new ErroAplicacao("Nota fiscal ja utilizada", 409, { codigo: "NFCE_JA_UTILIZADA" });
                     }
                     throw erro;
                 }
@@ -131,7 +131,7 @@ export class RepositorioProcessamentoNfce {
                 throw erro;
             }
             if (ehViolacaoUnica(erro)) {
-                throw new ErroAplicacao("Nota fiscal ja utilizada", 409);
+                throw new ErroAplicacao("Nota fiscal ja utilizada", 409, { codigo: "NFCE_JA_UTILIZADA" });
             }
             throw new ErroAplicacao("Erro ao processar NFC-e", 500);
         }

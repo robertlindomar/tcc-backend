@@ -11,6 +11,7 @@
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "db:demo:reset": "tsx prisma/demo-reset.ts",
+    "db:teste-real:reset": "tsx prisma/scripts/preparar-teste-real.ts",
     "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest",

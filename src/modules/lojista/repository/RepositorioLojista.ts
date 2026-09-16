@@ -115,6 +115,20 @@ export class RepositorioLojista {
         }
     }
 
+    /** NFC-e: compara dígitos mesmo quando o cadastro contém pontuação. */
+    async buscarPorCnpjNormalizado(cnpj: string): Promise<Lojista | null> {
+        const digitos = cnpj.replace(/\D/g, "");
+        const registros = await this.prisma.$queryRaw<{ id: number }[]>`
+            SELECT id_lojista AS id FROM lojista
+            WHERE regexp_replace(cnpj_lojista, '[^0-9]', '', 'g') = ${digitos}
+            LIMIT 2
+        `;
+        if (registros.length > 1) {
+            throw new ErroAplicacao("Mais de um lojista cadastrado com o mesmo CNPJ", 409);
+        }
+        return registros[0] ? this.buscar(registros[0].id) : null;
+    }
+
     async atualizar(
         id: number,
         dados: {

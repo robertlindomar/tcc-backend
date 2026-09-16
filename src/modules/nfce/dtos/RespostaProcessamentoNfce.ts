@@ -10,6 +10,6 @@ export type RespostaProcessamentoNfce = {
     lojistaId: number;
     dataEmissao: Date;
     modoSimulado: boolean;
-    provider: "simulado" | "sefaz";
+    provider: "simulado" | "sefaz" | "teste";
     statusFiscal: string;
 };

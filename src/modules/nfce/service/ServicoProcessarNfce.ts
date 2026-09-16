@@ -11,6 +11,7 @@ import {
     ResultadoCreditoNfce,
 } from "../repository/RepositorioProcessamentoNfce";
 import { formatarCnpj } from "../utils/extrairChaveAcessoNfce";
+import { parsearQrCodeNfce } from "../utils/parsearQrCodeNfce";
 
 export type EntradaProcessarNfce = {
     consumidorId: number;
@@ -59,6 +60,26 @@ export class ServicoProcessarNfce {
         const agora = entrada.agora ?? new Date();
         const campanha = await this.resolverCampanha(entrada.campanhaId, agora);
 
+        let lojistaTeste;
+        if (this.adaptador.validarEmitenteAntesDaConsulta) {
+            let cnpj: string;
+            try {
+                cnpj = parsearQrCodeNfce(entrada.payloadQr).chaveValidada.cnpjEmitenteDigitos;
+            } catch (erro) {
+                throw this.erroDeCodigoAdaptador(erro instanceof Error ? erro.message : "CHAVE_NFCE_INVALIDA");
+            }
+            lojistaTeste = await this.repositorioLojista.buscarPorCnpjNormalizado(cnpj);
+            if (!lojistaTeste) {
+                throw new ErroAplicacao("Loja nao cadastrada", 404, { codigo: "NFCE_LOJISTA_NAO_PARTICIPANTE" });
+            }
+            if (lojistaTeste.status !== StatusLojista.APROVADO) {
+                throw new ErroAplicacao("Loja nao aprovada", 400, { codigo: "NFCE_LOJISTA_NAO_APROVADO" });
+            }
+            if (lojistaTeste.associacaoId !== campanha.associacaoId) {
+                throw new ErroAplicacao("Loja nao participa desta campanha", 400, { codigo: "NFCE_LOJISTA_NAO_PARTICIPANTE" });
+            }
+        }
+
         let dadosNfce: NfceConsultada;
         try {
             dadosNfce = await this.adaptador.consultar(entrada.payloadQr.trim());
@@ -70,7 +91,9 @@ export class ServicoProcessarNfce {
         if (dadosNfce.status === "CANCELADA") {
             throw new ErroAplicacao("NFC-e cancelada", 400, { codigo: "NFCE_CANCELADA" });
         }
-        if (dadosNfce.status !== "AUTORIZADA") {
+        const leituraDeTeste = dadosNfce.provider === "teste" &&
+            dadosNfce.ambiente === "TESTE" && dadosNfce.status === "DESCONHECIDO";
+        if (dadosNfce.status !== "AUTORIZADA" && !leituraDeTeste) {
             throw new ErroAplicacao("NFC-e nao autorizada", 400, {
                 codigo: "NFCE_NAO_AUTORIZADA",
             });
@@ -103,7 +126,10 @@ export class ServicoProcessarNfce {
         }
 
         const cnpj = this.normalizarCnpj(dadosNfce.cnpjEmitente);
-        const lojista = await this.repositorioLojista.buscarPorCnpj(cnpj);
+        const lojista = lojistaTeste ?? await this.repositorioLojista.buscarPorCnpj(cnpj);
+        if (lojistaTeste && lojistaTeste.cnpj.replace(/\D/g, "") !== dadosNfce.cnpjEmitente.replace(/\D/g, "")) {
+            throw this.erroDeCodigoAdaptador("NFCE_XML_CNPJ_DIVERGENTE");
+        }
         if (!lojista) {
             throw new ErroAplicacao("Loja nao cadastrada", 404, {
                 codigo: "NFCE_LOJISTA_NAO_PARTICIPANTE",
@@ -182,6 +208,12 @@ export class ServicoProcessarNfce {
 
     private erroDeCodigoAdaptador(codigo: string): ErroAplicacao {
         const mapa: Record<string, { msg: string; status: number }> = {
+            NFCE_QR_URL_OBRIGATORIA: { msg: "Escaneie o QR ou informe seu link completo da SEFAZ-SP", status: 400 },
+            NFCE_CONSULTA_CAPTCHA: { msg: "A consulta SEFAZ exige CAPTCHA; nao foi possivel obter os dados automaticamente", status: 422 },
+            NFCE_CONSULTA_PUBLICA_INVALIDA: { msg: "A pagina SEFAZ nao forneceu dados completos e validos desta NFC-e", status: 422 },
+            NFCE_CONSULTA_CNPJ_DIVERGENTE: { msg: "CNPJ da consulta SEFAZ diverge da chave NFC-e", status: 400 },
+            NFCE_DADOS_COMPLEMENTARES_INDISPONIVEIS: { msg: "XML NFC-e ausente ou invalido no diretorio de teste", status: 422 },
+            NFCE_XML_CNPJ_DIVERGENTE: { msg: "CNPJ do XML diverge da chave NFC-e", status: 400 },
             PAYLOAD_NFCE_VAZIO: { msg: "Payload da NFC-e e obrigatorio", status: 400 },
             NFCE_DEMO_NAO_ENCONTRADA: { msg: "Nota demo nao encontrada", status: 400 },
             CHAVE_NFCE_INVALIDA: { msg: "Chave de acesso da NFC-e invalida", status: 400 },
