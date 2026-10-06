@@ -23,12 +23,15 @@ export type ResultadoCreditoNfce = {
     residualAntes: number;
     residualApos: number;
     ticketsTotaisCampanha: number;
+    /** Faixa de números dos tickets criados nesta nota; null se a nota não gerou ticket. */
+    numerosTickets: { primeiro: number; ultimo: number } | null;
     dataEmissao: Date;
 };
 
 /**
- * Persiste NFC-e + residual na mesma transação.
- * UNIQUE de chave → 409; residual trava por (consumidor, campanha).
+ * Persiste NFC-e + residual + tickets numerados na mesma transação.
+ * UNIQUE de chave → 409; residual trava por (consumidor, campanha);
+ * numeração trava a campanha (sequência 1..N por campanha).
  */
 export class RepositorioProcessamentoNfce {
     constructor(private readonly prisma: PrismaClient) {}
@@ -112,6 +115,29 @@ export class RepositorioProcessamentoNfce {
                     },
                 });
 
+                let numerosTickets: ResultadoCreditoNfce["numerosTickets"] = null;
+                if (calculo.tickets > 0) {
+                    await tx.$executeRaw`
+                        SELECT id_campanha FROM campanha
+                        WHERE id_campanha = ${dados.campanhaId}
+                        FOR UPDATE
+                    `;
+                    const agregado = await tx.ticket.aggregate({
+                        where: { campanhaId: dados.campanhaId },
+                        _max: { numero: true },
+                    });
+                    const primeiro = (agregado._max.numero ?? 0) + 1;
+                    await tx.ticket.createMany({
+                        data: Array.from({ length: calculo.tickets }, (_, indice) => ({
+                            numero: primeiro + indice,
+                            campanhaId: dados.campanhaId,
+                            consumidorId: dados.consumidorId,
+                            processamentoNfceId: processamento.id,
+                        })),
+                    });
+                    numerosTickets = { primeiro, ultimo: primeiro + calculo.tickets - 1 };
+                }
+
                 return {
                     processamentoId: processamento.id,
                     campanhaId: dados.campanhaId,
@@ -123,6 +149,7 @@ export class RepositorioProcessamentoNfce {
                     residualAntes,
                     residualApos: calculo.residualNovo,
                     ticketsTotaisCampanha: residualAtualizado.ticketsTotais,
+                    numerosTickets,
                     dataEmissao: dados.dataEmissao,
                 };
             });

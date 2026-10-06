@@ -52,4 +52,35 @@ export class ControladorSorteio {
         await this.servicoSorteio.deletar(request.usuario.id, request.params.id);
         response.status(204).send();
     }
+
+    async sortear(request: Request, response: Response, _next: NextFunction): Promise<void> {
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
+        const item = await this.servicoSorteio.sortear(request.usuario.id, request.params.id);
+        response.status(201).json(item);
+    }
+
+    async refazer(request: Request, response: Response, _next: NextFunction): Promise<void> {
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
+        const item = await this.servicoSorteio.refazer(request.usuario.id, request.params.id);
+        response.status(201).json(item);
+    }
+
+    async confirmarEntrega(
+        request: Request,
+        response: Response,
+        _next: NextFunction,
+    ): Promise<void> {
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
+        const item = await this.servicoSorteio.confirmarEntrega(
+            request.usuario.id,
+            request.params.id,
+        );
+        response.status(200).json(item);
+    }
 }

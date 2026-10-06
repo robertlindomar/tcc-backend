@@ -4632,13 +4632,117 @@
           }
         },
         {
+          "name": "Sortear Sorteio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"201 sorteado ou 409 (campanha nao encerrada / sem tickets / ja sorteado)\", () => pm.expect([201, 409]).to.include(pm.response.code));",
+                  "if (pm.response.code === 201) { pm.test(\"resultadoAtual AGUARDANDO_ENTREGA\", () => pm.expect(pm.response.json().resultadoAtual.situacao).to.eql(\"AGUARDANDO_ENTREGA\")); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sorteio/{{sorteioId}}/sortear",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sorteio",
+                "{{sorteioId}}",
+                "sortear"
+              ]
+            },
+            "description": "G17: só após o fim da campanha (senão 409 CAMPANHA_NAO_ENCERRADA). Resposta inclui totalTickets, campanhaEncerrada, resultadoAtual (vencedor: nome, email, cpfMascarado) e historico."
+          }
+        },
+        {
+          "name": "Refazer Sorteio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"201 refeito ou 409 (nao sorteado / ja entregue / sem tickets)\", () => pm.expect([201, 409]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sorteio/{{sorteioId}}/refazer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sorteio",
+                "{{sorteioId}}",
+                "refazer"
+              ]
+            },
+            "description": "G17: só após o fim da campanha (senão 409 CAMPANHA_NAO_ENCERRADA). Resposta inclui totalTickets, campanhaEncerrada, resultadoAtual (vencedor: nome, email, cpfMascarado) e historico."
+          }
+        },
+        {
+          "name": "Confirmar Entrega Sorteio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 entregue ou 409 (nao sorteado)\", () => pm.expect([200, 409]).to.include(pm.response.code));",
+                  "if (pm.response.code === 200) { pm.test(\"ENTREGUE\", () => pm.expect(pm.response.json().resultadoAtual.situacao).to.eql(\"ENTREGUE\")); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sorteio/{{sorteioId}}/confirmar-entrega",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sorteio",
+                "{{sorteioId}}",
+                "confirmar-entrega"
+              ]
+            },
+            "description": "G17: só após o fim da campanha (senão 409 CAMPANHA_NAO_ENCERRADA). Resposta inclui totalTickets, campanhaEncerrada, resultadoAtual (vencedor: nome, email, cpfMascarado) e historico."
+          }
+        },
+        {
           "name": "Deletar Sorteio",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                  "pm.test(\"204 excluido ou 409 (sorteio ja realizado)\", () => pm.expect([204, 409]).to.include(pm.response.code));"
                 ]
               }
             }

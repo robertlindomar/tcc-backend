@@ -55,6 +55,10 @@ describe("NFC-e TESTE: QR → lojista → XML → crédito", () => {
             },
             $executeRaw: vi.fn(),
             processamentoNfce: { create: criar },
+            ticket: {
+                aggregate: async () => ({ _max: { numero: tickets > 0 ? tickets : null } }),
+                createMany: vi.fn(),
+            },
         };
         const repositorio = new RepositorioProcessamentoNfce({
             $transaction: async (executar: (cliente: typeof tx) => Promise<unknown>) => executar(tx),

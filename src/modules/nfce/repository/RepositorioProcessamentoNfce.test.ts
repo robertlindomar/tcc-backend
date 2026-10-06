@@ -36,8 +36,27 @@ describe("RepositorioProcessamentoNfce.processarComCredito", () => {
                             };
                         },
                     },
-                    $executeRaw: async () => {
-                        ordem.push("lock-residual");
+                    $executeRaw: async (sql: TemplateStringsArray) => {
+                        ordem.push(/FROM campanha\s/.test(sql.join("")) ? "lock-campanha" : "lock-residual");
+                    },
+                    ticket: {
+                        aggregate: async () => {
+                            ordem.push("max-ticket");
+                            return { _max: { numero: null } };
+                        },
+                        createMany: async (args: {
+                            data: { numero: number; consumidorId: number; processamentoNfceId: number }[];
+                        }) => {
+                            ordem.push("create-tickets");
+                            expect(args.data).toHaveLength(66);
+                            expect(args.data[0]).toMatchObject({
+                                numero: 1,
+                                consumidorId: 9,
+                                processamentoNfceId: 11,
+                            });
+                            expect(args.data[65].numero).toBe(66);
+                            return { count: 66 };
+                        },
                     },
                     processamentoNfce: {
                         create: async (args: {
@@ -83,12 +102,16 @@ describe("RepositorioProcessamentoNfce.processarComCredito", () => {
         expect(resultado.ticketsGerados).toBe(66);
         expect(resultado.residualApos).toBe(9.86);
         expect(resultado.ticketsTotaisCampanha).toBe(66);
+        expect(resultado.numerosTickets).toEqual({ primeiro: 1, ultimo: 66 });
         expect(ordem).toEqual([
             "ensure-residual",
             "lock-residual",
             "load-residual",
             "create-nfce",
             "update-residual",
+            "lock-campanha",
+            "max-ticket",
+            "create-tickets",
         ]);
     });
 
@@ -149,6 +172,13 @@ describe("RepositorioProcessamentoNfce.processarComCredito", () => {
                         },
                     },
                     $executeRaw: async () => undefined,
+                    ticket: {
+                        aggregate: async () => ({ _max: { numero: 66 } }),
+                        createMany: async (args: { data: { numero: number }[] }) => {
+                            expect(args.data.map((t) => t.numero)).toEqual([67]);
+                            return { count: 1 };
+                        },
+                    },
                     processamentoNfce: {
                         create: async (args: {
                             data: { ticketsGerados: number; residualAntes: number; residualApos: number };
@@ -185,5 +215,41 @@ describe("RepositorioProcessamentoNfce.processarComCredito", () => {
         expect(resultado.ticketsGerados).toBe(1);
         expect(resultado.residualApos).toBe(0);
         expect(resultado.ticketsTotaisCampanha).toBe(6);
+        expect(resultado.numerosTickets).toEqual({ primeiro: 67, ultimo: 67 });
+    });
+
+    it("nota sem ticket não trava campanha nem cria tickets", async () => {
+        const executeRaw = vi.fn();
+        const ticket = { aggregate: vi.fn(), createMany: vi.fn() };
+        const prisma = {
+            $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+                fn({
+                    residualTicketCampanha: {
+                        createMany: async () => ({ count: 0 }),
+                        findUnique: async () => ({ id: 7, valorResidual: 0, ticketsTotais: 0 }),
+                        update: async () => ({ id: 7, ticketsTotais: 0, valorResidual: 3 }),
+                    },
+                    $executeRaw: executeRaw,
+                    ticket,
+                    processamentoNfce: {
+                        create: async (args: { data: object }) => ({ id: 13, ...args.data }),
+                    },
+                }),
+        };
+
+        const repo = new RepositorioProcessamentoNfce(prisma as never);
+        const resultado = await repo.processarComCredito({
+            chaveAcesso: "35260944444444000144650010000000031123456782",
+            campanhaId: 1,
+            consumidorId: 9,
+            lojistaId: 2,
+            valorNota: 3,
+            dataEmissao: new Date("2026-09-04T16:00:00.000Z"),
+            valorPorTicket: 10,
+        });
+
+        expect(resultado.numerosTickets).toBeNull();
+        expect(executeRaw).toHaveBeenCalledTimes(1);
+        expect(ticket.createMany).not.toHaveBeenCalled();
     });
 });

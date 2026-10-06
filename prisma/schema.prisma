@@ -245,6 +245,7 @@ model Consumidor {
   resgates           ResgateRecompensa[]
   processamentosNfce ProcessamentoNfce[]
   residuaisTicket    ResidualTicketCampanha[]
+  tickets            Ticket[]
 
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
@@ -380,6 +381,7 @@ model Campanha {
   sorteios             Sorteio[]
   processamentosNfce   ProcessamentoNfce[]
   residuaisTicket      ResidualTicketCampanha[]
+  tickets              Ticket[]
 
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
@@ -411,6 +413,8 @@ model ProcessamentoNfce {
   residualApos    Decimal  @map("residual_apos_nfce") @db.Decimal(10, 2)
   dataEmissao     DateTime @map("data_emissao_nfce")
 
+  tickets Ticket[]
+
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
@@ -418,6 +422,30 @@ model ProcessamentoNfce {
   @@index([consumidorId])
   @@index([lojistaId])
   @@map("processamento_nfce")
+}
+
+/// 1 linha por ticket (G17). `numero` sequencial por campanha (1..N), base do sorteio.
+model Ticket {
+  id     Int @id @default(autoincrement()) @map("id_ticket")
+  numero Int @map("numero_ticket")
+
+  campanhaId Int      @map("id_campanha")
+  campanha   Campanha @relation(fields: [campanhaId], references: [id], onDelete: Restrict)
+
+  consumidorId Int        @map("id_consumidor")
+  consumidor   Consumidor @relation(fields: [consumidorId], references: [id], onDelete: Restrict)
+
+  processamentoNfceId Int               @map("id_processamento_nfce")
+  processamentoNfce   ProcessamentoNfce @relation(fields: [processamentoNfceId], references: [id], onDelete: Restrict)
+
+  resultadosSorteio ResultadoSorteio[]
+
+  dataCriacao DateTime @default(now()) @map("data_criacao")
+
+  @@unique([campanhaId, numero])
+  @@index([consumidorId])
+  @@index([processamentoNfceId])
+  @@map("ticket")
 }
 
 /// Saldo residual + total de tickets do consumidor em uma campanha (não cruza campanhas).
@@ -448,11 +476,41 @@ model Sorteio {
   campanhaId Int      @map("id_campanha")
   campanha   Campanha @relation(fields: [campanhaId], references: [id])
 
+  resultados ResultadoSorteio[]
+
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
   @@index([campanhaId])
   @@map("sorteio")
+}
+
+enum SituacaoResultadoSorteio {
+  AGUARDANDO_ENTREGA
+  ENTREGUE
+  CANCELADO
+}
+
+/// Cada tentativa de sorteio (G17). No máximo 1 não cancelada por sorteio.
+model ResultadoSorteio {
+  id Int @id @default(autoincrement()) @map("id_resultado_sorteio")
+
+  sorteioId Int     @map("id_sorteio")
+  sorteio   Sorteio @relation(fields: [sorteioId], references: [id], onDelete: Restrict)
+
+  ticketId Int    @map("id_ticket")
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+
+  numeroSorteado Int                      @map("numero_sorteado_resultado")
+  totalTickets   Int                      @map("total_tickets_resultado")
+  situacao       SituacaoResultadoSorteio @default(AGUARDANDO_ENTREGA) @map("situacao_resultado")
+  dataSorteio    DateTime                 @default(now()) @map("data_sorteio_resultado")
+
+  dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
+
+  @@index([sorteioId])
+  @@index([ticketId])
+  @@map("resultado_sorteio")
 }
 
 model Recompensa {

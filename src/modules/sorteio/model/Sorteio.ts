@@ -1,7 +1,31 @@
+export type SituacaoResultadoSorteio = "AGUARDANDO_ENTREGA" | "ENTREGUE" | "CANCELADO";
+
+export type VencedorSorteio = {
+    consumidorId: number;
+    nome: string;
+    email: string;
+    cpf: string;
+};
+
+export type ResultadoSorteio = {
+    id: number;
+    ticketId: number;
+    numeroSorteado: number;
+    totalTickets: number;
+    situacao: SituacaoResultadoSorteio;
+    dataSorteio: Date;
+    dataAtualizacao: Date;
+    vencedor: VencedorSorteio;
+};
+
 type SorteioProps = {
     id: number;
     qrcode: string | null;
     campanhaId: number;
+    dataFimCampanha: Date;
+    totalTickets: number;
+    /** Mais recente primeiro. */
+    resultados: ResultadoSorteio[];
     dataCriacao: Date;
     dataAtualizacao: Date;
 };
@@ -10,7 +34,7 @@ export class Sorteio {
     private readonly props: SorteioProps;
 
     constructor(props: SorteioProps) {
-        this.props = { ...props };
+        this.props = { ...props, resultados: [...props.resultados] };
     }
 
     get id() {
@@ -23,6 +47,23 @@ export class Sorteio {
 
     get campanhaId() {
         return this.props.campanhaId;
+    }
+
+    get dataFimCampanha() {
+        return this.props.dataFimCampanha;
+    }
+
+    get totalTickets() {
+        return this.props.totalTickets;
+    }
+
+    get resultados() {
+        return this.props.resultados;
+    }
+
+    /** Resultado não cancelado (no máximo 1 por sorteio). */
+    get resultadoAtual(): ResultadoSorteio | null {
+        return this.props.resultados.find((item) => item.situacao !== "CANCELADO") ?? null;
     }
 
     get dataCriacao() {
