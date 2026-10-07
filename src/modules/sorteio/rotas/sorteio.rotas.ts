@@ -6,10 +6,20 @@ import { tratarAsync } from "../../../shared/utils/tratarAsync";
 import { ControladorSorteio } from "../controller/ControladorSorteio";
 import { criarControladorSorteio } from "../factory/criarControladorSorteio";
 
-export function RotasSorteio(controller: ControladorSorteio = criarControladorSorteio()) {
+import { ControladorAvisoSorteio } from "../avisos/ControladorAvisoSorteio";
+import { criarControladorAvisoSorteio } from "../avisos/criarControladorAvisoSorteio";
+
+export function RotasSorteio(
+    controller: ControladorSorteio = criarControladorSorteio(),
+    avisos: ControladorAvisoSorteio = criarControladorAvisoSorteio(),
+) {
     const router = Router();
 
     router.use(garantirAutenticado);
+    router.get("/resultados", garantirPapel(Role.CONSUMIDOR), tratarAsync(avisos.listar.bind(avisos)));
+    router.patch("/resultados/:resultadoId/confirmar-leitura", garantirPapel(Role.CONSUMIDOR), tratarAsync(avisos.confirmarLeitura.bind(avisos)));
+    router.patch("/resultados/:resultadoId/ocultar", garantirPapel(Role.CONSUMIDOR), tratarAsync(avisos.ocultar.bind(avisos)));
+
     router.use(garantirPapel(Role.ASSOCIACAO));
 
     router.get("/", tratarAsync(controller.listar.bind(controller)));

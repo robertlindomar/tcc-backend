@@ -1,3 +1,4 @@
+import { PRAZO_SORTEIO_MS } from "../utils/prazoSorteio";
 import { PrismaClient } from "../../../generated/prisma/client";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { SituacaoResultadoSorteio, Sorteio } from "../model/Sorteio";
@@ -41,6 +42,7 @@ type RegistroSorteio = {
         totalTickets: number;
         situacao: SituacaoResultadoSorteio;
         dataSorteio: Date;
+        dataConfirmacaoLeitura: Date | null;
         dataAtualizacao: Date;
         ticket: {
             consumidor: {
@@ -154,6 +156,7 @@ export class RepositorioSorteio {
         numeroSorteado: number;
         totalTickets: number;
         cancelarResultadoId?: number;
+        agora: Date;
     }): Promise<void> {
         try {
             await this.prisma.$transaction(async (tx) => {
@@ -161,7 +164,9 @@ export class RepositorioSorteio {
                     const cancelados = await tx.resultadoSorteio.updateMany({
                         where: {
                             id: dados.cancelarResultadoId,
+                            sorteioId: dados.sorteioId,
                             situacao: "AGUARDANDO_ENTREGA",
+                            dataSorteio: { lt: new Date(dados.agora.getTime() - PRAZO_SORTEIO_MS) },
                         },
                         data: { situacao: "CANCELADO" },
                     });
@@ -175,6 +180,7 @@ export class RepositorioSorteio {
                         ticketId: dados.ticketId,
                         numeroSorteado: dados.numeroSorteado,
                         totalTickets: dados.totalTickets,
+                        dataSorteio: dados.agora,
                     },
                 });
             });
@@ -192,10 +198,14 @@ export class RepositorioSorteio {
     }
 
     /** Retorna false se o resultado não estava mais `AGUARDANDO_ENTREGA`. */
-    async confirmarEntrega(resultadoId: number): Promise<boolean> {
+    async confirmarEntrega(resultadoId: number, agora: Date): Promise<boolean> {
         try {
             const atualizados = await this.prisma.resultadoSorteio.updateMany({
-                where: { id: resultadoId, situacao: "AGUARDANDO_ENTREGA" },
+                where: {
+                    id: resultadoId, situacao: "AGUARDANDO_ENTREGA",
+                    dataConfirmacaoLeitura: { not: null },
+                    dataSorteio: { gte: new Date(agora.getTime() - PRAZO_SORTEIO_MS) },
+                },
                 data: { situacao: "ENTREGUE" },
             });
             return atualizados.count === 1;
@@ -218,6 +228,7 @@ export class RepositorioSorteio {
                 totalTickets: resultado.totalTickets,
                 situacao: resultado.situacao,
                 dataSorteio: resultado.dataSorteio,
+                dataConfirmacaoLeitura: resultado.dataConfirmacaoLeitura,
                 dataAtualizacao: resultado.dataAtualizacao,
                 vencedor: {
                     consumidorId: resultado.ticket.consumidor.id,

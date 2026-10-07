@@ -14,6 +14,7 @@ export type ResultadoSorteio = {
     totalTickets: number;
     situacao: SituacaoResultadoSorteio;
     dataSorteio: Date;
+    dataConfirmacaoLeitura?: Date | null;
     dataAtualizacao: Date;
     vencedor: VencedorSorteio;
 };

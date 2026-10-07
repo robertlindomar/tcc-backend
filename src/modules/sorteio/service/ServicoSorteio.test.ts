@@ -45,6 +45,7 @@ function resultadoFake(
     id: number,
     numeroSorteado: number,
     situacao: SituacaoResultadoSorteio,
+    dataSorteio = AGORA,
 ): ResultadoSorteio {
     return {
         id,
@@ -52,7 +53,8 @@ function resultadoFake(
         numeroSorteado,
         totalTickets: 5,
         situacao,
-        dataSorteio: AGORA,
+        dataSorteio,
+        dataConfirmacaoLeitura: AGORA,
         dataAtualizacao: AGORA,
         vencedor: {
             consumidorId: 9,
@@ -172,6 +174,7 @@ describe("ServicoSorteio", () => {
                 numeroSorteado: 3,
                 totalTickets: 5,
                 cancelarResultadoId: undefined,
+                agora: AGORA,
             });
             expect(resposta.resultadoAtual).toMatchObject({
                 numeroSorteado: 3,
@@ -233,7 +236,7 @@ describe("ServicoSorteio", () => {
         it("cancela o pendente e sorteia outro numero, sem repetir cancelados", async () => {
             const antes = sorteioFake({
                 resultados: [
-                    resultadoFake(2, 4, "AGUARDANDO_ENTREGA"),
+                    resultadoFake(2, 4, "AGUARDANDO_ENTREGA", new Date("2026-09-27T12:00:00Z")),
                     resultadoFake(1, 1, "CANCELADO"),
                 ],
             });
@@ -249,6 +252,7 @@ describe("ServicoSorteio", () => {
                 numeroSorteado: 5,
                 totalTickets: 5,
                 cancelarResultadoId: 2,
+                agora: AGORA,
             });
         });
 
@@ -268,7 +272,7 @@ describe("ServicoSorteio", () => {
                 sorteioFake({
                     totalTickets: 2,
                     resultados: [
-                        resultadoFake(2, 2, "AGUARDANDO_ENTREGA"),
+                        resultadoFake(2, 2, "AGUARDANDO_ENTREGA", new Date("2026-09-27T12:00:00Z")),
                         resultadoFake(1, 1, "CANCELADO"),
                     ],
                 }),
@@ -278,6 +282,24 @@ describe("ServicoSorteio", () => {
                 statusCode: 409,
                 detalhes: { codigo: "SEM_TICKETS" },
             });
+        });
+    });
+
+    describe("prazo e leitura do resultado", () => {
+        it("não permite refazer dentro da semana", async () => {
+            repositorioSorteioMock.buscar.mockResolvedValue(sorteioFake({ resultados: [resultadoFake(7, 2, "AGUARDANDO_ENTREGA")] }));
+            await expect(servico.refazer(20, "1")).rejects.toMatchObject({ detalhes: { codigo: "PRAZO_RETIRADA_NAO_ENCERRADO" } });
+            expect(repositorioSorteioMock.registrarResultado).not.toHaveBeenCalled();
+        });
+        it("leitura confirmada não prorroga a retirada", async () => {
+            repositorioSorteioMock.buscar.mockResolvedValue(sorteioFake({ resultados: [resultadoFake(7, 2, "AGUARDANDO_ENTREGA", new Date("2026-09-27T12:00:00Z"))] }));
+            await expect(servico.confirmarEntrega(20, "1")).rejects.toMatchObject({ detalhes: { codigo: "PRAZO_RETIRADA_ENCERRADO" } });
+            expect(repositorioSorteioMock.confirmarEntrega).not.toHaveBeenCalled();
+        });
+        it("entrega exige leitura confirmada pelo ganhador", async () => {
+            const resultado = { ...resultadoFake(7, 2, "AGUARDANDO_ENTREGA"), dataConfirmacaoLeitura: null };
+            repositorioSorteioMock.buscar.mockResolvedValue(sorteioFake({ resultados: [resultado] }));
+            await expect(servico.confirmarEntrega(20, "1")).rejects.toMatchObject({ detalhes: { codigo: "LEITURA_NAO_CONFIRMADA" } });
         });
     });
 
@@ -291,7 +313,7 @@ describe("ServicoSorteio", () => {
 
             const resposta = await servico.confirmarEntrega(20, "1");
 
-            expect(repositorioSorteioMock.confirmarEntrega).toHaveBeenCalledWith(7);
+            expect(repositorioSorteioMock.confirmarEntrega).toHaveBeenCalledWith(7, AGORA);
             expect(resposta.resultadoAtual?.situacao).toBe("ENTREGUE");
         });
 

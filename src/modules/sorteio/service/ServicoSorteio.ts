@@ -1,3 +1,4 @@
+import { calcularDataLimiteSorteio, prazoSorteioEncerrado } from "../utils/prazoSorteio";
 import { resolverAssociacaoLogada } from "../../../shared/authz/resolverAssociacaoLogada";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { RepositorioAssociacao } from "../../associacao/repository/RepositorioAssociacao";
@@ -135,6 +136,9 @@ export class ServicoSorteio {
                 codigo: "PREMIO_JA_ENTREGUE",
             });
         }
+        if (!prazoSorteioEncerrado(atual.dataSorteio, this.agora())) {
+            throw new ErroAplicacao("O ganhador ainda esta no prazo de sete dias", 409, { codigo: "PRAZO_RETIRADA_NAO_ENCERRADO" });
+        }
         await this.realizarSorteio(sorteio, atual);
         return this.recarregar(sorteio.id);
     }
@@ -152,7 +156,13 @@ export class ServicoSorteio {
             });
         }
         if (atual.situacao === "AGUARDANDO_ENTREGA") {
-            const confirmado = await this.repositorioSorteio.confirmarEntrega(atual.id);
+            if (prazoSorteioEncerrado(atual.dataSorteio, this.agora())) {
+                throw new ErroAplicacao("Prazo de retirada encerrado; refaca o sorteio", 409, { codigo: "PRAZO_RETIRADA_ENCERRADO" });
+            }
+            if (!atual.dataConfirmacaoLeitura) {
+                throw new ErroAplicacao("O ganhador precisa confirmar que viu o resultado no aplicativo", 409, { codigo: "LEITURA_NAO_CONFIRMADA" });
+            }
+            const confirmado = await this.repositorioSorteio.confirmarEntrega(atual.id, this.agora());
             if (!confirmado) {
                 throw new ErroAplicacao("Resultado do sorteio mudou; recarregue", 409);
             }
@@ -204,6 +214,7 @@ export class ServicoSorteio {
             numeroSorteado: numero,
             totalTickets: total,
             cancelarResultadoId: resultadoACancelar?.id,
+            agora: this.agora(),
         });
     }
 
@@ -275,6 +286,9 @@ export class ServicoSorteio {
             totalTickets: resultado.totalTickets,
             situacao: resultado.situacao,
             dataSorteio: resultado.dataSorteio,
+            dataConfirmacaoLeitura: resultado.dataConfirmacaoLeitura ?? null,
+            dataLimiteRetirada: calcularDataLimiteSorteio(resultado.dataSorteio),
+            prazoEncerrado: prazoSorteioEncerrado(resultado.dataSorteio, this.agora()),
             dataAtualizacao: resultado.dataAtualizacao,
             vencedor: {
                 consumidorId: resultado.vencedor.consumidorId,

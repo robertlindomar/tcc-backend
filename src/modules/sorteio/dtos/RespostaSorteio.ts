@@ -6,6 +6,9 @@ export interface RespostaResultadoSorteio {
     totalTickets: number;
     situacao: SituacaoResultadoSorteio;
     dataSorteio: Date;
+    dataConfirmacaoLeitura: Date | null;
+    dataLimiteRetirada: Date;
+    prazoEncerrado: boolean;
     dataAtualizacao: Date;
     vencedor: {
         consumidorId: number;

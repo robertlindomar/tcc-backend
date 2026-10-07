@@ -179,6 +179,10 @@
     {
       "key": "payloadNfceDemoResidual",
       "value": "35260838281946000146650010000042331599885707"
+    },
+    {
+      "key": "resultadoSorteioId",
+      "value": ""
     }
   ],
   "item": [
@@ -4697,7 +4701,7 @@
                 "refazer"
               ]
             },
-            "description": "G17: só após o fim da campanha (senão 409 CAMPANHA_NAO_ENCERRADA). Resposta inclui totalTickets, campanhaEncerrada, resultadoAtual (vencedor: nome, email, cpfMascarado) e historico."
+            "description": "Disponível apenas após 7 dias da data do resultado atual e antes da entrega. Dentro do prazo retorna 409 PRAZO_RETIRADA_NAO_ENCERRADO. Não altera datas do banco para testar."
           }
         },
         {
@@ -4732,7 +4736,7 @@
                 "confirmar-entrega"
               ]
             },
-            "description": "G17: só após o fim da campanha (senão 409 CAMPANHA_NAO_ENCERRADA). Resposta inclui totalTickets, campanhaEncerrada, resultadoAtual (vencedor: nome, email, cpfMascarado) e historico."
+            "description": "O ganhador confirma a leitura no app. A associação registra a retirada até 7 dias desde o sorteio. Sem leitura retorna 409 LEITURA_NAO_CONFIRMADA; após prazo, 409 PRAZO_RETIRADA_ENCERRADO."
           }
         },
         {
@@ -4766,6 +4770,107 @@
               ]
             }
           }
+        },
+        {
+          "name": "Consumidor - Resultados anunciados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sorteio/resultados",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sorteio",
+                "resultados"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const avisos = pm.response.json(); if (avisos.length) pm.collectionVariables.set('resultadoSorteioId', avisos[0].resultadoId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ganhador - Confirmar leitura",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sorteio/resultados/{{resultadoSorteioId}}/confirmar-leitura",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sorteio",
+                "resultados",
+                "{{resultadoSorteioId}}",
+                "confirmar-leitura"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consumidor - Não mostrar mais",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sorteio/resultados/{{resultadoSorteioId}}/ocultar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sorteio",
+                "resultados",
+                "{{resultadoSorteioId}}",
+                "ocultar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },

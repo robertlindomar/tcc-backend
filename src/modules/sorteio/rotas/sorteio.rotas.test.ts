@@ -7,6 +7,7 @@ import { Role } from "../../auth/enum/Role";
 import { middlewareErro } from "../../../shared/middlewares/middlewareErro";
 import { ControladorSorteio } from "../controller/ControladorSorteio";
 import { RotasSorteio } from "./sorteio.rotas";
+import { ControladorAvisoSorteio } from "../avisos/ControladorAvisoSorteio";
 
 const SECRET_TESTE = "segredo-teste-sorteio-rotas";
 
@@ -63,7 +64,12 @@ describe("rotas /sorteio (G17)", () => {
         } as unknown as ControladorSorteio;
         const app = express();
         app.use(express.json());
-        app.use("/sorteio", RotasSorteio(controller));
+        const avisos = {
+            listar: vi.fn(async (_req, res) => res.json([{ resultadoId: 7 }])),
+            confirmarLeitura: vi.fn(async (_req, res) => res.json({ dataConfirmacaoLeitura: "2026-10-06T12:00:00Z" })),
+            ocultar: vi.fn(async (_req, res) => res.status(204).send()),
+        } as unknown as ControladorAvisoSorteio;
+        app.use("/sorteio", RotasSorteio(controller, avisos));
         app.use(middlewareErro);
         return app;
     }
@@ -106,4 +112,26 @@ describe("rotas /sorteio (G17)", () => {
             expect(await r3.json()).toEqual({ acao: "confirmar", id: "7" });
         });
     });
+    it("consumidor acessa anúncios e oculta um resultado", async () => {
+        const headers = { Authorization: `Bearer ${tokenPara(Role.CONSUMIDOR)}` };
+        await comServidor(criarApp(), async (baseUrl) => {
+            const lista = await fetch(`${baseUrl}/sorteio/resultados`, { headers });
+            expect(lista.status).toBe(200);
+            expect(await lista.json()).toEqual([{ resultadoId: 7 }]);
+            const lido = await fetch(`${baseUrl}/sorteio/resultados/7/confirmar-leitura`, { method: "PATCH", headers });
+            expect(lido.status).toBe(200);
+            const oculto = await fetch(`${baseUrl}/sorteio/resultados/7/ocultar`, { method: "PATCH", headers });
+            expect(oculto.status).toBe(204);
+        });
+    });
+    it("anúncios exigem sessão de consumidor", async () => {
+        await comServidor(criarApp(), async (baseUrl) => {
+            expect((await fetch(`${baseUrl}/sorteio/resultados`)).status).toBe(401);
+            for (const papel of [Role.ASSOCIACAO, Role.LOJISTA]) {
+                const headers = { Authorization: `Bearer ${tokenPara(papel)}` };
+                expect((await fetch(`${baseUrl}/sorteio/resultados`, { headers })).status).toBe(403);
+            }
+        });
+    });
+
 });

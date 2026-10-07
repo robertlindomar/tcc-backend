@@ -246,6 +246,7 @@ model Consumidor {
   processamentosNfce ProcessamentoNfce[]
   residuaisTicket    ResidualTicketCampanha[]
   tickets            Ticket[]
+  avisosSorteioOcultos AvisoSorteioOculto[]
 
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
@@ -506,6 +507,9 @@ model ResultadoSorteio {
   situacao       SituacaoResultadoSorteio @default(AGUARDANDO_ENTREGA) @map("situacao_resultado")
   dataSorteio    DateTime                 @default(now()) @map("data_sorteio_resultado")
 
+  dataConfirmacaoLeitura DateTime? @map("data_confirmacao_leitura")
+  avisosOcultos AvisoSorteioOculto[]
+
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
   @@index([sorteioId])
@@ -557,4 +561,17 @@ model ResgateRecompensa {
   @@index([recompensaId])
   @@index([consumidorId])
   @@map("resgate_recompensa")
+}
+
+/// Preferência individual por resultado; um novo sorteio gera um novo aviso.
+model AvisoSorteioOculto {
+  resultadoId Int @map("id_resultado_sorteio")
+  consumidorId Int @map("id_consumidor")
+  resultado ResultadoSorteio @relation(fields: [resultadoId], references: [id], onDelete: Cascade)
+  consumidor Consumidor @relation(fields: [consumidorId], references: [id], onDelete: Cascade)
+  dataCriacao DateTime @default(now()) @map("data_criacao")
+
+  @@id([resultadoId, consumidorId])
+  @@index([consumidorId])
+  @@map("aviso_sorteio_oculto")
 }
