@@ -72,6 +72,13 @@ export class ControladorLojista {
         response.status(200).json(atualizado);
     }
 
+    async definirLogo(request: Request, response: Response, _next: NextFunction): Promise<void> {
+        if (!request.usuario) throw new ErroAplicacao("Usuario nao autenticado", 401);
+        if (!request.file) throw new ErroAplicacao("Arquivo de imagem e obrigatorio", 400);
+        const atualizado = await this.servicoLojista.definirLogo(request.usuario.id, request.params.id, request.file.buffer);
+        response.status(200).json(atualizado);
+    }
+
     async aprovar(request: Request, response: Response, _next: NextFunction): Promise<void> {
         if (!request.usuario) {
             throw new ErroAplicacao("Usuario nao autenticado", 401);

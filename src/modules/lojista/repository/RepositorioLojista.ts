@@ -10,6 +10,7 @@ const incluirUsuarioEmail = {
 type RegistroLojista = {
     id: number;
     nomeFantasia: string;
+    urlLogo?: string | null;
     razaoSocial: string;
     cnpj: string;
     inscricaoEstadual: number | null;
@@ -151,6 +152,13 @@ export class RepositorioLojista {
         }
     }
 
+    async definirLogo(id: number, urlLogo: string): Promise<Lojista> {
+        const atualizado = await this.prisma.lojista.update({
+            where: { id }, data: { urlLogo }, include: incluirUsuarioEmail,
+        });
+        return this.paraDominio(atualizado);
+    }
+
     async atualizarStatus(
         id: number,
         dados: {
@@ -189,6 +197,7 @@ export class RepositorioLojista {
         return new Lojista({
             id: item.id,
             nomeFantasia: item.nomeFantasia,
+            urlLogo: item.urlLogo ?? null,
             razaoSocial: item.razaoSocial,
             cnpj: item.cnpj,
             inscricaoEstadual: item.inscricaoEstadual,

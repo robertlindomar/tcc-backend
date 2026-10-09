@@ -189,6 +189,7 @@ model Associacao {
 }
 
 model Lojista {
+  urlLogo           String?       @map("url_logo") @db.VarChar(500)
   id                Int           @id @default(autoincrement()) @map("id_lojista")
   nomeFantasia      String        @map("nome_fantasia_lojista") @db.VarChar(255)
   razaoSocial       String        @map("razao_social_lojista") @db.VarChar(255)

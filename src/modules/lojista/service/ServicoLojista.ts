@@ -1,3 +1,4 @@
+import { ServicoUploadImagem } from "../../../shared/upload/ServicoUploadImagem";
 import { StatusLojista } from "../../../generated/prisma/enums";
 import { garantirLojaCatalogo } from "../../../shared/authz/garantirLojaCatalogo";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
@@ -32,6 +33,7 @@ export class ServicoLojista {
         private readonly repositorioAssociacao: RepositorioAssociacao,
         private readonly repositorioEndereco: RepositorioEndereco,
         private readonly repositorioMissao?: RepositorioMissao,
+        private readonly servicoUpload?: ServicoUploadImagem,
     ) {}
 
     async criar(usuarioId: number, request: DTOCriarLojista): Promise<RespostaLojista> {
@@ -182,6 +184,7 @@ export class ServicoLojista {
         return {
             id: lojista.id,
             nomeFantasia: lojista.nomeFantasia,
+            urlLogo: lojista.urlLogo,
             enderecoTexto,
             latitude,
             longitude,
@@ -217,6 +220,27 @@ export class ServicoLojista {
         }
 
         throw new ErroAplicacao("Acesso nao autorizado a este recurso", 403);
+    }
+
+    async definirLogo(usuarioId: number, idParam: string, arquivo: Buffer): Promise<RespostaLojista> {
+        const existente = await this.repositorioLojista.buscar(this.parseId(idParam));
+        if (!existente || existente.usuarioId !== usuarioId) {
+            throw new ErroAplicacao("Lojista nao encontrado", 404);
+        }
+        if (!this.servicoUpload) throw new ErroAplicacao("Upload indisponivel", 500);
+        const urlLogo = await this.servicoUpload.gravar("lojistas", arquivo);
+        let atualizado: Lojista;
+        try {
+            atualizado = await this.repositorioLojista.definirLogo(existente.id, urlLogo);
+        } catch (erro) {
+            await this.servicoUpload.remover(urlLogo);
+            throw erro;
+        }
+        // As imagens ilustrativas da seed são compartilhadas com produtos e não são removidas.
+        if (existente.urlLogo?.startsWith("/uploads/lojistas/")) {
+            await this.servicoUpload.remover(existente.urlLogo);
+        }
+        return this.paraResposta(atualizado);
     }
 
     async atualizar(
@@ -420,6 +444,7 @@ export class ServicoLojista {
         return {
             id: lojista.id,
             nomeFantasia: lojista.nomeFantasia,
+            urlLogo: lojista.urlLogo,
         };
     }
 
@@ -427,6 +452,7 @@ export class ServicoLojista {
         return {
             id: lojista.id,
             nomeFantasia: lojista.nomeFantasia,
+            urlLogo: lojista.urlLogo,
             razaoSocial: lojista.razaoSocial,
             cnpj: lojista.cnpj,
             inscricaoEstadual: lojista.inscricaoEstadual,

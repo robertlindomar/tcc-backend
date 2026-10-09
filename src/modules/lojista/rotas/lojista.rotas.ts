@@ -1,3 +1,4 @@
+import { receberArquivoImagem } from "../../../shared/middlewares/receberArquivoImagem";
 import { Router } from "express";
 import { Role } from "../../auth/enum/Role";
 import { garantirAutenticado } from "../../../shared/middlewares/garantirAutenticado";
@@ -27,6 +28,12 @@ export function RotasLojista() {
         "/",
         garantirPapel(Role.LOJISTA),
         tratarAsync(controller.criar.bind(controller)),
+    );
+    router.put(
+        "/:id/logo",
+        garantirPapel(Role.LOJISTA),
+        receberArquivoImagem,
+        tratarAsync(controller.definirLogo.bind(controller)),
     );
     router.put("/:id", tratarAsync(controller.atualizar.bind(controller)));
     router.patch(

@@ -1,3 +1,5 @@
+import { ArmazenamentoDiscoLocal } from "../../../shared/upload/ArmazenamentoDiscoLocal";
+import { ServicoUploadImagem } from "../../../shared/upload/ServicoUploadImagem";
 import prismaClient from "../../../prisma";
 import { RepositorioAssociacao } from "../../associacao/repository/RepositorioAssociacao";
 import { RepositorioEndereco } from "../../endereco/repository/RepositorioEndereco";
@@ -19,6 +21,7 @@ export function criarControladorLojista(): ControladorLojista {
         repositorioAssociacao,
         repositorioEndereco,
         repositorioMissao,
+        new ServicoUploadImagem(new ArmazenamentoDiscoLocal()),
     );
     return new ControladorLojista(servico);
 }

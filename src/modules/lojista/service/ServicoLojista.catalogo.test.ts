@@ -77,7 +77,7 @@ describe("ServicoLojista.listarCatalogo", () => {
         const lista = await servico.listarCatalogo();
 
         expect(repositorioLojistaMock.listar).toHaveBeenCalledWith(StatusLojista.APROVADO);
-        expect(lista).toEqual([{ id: 8, nomeFantasia: "Loja 8" }]);
+        expect(lista).toEqual([{ id: 8, nomeFantasia: "Loja 8", urlLogo: null }]);
         expect(lista[0]).not.toHaveProperty("cnpj");
         expect(lista[0]).not.toHaveProperty("status");
     });
@@ -90,6 +90,7 @@ describe("ServicoLojista.listarCatalogo", () => {
         expect(detalhe).toEqual({
             id: 8,
             nomeFantasia: "Loja 8",
+            urlLogo: null,
             enderecoTexto: null,
             latitude: null,
             longitude: null,

@@ -40,5 +40,5 @@ export function extensaoPorTipo(tipo: TipoImagemPermitido): string {
 }
 
 export function pastasUploadPermitidas(): readonly string[] {
-    return ["produtos", "eventos"];
+    return ["produtos", "eventos", "lojistas"];
 }

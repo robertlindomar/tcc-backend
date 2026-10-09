@@ -15,7 +15,8 @@
     "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest",
-    "nfce:teste:sefaz": "tsx scripts/nfce-teste-sefaz.ts"
+    "nfce:teste:sefaz": "tsx scripts/nfce-teste-sefaz.ts",
+    "db:demo:completa": "tsx prisma/scripts/preparar-demo-completa.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

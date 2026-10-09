@@ -1922,6 +1922,51 @@
               }
             }
           ]
+        },
+        {
+          "name": "Enviar Logo da Loja",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/lojista/{{lojistaId}}/logo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lojista",
+                "{{lojistaId}}",
+                "logo"
+              ]
+            },
+            "description": "JWT LOJISTA dono do perfil. Escolha arquivo JPEG/PNG/WebP até 2MB. Funciona em qualquer status; preserva aprovação. Outra loja: 404. Consumidor/associação: 403.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "arquivo",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Logo persistida', () => pm.expect(pm.response.json().urlLogo).to.match(/^\\/uploads\\/lojistas\\//));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },

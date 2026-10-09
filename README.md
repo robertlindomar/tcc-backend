@@ -159,3 +159,9 @@ Na raiz do TCC use `docker-compose.coolify.yml` como Compose file no Coolify.
 Todo cálculo de dia, semana, mês e fim do dia passa por `src/shared/tempo/` (`FUSO_NEGOCIO_TCC`). Não há timezone por loja.
 
 Evolução futura: operação multi-fuso pode exigir timezone por estabelecimento.
+
+### Demonstração completa sem reset
+
+`npm run db:demo:completa` adiciona oito lojistas e doze consumidores à associação existente no banco local, com catálogos, fotos, promoções, missões, recompensas, históricos, campanha ativa e sorteio aguardando retirada. Faz backup automático antes da primeira carga e preserva contas e operações existentes; reexecuções não renovam datas nem zeram saldos. Senha das novas contas: `senha123`.
+
+Contas, cenários e limitações: [roteiro da demo completa](../brain/features/demo-completa.md). Fotos ficam em `prisma/assets/demo-completa/` e são copiadas para `uploads/demo-completa/`. Compras e tickets da seed são fictícios; não são NFC-e validadas na SEFAZ.

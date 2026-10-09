@@ -3,6 +3,7 @@ import { StatusLojista } from "../../../generated/prisma/enums";
 export interface RespostaLojista {
     id: number;
     nomeFantasia: string;
+    urlLogo: string | null;
     razaoSocial: string;
     cnpj: string;
     inscricaoEstadual: number | null;

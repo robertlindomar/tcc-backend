@@ -3,6 +3,7 @@ import { StatusLojista } from "../../../generated/prisma/enums";
 type LojistaProps = {
     id: number;
     nomeFantasia: string;
+    urlLogo?: string | null;
     razaoSocial: string;
     cnpj: string;
     inscricaoEstadual: number | null;
@@ -26,6 +27,10 @@ export class Lojista {
 
     get id() {
         return this.props.id;
+    }
+
+    get urlLogo(): string | null {
+        return this.props.urlLogo ?? null;
     }
 
     get nomeFantasia() {
