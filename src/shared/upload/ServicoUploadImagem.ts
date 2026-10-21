@@ -15,7 +15,7 @@ export class ServicoUploadImagem {
             throw new ErroAplicacao("Arquivo de imagem e obrigatorio", 400);
         }
         if (buffer.length > TAMANHO_MAXIMO_IMAGEM_BYTES) {
-            throw new ErroAplicacao("Arquivo excede o limite de 2MB", 400);
+            throw new ErroAplicacao("Arquivo excede o limite de 25MB", 400);
         }
         const tipo = identificarTipoImagem(buffer);
         if (!tipo) {

@@ -24,7 +24,7 @@ export function receberArquivoImagem(
             "code" in erro &&
             (erro as { code: string }).code === "LIMIT_FILE_SIZE"
         ) {
-            next(new ErroAplicacao("Arquivo excede o limite de 2MB", 400));
+            next(new ErroAplicacao("Arquivo excede o limite de 25MB", 400));
             return;
         }
         next(new ErroAplicacao("Falha no envio do arquivo", 400));

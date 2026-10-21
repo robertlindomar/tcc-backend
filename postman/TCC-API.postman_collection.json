@@ -1944,7 +1944,7 @@
                 "logo"
               ]
             },
-            "description": "JWT LOJISTA dono do perfil. Escolha arquivo JPEG/PNG/WebP até 2MB. Funciona em qualquer status; preserva aprovação. Outra loja: 404. Consumidor/associação: 403.",
+            "description": "JWT LOJISTA dono do perfil. Escolha arquivo JPEG/PNG/WebP até 25MB. Funciona em qualquer status; preserva aprovação. Outra loja: 404. Consumidor/associação: 403.",
             "body": {
               "mode": "formdata",
               "formdata": [

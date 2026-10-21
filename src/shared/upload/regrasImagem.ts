@@ -1,4 +1,4 @@
-export const TAMANHO_MAXIMO_IMAGEM_BYTES = 2 * 1024 * 1024;
+export const TAMANHO_MAXIMO_IMAGEM_BYTES = 25 * 1024 * 1024;
 
 export type TipoImagemPermitido = "jpeg" | "png" | "webp";
 
