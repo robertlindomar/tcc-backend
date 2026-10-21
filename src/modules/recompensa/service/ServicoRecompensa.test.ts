@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Role } from "../../auth/enum/Role";
 import { StatusLojista, StatusResgateRecompensa } from "../../../generated/prisma/enums";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { fimDoDiaCivilNoFuso, instanteCivilNoFuso } from "../../../shared/tempo/fusoNegocio";
@@ -12,12 +11,6 @@ import { ResgateRecompensa } from "../model/ResgateRecompensa";
 import { RepositorioRecompensa } from "../repository/RepositorioRecompensa";
 import { RepositorioResgateRecompensa } from "../repository/RepositorioResgateRecompensa";
 import { ServicoRecompensa } from "./ServicoRecompensa";
-import { RepositorioAssociacao } from "../../associacao/repository/RepositorioAssociacao";
-
-const usuarioLojista = { id: 20, role: Role.LOJISTA };
-const usuarioAssociacao = { id: 10, role: Role.ASSOCIACAO };
-const repoAssociacaoVazio = {} as RepositorioAssociacao;
-
 function recompensaFake(overrides?: Partial<{
     id: number;
     custoPontos: number;
@@ -112,7 +105,6 @@ describe("ServicoRecompensa CRUD", () => {
             {} as RepositorioResgateRecompensa,
             repoLojista as unknown as RepositorioLojista,
             {} as RepositorioConsumidor,
-            repoAssociacaoVazio,
         );
     });
 
@@ -206,7 +198,7 @@ describe("ServicoRecompensa CRUD", () => {
     it("desativar torna ativa=false", async () => {
         repoRecompensa.buscar.mockResolvedValue(recompensaFake({ ativa: true }));
         repoRecompensa.atualizar.mockResolvedValue(recompensaFake({ ativa: false }));
-        const resultado = await servico.desativar(usuarioLojista, "3");
+        const resultado = await servico.desativar(20, "3");
         expect(repoRecompensa.atualizar).toHaveBeenCalledWith(3, { ativa: false });
         expect(resultado.ativa).toBe(false);
         expect(resultado.situacao).toBe("DESATIVADA");
@@ -214,7 +206,7 @@ describe("ServicoRecompensa CRUD", () => {
 
     it("desativar repetido e idempotente", async () => {
         repoRecompensa.buscar.mockResolvedValue(recompensaFake({ ativa: false }));
-        const resultado = await servico.desativar(usuarioLojista, "3");
+        const resultado = await servico.desativar(20, "3");
         expect(repoRecompensa.atualizar).not.toHaveBeenCalled();
         expect(resultado.ativa).toBe(false);
     });
@@ -222,7 +214,7 @@ describe("ServicoRecompensa CRUD", () => {
     it("reativar torna ativa=true", async () => {
         repoRecompensa.buscar.mockResolvedValue(recompensaFake({ ativa: false }));
         repoRecompensa.atualizar.mockResolvedValue(recompensaFake({ ativa: true }));
-        const resultado = await servico.reativar(usuarioLojista, "3");
+        const resultado = await servico.reativar(20, "3");
         expect(repoRecompensa.atualizar).toHaveBeenCalledWith(3, { ativa: true });
         expect(resultado.ativa).toBe(true);
         expect(resultado.situacao).toBe("DISPONIVEL");
@@ -230,61 +222,18 @@ describe("ServicoRecompensa CRUD", () => {
 
     it("reativar repetido e idempotente", async () => {
         repoRecompensa.buscar.mockResolvedValue(recompensaFake({ ativa: true }));
-        const resultado = await servico.reativar(usuarioLojista, "3");
+        const resultado = await servico.reativar(20, "3");
         expect(repoRecompensa.atualizar).not.toHaveBeenCalled();
         expect(resultado.ativa).toBe(true);
     });
 
-    it("associacao reativa recompensa de loja vinculada", async () => {
-        const repoAssociacao = {
-            buscarPorUsuarioId: vi.fn().mockResolvedValue({ id: 1 }),
-        };
-        const repoLojistaGestao = {
-            buscarPorUsuarioId: vi.fn(),
-            buscar: vi.fn().mockResolvedValue(
-                lojistaFake({ id: 5, associacaoId: 1, status: StatusLojista.APROVADO }),
-            ),
-        };
-        const servicoGestao = new ServicoRecompensa(
-            repoRecompensa as unknown as RepositorioRecompensa,
-            {} as RepositorioResgateRecompensa,
-            repoLojistaGestao as unknown as RepositorioLojista,
-            {} as RepositorioConsumidor,
-            repoAssociacao as unknown as RepositorioAssociacao,
-        );
-        repoRecompensa.buscar.mockResolvedValue(recompensaFake({ ativa: false, lojistaId: 5 }));
-        repoRecompensa.atualizar.mockResolvedValue(recompensaFake({ ativa: true, lojistaId: 5 }));
-
-        const resultado = await servicoGestao.reativar(usuarioAssociacao, "3");
-
-        expect(repoRecompensa.atualizar).toHaveBeenCalledWith(3, { ativa: true });
-        expect(resultado.ativa).toBe(true);
-    });
-
-    it("associacao lista recompensas da loja vinculada", async () => {
-        const repoAssociacao = {
-            buscarPorUsuarioId: vi.fn().mockResolvedValue({ id: 1 }),
-        };
-        const repoLojistaGestao = {
-            buscar: vi.fn().mockResolvedValue(
-                lojistaFake({ id: 5, associacaoId: 1, status: StatusLojista.APROVADO }),
-            ),
-        };
-        repoRecompensa.listarPorLojistaId.mockResolvedValue([
-            recompensaFake({ id: 3, lojistaId: 5 }),
-        ]);
-        const servicoGestao = new ServicoRecompensa(
-            repoRecompensa as unknown as RepositorioRecompensa,
-            {} as RepositorioResgateRecompensa,
-            repoLojistaGestao as unknown as RepositorioLojista,
-            {} as RepositorioConsumidor,
-            repoAssociacao as unknown as RepositorioAssociacao,
-        );
-
-        const lista = await servicoGestao.listarDaLoja(usuarioAssociacao, "5");
-
-        expect(lista).toHaveLength(1);
-        expect(lista[0].id).toBe(3);
+    it("desativar recompensa de outra loja retorna 404", async () => {
+        repoRecompensa.buscar.mockResolvedValue(recompensaFake({ lojistaId: 99 }));
+        await expect(servico.desativar(20, "3")).rejects.toMatchObject({
+            statusCode: 404,
+            message: "Recompensa nao encontrada",
+        });
+        expect(repoRecompensa.atualizar).not.toHaveBeenCalled();
     });
 });
 
@@ -299,7 +248,6 @@ describe("ServicoRecompensa por status do lojista", () => {
                 ),
             } as unknown as RepositorioLojista,
             {} as RepositorioConsumidor,
-            repoAssociacaoVazio,
         );
         await expect(
             servico.criar(20, { nome: "X", custoPontos: 10 }),
@@ -316,7 +264,6 @@ describe("ServicoRecompensa por status do lojista", () => {
                 ),
             } as unknown as RepositorioLojista,
             {} as RepositorioConsumidor,
-            repoAssociacaoVazio,
         );
         await expect(
             servico.criar(20, { nome: "X", custoPontos: 10 }),
@@ -365,7 +312,6 @@ describe("ServicoRecompensa resgate", () => {
             repoResgate as unknown as RepositorioResgateRecompensa,
             repoLojista as unknown as RepositorioLojista,
             repoConsumidor as unknown as RepositorioConsumidor,
-            repoAssociacaoVazio,
         );
     });
 
@@ -572,7 +518,6 @@ describe("ServicoRecompensa entrega", () => {
             {
                 buscarPorUsuarioId: vi.fn(),
             } as unknown as RepositorioConsumidor,
-            repoAssociacaoVazio,
         );
     });
 

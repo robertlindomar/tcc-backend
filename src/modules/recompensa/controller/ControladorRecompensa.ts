@@ -13,21 +13,6 @@ export class ControladorRecompensa {
         response.status(200).json(lista);
     }
 
-    async listarDaLoja(
-        request: Request,
-        response: Response,
-        _next: NextFunction,
-    ): Promise<void> {
-        if (!request.usuario) {
-            throw new ErroAplicacao("Usuario nao autenticado", 401);
-        }
-        const lista = await this.servicoRecompensa.listarDaLoja(
-            request.usuario,
-            request.params.lojistaId,
-        );
-        response.status(200).json(lista);
-    }
-
     async catalogo(request: Request, response: Response, _next: NextFunction): Promise<void> {
         if (!request.usuario) {
             throw new ErroAplicacao("Usuario nao autenticado", 401);
@@ -80,7 +65,7 @@ export class ControladorRecompensa {
             throw new ErroAplicacao("Usuario nao autenticado", 401);
         }
         const atualizado = await this.servicoRecompensa.desativar(
-            request.usuario,
+            request.usuario.id,
             request.params.id,
         );
         response.status(200).json(atualizado);
@@ -95,7 +80,7 @@ export class ControladorRecompensa {
             throw new ErroAplicacao("Usuario nao autenticado", 401);
         }
         const atualizado = await this.servicoRecompensa.reativar(
-            request.usuario,
+            request.usuario.id,
             request.params.id,
         );
         response.status(200).json(atualizado);
