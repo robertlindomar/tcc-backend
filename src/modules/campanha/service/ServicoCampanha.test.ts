@@ -48,6 +48,7 @@ describe("ServicoCampanha", () => {
         listarPorAssociacaoId: ReturnType<typeof vi.fn>;
         atualizar: ReturnType<typeof vi.fn>;
         buscar: ReturnType<typeof vi.fn>;
+        buscarSobrepostaAoPeriodo: ReturnType<typeof vi.fn>;
     };
     let repositorioAssociacaoMock: { buscarPorUsuarioId: ReturnType<typeof vi.fn> };
     let servico: ServicoCampanha;
@@ -64,6 +65,7 @@ describe("ServicoCampanha", () => {
             listarPorAssociacaoId: vi.fn(),
             atualizar: vi.fn(),
             buscar: vi.fn(),
+            buscarSobrepostaAoPeriodo: vi.fn().mockResolvedValue(null),
         };
         repositorioAssociacaoMock = {
             buscarPorUsuarioId: vi.fn().mockResolvedValue(associacaoFake(3)),
@@ -174,6 +176,62 @@ describe("ServicoCampanha", () => {
             valorPorTicket: 10,
         });
         expect(repositorioCampanhaMock.atualizar).toHaveBeenCalled();
+    });
+
+    it("recusa criar campanha com periodo sobreposto a outra", async () => {
+        repositorioCampanhaMock.buscarSobrepostaAoPeriodo.mockResolvedValue(
+            campanhaFake({ id: 7, nome: "Natal" }),
+        );
+        await expect(
+            servico.criar(20, {
+                nome: "Nova",
+                dataInicio: "2026-10-01",
+                dataFim: "2026-10-31",
+                valorPorTicket: 10,
+            }),
+        ).rejects.toMatchObject({
+            message: 'Ja existe a campanha "Natal" nesse periodo',
+            statusCode: 409,
+            detalhes: { codigo: "CAMPANHA_PERIODO_OCUPADO", campanhaConflitanteId: 7 },
+        });
+        expect(repositorioCampanhaMock.criar).not.toHaveBeenCalled();
+    });
+
+    it("criar consulta sobreposicao com o periodo informado", async () => {
+        repositorioCampanhaMock.criar.mockResolvedValue(campanhaFake());
+        await servico.criar(20, {
+            nome: "Nova",
+            dataInicio: "2026-10-01",
+            dataFim: "2026-10-31",
+            valorPorTicket: 10,
+        });
+        expect(repositorioCampanhaMock.buscarSobrepostaAoPeriodo).toHaveBeenCalledWith(
+            expect.any(Date),
+            expect.any(Date),
+            undefined,
+        );
+    });
+
+    it("editar ignora a propria campanha ao verificar o periodo", async () => {
+        repositorioCampanhaMock.buscar.mockResolvedValue(campanhaFake({ id: 1 }));
+        repositorioCampanhaMock.atualizar.mockResolvedValue(campanhaFake({ id: 1 }));
+        await servico.atualizar(20, "1", { nome: "Renomeada" });
+        expect(repositorioCampanhaMock.buscarSobrepostaAoPeriodo).toHaveBeenCalledWith(
+            expect.any(Date),
+            expect.any(Date),
+            1,
+        );
+    });
+
+    it("recusa editar campanha para periodo de outra", async () => {
+        repositorioCampanhaMock.buscar.mockResolvedValue(campanhaFake({ id: 1 }));
+        repositorioCampanhaMock.buscarSobrepostaAoPeriodo.mockResolvedValue(
+            campanhaFake({ id: 2, nome: "Black Friday" }),
+        );
+        await expect(
+            servico.atualizar(20, "1", { dataFim: "2027-01-31" }),
+        ).rejects.toMatchObject({ statusCode: 409 });
+        expect(repositorioCampanhaMock.atualizar).not.toHaveBeenCalled();
     });
 
     it("lista apenas campanhas da associacao logada", async () => {

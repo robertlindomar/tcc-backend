@@ -39,6 +39,7 @@ export class ServicoCampanha {
         garantirDataNaoPassada(dataInicio, "dataInicio");
         garantirDataNaoPassada(dataFim, "dataFim");
         this.validarPeriodo(dataInicio, dataFim);
+        await this.garantirPeriodoLivre(dataInicio, dataFim);
 
         const criado = await this.repositorioCampanha.criar({
             nome,
@@ -119,6 +120,7 @@ export class ServicoCampanha {
         const dataInicio = dados.dataInicio ?? existente.dataInicio;
         const dataFim = dados.dataFim ?? existente.dataFim;
         this.validarPeriodo(dataInicio, dataFim);
+        await this.garantirPeriodoLivre(dataInicio, dataFim, existente.id);
 
         const atualizado = await this.repositorioCampanha.atualizar(existente.id, dados);
         return this.paraResposta(atualizado);
@@ -208,6 +210,26 @@ export class ServicoCampanha {
     private validarPeriodo(dataInicio: Date, dataFim: Date): void {
         if (dataFim.getTime() < dataInicio.getTime()) {
             throw new ErroAplicacao("Data de fim deve ser maior ou igual a data de inicio", 400);
+        }
+    }
+
+    /** Regra: só pode existir uma campanha por período (sem sobreposição de datas). */
+    private async garantirPeriodoLivre(
+        dataInicio: Date,
+        dataFim: Date,
+        ignorarId?: number,
+    ): Promise<void> {
+        const conflito = await this.repositorioCampanha.buscarSobrepostaAoPeriodo(
+            dataInicio,
+            dataFim,
+            ignorarId,
+        );
+        if (conflito) {
+            throw new ErroAplicacao(
+                `Ja existe a campanha "${conflito.nome}" nesse periodo`,
+                409,
+                { codigo: "CAMPANHA_PERIODO_OCUPADO", campanhaConflitanteId: conflito.id },
+            );
         }
     }
 

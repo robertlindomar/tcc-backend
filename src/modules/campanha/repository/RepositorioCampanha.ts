@@ -48,6 +48,27 @@ export class RepositorioCampanha {
         }
     }
 
+    /** Primeira campanha cujo período cruza [dataInicio, dataFim], ignorando `ignorarId`. */
+    async buscarSobrepostaAoPeriodo(
+        dataInicio: Date,
+        dataFim: Date,
+        ignorarId?: number,
+    ): Promise<Campanha | null> {
+        try {
+            const item = await this.prisma.campanha.findFirst({
+                where: {
+                    dataInicio: { lte: dataFim },
+                    dataFim: { gte: dataInicio },
+                    ...(ignorarId !== undefined ? { id: { not: ignorarId } } : {}),
+                },
+                orderBy: { dataInicio: "asc" },
+            });
+            return item ? this.paraDominio(item) : null;
+        } catch {
+            throw new ErroAplicacao("Erro ao verificar periodo da campanha", 500);
+        }
+    }
+
     async listarVigentesEm(agora: Date = new Date()): Promise<Campanha[]> {
         try {
             const lista = await this.prisma.campanha.findMany({
