@@ -51,6 +51,7 @@ describe("ServicoMissao.listarCatalogo", () => {
                 nome: "Visite a loja e escaneie o QR Code",
                 descricao: null,
                 pontoRecompensa: 50,
+                frequencia: FrequenciaMissao.DIARIA,
                 sistema: true,
             },
         ]);

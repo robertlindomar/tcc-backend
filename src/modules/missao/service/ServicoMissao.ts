@@ -80,6 +80,7 @@ export class ServicoMissao {
                 nome: item.nome,
                 descricao: item.descricao,
                 pontoRecompensa: item.pontoRecompensa,
+                frequencia: item.frequencia,
                 sistema: item.sistema,
             }));
     }
