@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { Associacao } from "../../associacao/model/Associacao";
 import { RepositorioAssociacao } from "../../associacao/repository/RepositorioAssociacao";
@@ -52,7 +52,13 @@ describe("ServicoCampanha", () => {
     let repositorioAssociacaoMock: { buscarPorUsuarioId: ReturnType<typeof vi.fn> };
     let servico: ServicoCampanha;
 
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
     beforeEach(() => {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        vi.setSystemTime(new Date("2026-09-01T12:00:00.000Z"));
         repositorioCampanhaMock = {
             criar: vi.fn(),
             listarPorAssociacaoId: vi.fn(),
@@ -128,6 +134,46 @@ describe("ServicoCampanha", () => {
             statusCode: 400,
         } satisfies Partial<ErroAplicacao>);
         expect(repositorioCampanhaMock.criar).not.toHaveBeenCalled();
+    });
+
+    it("recusa criar campanha com inicio anterior a hoje", async () => {
+        await expect(
+            servico.criar(20, {
+                nome: "X",
+                dataInicio: "2026-08-31",
+                dataFim: "2026-12-31",
+                valorPorTicket: 10,
+            }),
+        ).rejects.toMatchObject({
+            message: "dataInicio nao pode ser anterior a hoje",
+            statusCode: 400,
+        } satisfies Partial<ErroAplicacao>);
+        expect(repositorioCampanhaMock.criar).not.toHaveBeenCalled();
+    });
+
+    it("recusa criar campanha com ano de mais de 4 digitos", async () => {
+        await expect(
+            servico.criar(20, {
+                nome: "X",
+                dataInicio: "2026-09-01",
+                dataFim: "123456-01-01",
+                valorPorTicket: 10,
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 });
+        expect(repositorioCampanhaMock.criar).not.toHaveBeenCalled();
+    });
+
+    it("editar campanha ja iniciada mantendo o inicio e permitido", async () => {
+        vi.setSystemTime(new Date("2026-10-27T15:00:00.000Z"));
+        repositorioCampanhaMock.buscar.mockResolvedValue(campanhaFake());
+        repositorioCampanhaMock.atualizar.mockResolvedValue(campanhaFake());
+        await servico.atualizar(20, "1", {
+            nome: "Novo nome",
+            dataInicio: "2026-09-01",
+            dataFim: "2026-12-31",
+            valorPorTicket: 10,
+        });
+        expect(repositorioCampanhaMock.atualizar).toHaveBeenCalled();
     });
 
     it("lista apenas campanhas da associacao logada", async () => {

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StatusLojista, StatusResgateRecompensa } from "../../../generated/prisma/enums";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { fimDoDiaCivilNoFuso, instanteCivilNoFuso } from "../../../shared/tempo/fusoNegocio";
@@ -87,7 +87,13 @@ describe("ServicoRecompensa CRUD", () => {
     let repoLojista: { buscarPorUsuarioId: ReturnType<typeof vi.fn> };
     let servico: ServicoRecompensa;
 
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
     beforeEach(() => {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        vi.setSystemTime(new Date("2026-08-17T12:00:00.000Z"));
         repoRecompensa = {
             criar: vi.fn(),
             listarPorLojistaId: vi.fn().mockResolvedValue([]),
@@ -143,6 +149,34 @@ describe("ServicoRecompensa CRUD", () => {
                 dataFim: fimDoDiaCivilNoFuso({ ano: 2026, mes: 8, dia: 17 }),
             }),
         );
+    });
+
+    it("criar com dataFim anterior a hoje retorna 400", async () => {
+        await expect(
+            servico.criar(20, { nome: "Cupom", custoPontos: 100, dataFim: "2026-08-16" }),
+        ).rejects.toMatchObject({
+            message: "dataFim nao pode ser anterior a hoje",
+            statusCode: 400,
+        });
+        expect(repoRecompensa.criar).not.toHaveBeenCalled();
+    });
+
+    it("criar com ano de mais de 4 digitos retorna 400", async () => {
+        await expect(
+            servico.criar(20, { nome: "Cupom", custoPontos: 100, dataFim: "123456-01-01" }),
+        ).rejects.toMatchObject({ message: "dataFim invalida", statusCode: 400 });
+        expect(repoRecompensa.criar).not.toHaveBeenCalled();
+    });
+
+    it("atualizar trocando dataFim para o passado retorna 400", async () => {
+        repoRecompensa.buscar.mockResolvedValue(recompensaFake());
+        await expect(
+            servico.atualizar(20, "3", { dataFim: "2026-08-01" }),
+        ).rejects.toMatchObject({
+            message: "dataFim nao pode ser anterior a hoje",
+            statusCode: 400,
+        });
+        expect(repoRecompensa.atualizar).not.toHaveBeenCalled();
     });
 
     it("atualizar estoque negativo retorna 400", async () => {

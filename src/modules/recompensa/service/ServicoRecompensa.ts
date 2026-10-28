@@ -2,6 +2,7 @@ import { resolverConsumidorLogado } from "../../../shared/authz/resolverConsumid
 import { resolverLojistaAprovado } from "../../../shared/authz/resolverLojistaAprovado";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { civilNoFuso } from "../../../shared/tempo/fusoNegocio";
+import { garantirDataNaoPassada } from "../../../shared/tempo/garantirDataNaoPassada";
 import { interpretarDataFim } from "../../../shared/tempo/interpretarDataFim";
 import { Consumidor } from "../../consumidor/model/Consumidor";
 import { RespostaConsumidor } from "../../consumidor/dtos/RespostaConsumidor";
@@ -40,12 +41,14 @@ export class ServicoRecompensa {
             this.repositorioLojista,
             usuarioId,
         );
+        const dataFim = this.validarDataFimOpcional(request.dataFim);
+        garantirDataNaoPassada(dataFim, "dataFim");
         const criado = await this.repositorioRecompensa.criar({
             nome: this.validarNome(request.nome),
             descricao: this.validarDescricaoOpcional(request.descricao),
             custoPontos: this.validarCustoPontos(request.custoPontos),
             estoque: this.validarEstoque(request.estoque),
-            dataFim: this.validarDataFimOpcional(request.dataFim),
+            dataFim,
             lojistaId,
         });
         return this.paraResposta(criado);
@@ -107,6 +110,7 @@ export class ServicoRecompensa {
         }
         if (request.dataFim !== undefined) {
             dados.dataFim = this.validarDataFimOpcional(request.dataFim);
+            garantirDataNaoPassada(dados.dataFim, "dataFim", existente.dataFim);
         }
         if (Object.keys(dados).length === 0) {
             throw new ErroAplicacao("Nenhum campo para atualizar", 400);

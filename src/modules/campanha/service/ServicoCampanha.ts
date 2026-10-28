@@ -1,6 +1,7 @@
 import { resolverAssociacaoLogada } from "../../../shared/authz/resolverAssociacaoLogada";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { civilNoFuso } from "../../../shared/tempo/fusoNegocio";
+import { garantirDataNaoPassada } from "../../../shared/tempo/garantirDataNaoPassada";
 import {
     interpretarDataFim,
     interpretarDataInicio,
@@ -35,6 +36,8 @@ export class ServicoCampanha {
         const dataInicio = this.validarDataInicio(request.dataInicio);
         const dataFim = this.validarDataFim(request.dataFim);
         const valorPorTicket = this.validarValorPorTicket(request.valorPorTicket);
+        garantirDataNaoPassada(dataInicio, "dataInicio");
+        garantirDataNaoPassada(dataFim, "dataFim");
         this.validarPeriodo(dataInicio, dataFim);
 
         const criado = await this.repositorioCampanha.criar({
@@ -99,9 +102,11 @@ export class ServicoCampanha {
         }
         if (request.dataInicio !== undefined) {
             dados.dataInicio = this.validarDataInicio(request.dataInicio);
+            garantirDataNaoPassada(dados.dataInicio, "dataInicio", existente.dataInicio);
         }
         if (request.dataFim !== undefined) {
             dados.dataFim = this.validarDataFim(request.dataFim);
+            garantirDataNaoPassada(dados.dataFim, "dataFim", existente.dataFim);
         }
         if (request.valorPorTicket !== undefined) {
             dados.valorPorTicket = this.validarValorPorTicket(request.valorPorTicket);
