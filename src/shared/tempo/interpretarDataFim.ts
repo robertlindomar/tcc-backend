@@ -1,7 +1,16 @@
-import { fimDoDiaCivilNoFuso, instanteCivilNoFuso, parseDataCivil } from "./fusoNegocio";
+import { civilNoFuso, fimDoDiaCivilNoFuso, instanteCivilNoFuso, parseDataCivil } from "./fusoNegocio";
 import { missaoEstaExpirada } from "./calcularChavePeriodoMissao";
 
 export { missaoEstaExpirada };
+
+const ANO_MAXIMO = 9999;
+
+function garantirAnoComQuatroDigitos(instante: Date, erro: string): Date {
+    if (civilNoFuso(instante).ano > ANO_MAXIMO) {
+        throw new Error(erro);
+    }
+    return instante;
+}
 
 /** Data-only (YYYY-MM-DD) vira início do dia civil no fuso de negócio. ISO com hora é o instante enviado. */
 export function interpretarDataInicio(valor: unknown): Date {
@@ -23,7 +32,7 @@ export function interpretarDataInicio(valor: unknown): Date {
     if (Number.isNaN(instante.getTime())) {
         throw new Error("DATA_INICIO_INVALIDA");
     }
-    return instante;
+    return garantirAnoComQuatroDigitos(instante, "DATA_INICIO_INVALIDA");
 }
 
 /** Data-only (YYYY-MM-DD) vira fim do dia civil no fuso de negócio. ISO com hora é o instante enviado. */
@@ -46,5 +55,5 @@ export function interpretarDataFim(valor: unknown): Date {
     if (Number.isNaN(instante.getTime())) {
         throw new Error("DATA_FIM_INVALIDA");
     }
-    return instante;
+    return garantirAnoComQuatroDigitos(instante, "DATA_FIM_INVALIDA");
 }

@@ -14,4 +14,11 @@ describe("interpretarDataFim", () => {
     it("rejeita data civil inexistente", () => {
         expect(() => interpretarDataFim("2026-02-31")).toThrow();
     });
+
+    it.each(["123456-01-01", "+123456-01-01", "123456-01-01T00:00:00Z"])(
+        "rejeita ano com mais de 4 dígitos: %s",
+        (valor) => {
+            expect(() => interpretarDataFim(valor)).toThrow("DATA_FIM_INVALIDA");
+        },
+    );
 });

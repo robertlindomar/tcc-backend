@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FrequenciaMissao, StatusLojista } from "../../../generated/prisma/enums";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { lojistaFake } from "../../../shared/testes/lojistaFake";
@@ -36,6 +36,15 @@ const criarValido = {
     frequencia: FrequenciaMissao.SEMANAL,
     dataFim: "2026-09-30",
 };
+
+beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-08-17T15:00:00.000Z"));
+});
+
+afterEach(() => {
+    vi.useRealTimers();
+});
 
 describe("ServicoMissao frequencia e validade", () => {
     let repositorioMissaoMock: {
@@ -108,6 +117,48 @@ describe("ServicoMissao frequencia e validade", () => {
         expect(resultado.dataFimCivil).toBe("2026-09-30");
         expect(resultado.expirada).toBe(false);
         expect(resultado.tokenQr).toBeDefined();
+    });
+
+    it("criar aceita dataFim igual a hoje", async () => {
+        repositorioMissaoMock.criar.mockResolvedValue(missaoFake());
+        await servico.criar(20, { ...criarValido, dataFim: "2026-08-17" });
+        expect(repositorioMissaoMock.criar).toHaveBeenCalled();
+    });
+
+    it("criar rejeita dataFim anterior a hoje", async () => {
+        await expect(
+            servico.criar(20, { ...criarValido, dataFim: "2026-08-16" }),
+        ).rejects.toMatchObject({
+            message: "dataFim nao pode ser anterior a hoje",
+            statusCode: 400,
+        });
+        expect(repositorioMissaoMock.criar).not.toHaveBeenCalled();
+    });
+
+    it("criar rejeita ano com mais de 4 digitos", async () => {
+        await expect(
+            servico.criar(20, { ...criarValido, dataFim: "123456-01-01" }),
+        ).rejects.toMatchObject({ message: "dataFim invalida", statusCode: 400 });
+        expect(repositorioMissaoMock.criar).not.toHaveBeenCalled();
+    });
+
+    it("atualizar rejeita trocar dataFim para data passada", async () => {
+        repositorioMissaoMock.buscar.mockResolvedValue(missaoFake());
+        await expect(
+            servico.atualizar(20, "4", { dataFim: "2026-08-01" }),
+        ).rejects.toMatchObject({
+            message: "dataFim nao pode ser anterior a hoje",
+            statusCode: 400,
+        });
+        expect(repositorioMissaoMock.atualizar).not.toHaveBeenCalled();
+    });
+
+    it("atualizar missao vencida mantendo a mesma dataFim e permitido", async () => {
+        vi.setSystemTime(new Date("2026-10-27T15:00:00.000Z"));
+        repositorioMissaoMock.buscar.mockResolvedValue(missaoFake());
+        repositorioMissaoMock.atualizar.mockResolvedValue(missaoFake());
+        await servico.atualizar(20, "4", { nome: "Novo nome", dataFim: "2026-09-30" });
+        expect(repositorioMissaoMock.atualizar).toHaveBeenCalled();
     });
 
     it("alterar frequencia sem conclusao e permitido", async () => {

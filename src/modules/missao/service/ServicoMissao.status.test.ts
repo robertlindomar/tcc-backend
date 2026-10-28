@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FrequenciaMissao, StatusLojista } from "../../../generated/prisma/enums";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { lojistaFake } from "../../../shared/testes/lojistaFake";
@@ -26,7 +26,13 @@ describe("ServicoMissao por status do lojista", () => {
         dataFim: "2026-12-31",
     };
 
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
     beforeEach(() => {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        vi.setSystemTime(new Date("2026-08-17T15:00:00.000Z"));
         repositorioMissaoMock = {
             criar: vi.fn(),
             listarPorLojistaId: vi.fn().mockResolvedValue([]),

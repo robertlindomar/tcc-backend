@@ -42,6 +42,7 @@ export class ServicoMissao {
         const pontoRecompensa = this.validarPontoRecompensa(request.pontoRecompensa);
         const frequencia = this.validarFrequencia(request.frequencia);
         const dataFim = this.validarDataFimObrigatoria(request.dataFim);
+        this.garantirDataFimNaoPassada(dataFim);
 
         const criado = await this.repositorioMissao.criar({
             nome,
@@ -140,7 +141,11 @@ export class ServicoMissao {
             dados.frequencia = frequencia;
         }
         if (request.dataFim !== undefined) {
-            dados.dataFim = this.validarDataFimObrigatoria(request.dataFim);
+            const dataFim = this.validarDataFimObrigatoria(request.dataFim);
+            if (dataFim.getTime() !== existente.dataFim?.getTime()) {
+                this.garantirDataFimNaoPassada(dataFim);
+            }
+            dados.dataFim = dataFim;
         } else if (!existente.dataFim) {
             throw new ErroAplicacao("dataFim e obrigatoria", 400);
         }
@@ -240,6 +245,12 @@ export class ServicoMissao {
             return interpretarDataFim(valor);
         } catch {
             throw new ErroAplicacao("dataFim invalida", 400);
+        }
+    }
+
+    private garantirDataFimNaoPassada(dataFim: Date): void {
+        if (dataFim.getTime() < Date.now()) {
+            throw new ErroAplicacao("dataFim nao pode ser anterior a hoje", 400);
         }
     }
 
