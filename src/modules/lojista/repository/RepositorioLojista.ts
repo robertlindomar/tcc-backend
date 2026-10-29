@@ -24,6 +24,13 @@ type RegistroLojista = {
     usuario?: { email: string } | null;
 };
 
+export type LojaComOfertasVigentes = {
+    id: number;
+    nomeFantasia: string;
+    urlLogo: string | null;
+    ofertas: Array<{ valorOriginal: number; preco: number }>;
+};
+
 export class RepositorioLojista {
     constructor(private readonly prisma: PrismaClient) {}
 
@@ -190,6 +197,43 @@ export class RepositorioLojista {
             await this.prisma.lojista.delete({ where: { id } });
         } catch {
             throw new ErroAplicacao("Erro ao deletar lojista", 500);
+        }
+    }
+
+    /** Lojas aprovadas com os preços (original e promocional) das ofertas vigentes em `agora`. */
+    async listarAprovadasComOfertasVigentes(agora: Date): Promise<LojaComOfertasVigentes[]> {
+        try {
+            const lista = await this.prisma.lojista.findMany({
+                where: { status: StatusLojista.APROVADO },
+                select: {
+                    id: true,
+                    nomeFantasia: true,
+                    urlLogo: true,
+                    produtos: {
+                        select: {
+                            valor: true,
+                            promocoes: {
+                                where: { ativa: true, dataInicio: { lte: agora }, dataFim: { gte: agora } },
+                                select: { preco: true },
+                            },
+                        },
+                    },
+                },
+                orderBy: { id: "asc" },
+            });
+            return lista.map((loja) => ({
+                id: loja.id,
+                nomeFantasia: loja.nomeFantasia,
+                urlLogo: loja.urlLogo ?? null,
+                ofertas: loja.produtos.flatMap((produto) =>
+                    produto.promocoes.map((promocao) => ({
+                        valorOriginal: Number(produto.valor),
+                        preco: Number(promocao.preco),
+                    })),
+                ),
+            }));
+        } catch {
+            throw new ErroAplicacao("Erro ao listar lojas em destaque", 500);
         }
     }
 

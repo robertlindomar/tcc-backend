@@ -13,6 +13,10 @@ import { DTOCriarLojista } from "../dto/DTOCriarLojista";
 import { DTORejeitarLojista } from "../dto/DTORejeitarLojista";
 import { RespostaCatalogoLoja } from "../dtos/RespostaCatalogoLoja";
 import { RespostaCatalogoLojaDetalhe } from "../dtos/RespostaCatalogoLojaDetalhe";
+import { RespostaDestaqueLoja } from "../dtos/RespostaDestaqueLoja";
+import { calcularPercentualDesconto } from "../../promocao/utils/calcularPercentualDesconto";
+
+const LIMITE_DESTAQUES = 8;
 import { RespostaLojista } from "../dtos/RespostaLojista";
 import { Lojista } from "../model/Lojista";
 import { RepositorioLojista } from "../repository/RepositorioLojista";
@@ -121,6 +125,31 @@ export class ServicoLojista {
         }
 
         throw new ErroAplicacao("Acesso nao autorizado para este perfil", 403);
+    }
+
+    /** Lojas aprovadas com mais ofertas vigentes (desempate: maior desconto, depois id). */
+    async listarDestaquesCatalogo(agora = new Date(), limite = LIMITE_DESTAQUES): Promise<RespostaDestaqueLoja[]> {
+        const lojas = await this.repositorioLojista.listarAprovadasComOfertasVigentes(agora);
+        return lojas
+            .map((loja) => {
+                const descontos = loja.ofertas
+                    .map((oferta) => calcularPercentualDesconto(oferta.valorOriginal, oferta.preco))
+                    .filter((desconto): desconto is number => desconto !== null);
+                return {
+                    id: loja.id,
+                    nomeFantasia: loja.nomeFantasia,
+                    urlLogo: loja.urlLogo,
+                    ofertasVigentes: loja.ofertas.length,
+                    maiorDesconto: descontos.length ? Math.max(...descontos) : null,
+                };
+            })
+            .sort(
+                (a, b) =>
+                    b.ofertasVigentes - a.ofertasVigentes ||
+                    (b.maiorDesconto ?? -1) - (a.maiorDesconto ?? -1) ||
+                    a.id - b.id,
+            )
+            .slice(0, limite);
     }
 
     async listarCatalogo(

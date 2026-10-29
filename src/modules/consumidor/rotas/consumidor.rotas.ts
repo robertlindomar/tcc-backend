@@ -16,6 +16,11 @@ export function RotasConsumidor() {
         garantirPapel(Role.CONSUMIDOR),
         tratarAsync(controller.buscarAtual.bind(controller)),
     );
+    router.get(
+        "/me/progresso",
+        garantirPapel(Role.CONSUMIDOR),
+        tratarAsync(controller.buscarProgressoAtual.bind(controller)),
+    );
     router.get("/", tratarAsync(controller.listar.bind(controller)));
     router.get("/:id", tratarAsync(controller.buscar.bind(controller)));
     router.post(

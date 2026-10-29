@@ -18,6 +18,11 @@ export function RotasLojista() {
         tratarAsync(controller.catalogo.bind(controller)),
     );
     router.get(
+        "/catalogo/destaques",
+        garantirPapel(Role.CONSUMIDOR),
+        tratarAsync(controller.catalogoDestaques.bind(controller)),
+    );
+    router.get(
         "/catalogo/:id",
         garantirPapel(Role.CONSUMIDOR),
         tratarAsync(controller.catalogoDetalhe.bind(controller)),

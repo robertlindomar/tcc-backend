@@ -10,6 +10,8 @@ import { DTOAtualizarConsumidor } from "../dto/DTOAtualizarConsumidor";
 import { DTOCriarConsumidor } from "../dto/DTOCriarConsumidor";
 import { RespostaConsumidor } from "../dtos/RespostaConsumidor";
 import { RespostaPerfilConsumidorAtual } from "../dtos/RespostaPerfilConsumidorAtual";
+import { RespostaProgressoConsumidor } from "../dtos/RespostaProgressoConsumidor";
+import { calcularProgressoXp, calcularXp } from "../../../shared/utils/calcularProgressoXp";
 import {
     RespostaListagemVisitantesLoja,
     RespostaVisitanteLoja,
@@ -64,6 +66,21 @@ export class ServicoConsumidor {
         });
 
         return this.paraResposta(criado);
+    }
+
+    /** Painel de jogo: XP (nunca diminui ao gastar), nível de XP e contadores de atividade. */
+    async buscarProgressoAtual(
+        usuarioLogado: { id: number; role: Role },
+    ): Promise<RespostaProgressoConsumidor> {
+        const { consumidor } = await this.buscarAtual(usuarioLogado);
+        const estatisticas = await this.repositorioConsumidor.buscarEstatisticasProgresso(consumidor.id);
+        const xp = calcularXp(consumidor.pontos, estatisticas.pontosGastos);
+        return {
+            pontos: consumidor.pontos,
+            xp,
+            ...calcularProgressoXp(xp),
+            ...estatisticas,
+        };
     }
 
     async buscarAtual(

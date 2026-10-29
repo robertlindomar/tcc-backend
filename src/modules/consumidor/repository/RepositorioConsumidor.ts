@@ -1,5 +1,15 @@
 import { PrismaClient } from "../../../generated/prisma/client";
+import { StatusResgateRecompensa } from "../../../generated/prisma/enums";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+
+export type EstatisticasProgressoConsumidor = {
+    pontosGastos: number;
+    resgates: number;
+    missoesConcluidas: number;
+    lojasVisitadas: number;
+    notasLidas: number;
+    ticketsCampanhasAtivas: number;
+};
 import { Consumidor } from "../model/Consumidor";
 import { RespostaVisitanteLoja } from "../dtos/RespostaVisitanteLoja";
 
@@ -203,6 +213,54 @@ export class RepositorioConsumidor {
                 sistema: true,
             },
         };
+    }
+
+    /** Contadores de atividade do consumidor (somente leitura). */
+    async buscarEstatisticasProgresso(consumidorId: number): Promise<EstatisticasProgressoConsumidor> {
+        try {
+            const resgatesValidos = { consumidorId, status: { not: StatusResgateRecompensa.RECUSADO } };
+            const [gastos, resgates, missoesConcluidas, lojasVisitadas, notasLidas, campanhasAtivas] =
+                await Promise.all([
+                    this.prisma.resgateRecompensa.aggregate({
+                        where: resgatesValidos,
+                        _sum: { custoPontosSnapshot: true },
+                    }),
+                    this.prisma.resgateRecompensa.count({ where: resgatesValidos }),
+                    this.prisma.missaoConsumidor.count({ where: { consumidorId } }),
+                    this.prisma.lojista.count({
+                        where: { missoes: { some: { missaoConsumidores: { some: { consumidorId } } } } },
+                    }),
+                    this.prisma.processamentoNfce.count({ where: { consumidorId } }),
+                    this.prisma.campanha.findMany({
+                        where: { ativa: true },
+                        select: { id: true, edicao: true },
+                    }),
+                ]);
+
+            const residuais = campanhasAtivas.length
+                ? await this.prisma.residualTicketCampanha.findMany({
+                      where: {
+                          consumidorId,
+                          OR: campanhasAtivas.map((campanha) => ({
+                              campanhaId: campanha.id,
+                              edicao: campanha.edicao,
+                          })),
+                      },
+                      select: { ticketsTotais: true },
+                  })
+                : [];
+
+            return {
+                pontosGastos: gastos._sum.custoPontosSnapshot ?? 0,
+                resgates,
+                missoesConcluidas,
+                lojasVisitadas,
+                notasLidas,
+                ticketsCampanhasAtivas: residuais.reduce((total, item) => total + item.ticketsTotais, 0),
+            };
+        } catch {
+            throw new ErroAplicacao("Erro ao buscar progresso do consumidor", 500);
+        }
     }
 
     private paraDominio(item: RegistroConsumidor): Consumidor {

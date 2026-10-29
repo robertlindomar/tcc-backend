@@ -26,6 +26,10 @@ export class ControladorLojista {
         response.status(200).json(lista);
     }
 
+    async catalogoDestaques(_request: Request, response: Response, _next: NextFunction): Promise<void> {
+        response.status(200).json(await this.servicoLojista.listarDestaquesCatalogo());
+    }
+
     async catalogoDetalhe(
         request: Request,
         response: Response,
