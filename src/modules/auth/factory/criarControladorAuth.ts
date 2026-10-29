@@ -5,6 +5,7 @@ import { ServicoUsuario } from "../../usuario/service/ServicoUsuario";
 import { ControladorAuth } from "../controller/ControladorAuth";
 import { ServicoCadastro } from "../service/ServicoCadastro";
 import { ServicoCadastroConsumidor } from "../service/ServicoCadastroConsumidor";
+import { ServicoEsqueciSenha } from "../service/ServicoEsqueciSenha";
 import { ServicoLogin } from "../service/ServicoLogin";
 
 export function criarControladorAuth(): ControladorAuth {
@@ -17,5 +18,12 @@ export function criarControladorAuth(): ControladorAuth {
         new ClienteViaCep(),
     );
 
-    return new ControladorAuth(servicoLogin, servicoCadastro, servicoCadastroConsumidor);
+    const servicoEsqueciSenha = new ServicoEsqueciSenha(repositorioUsuario);
+
+    return new ControladorAuth(
+        servicoLogin,
+        servicoCadastro,
+        servicoCadastroConsumidor,
+        servicoEsqueciSenha,
+    );
 }

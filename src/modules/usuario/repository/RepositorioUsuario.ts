@@ -125,6 +125,17 @@ export class RepositorioUsuario {
         }
     }
 
+    async atualizarSenha(id: number, senhaHash: string): Promise<void> {
+        try {
+            await this.prisma.usuario.update({
+                where: { id },
+                data: { senha: senhaHash },
+            });
+        } catch {
+            throw new ErroAplicacao("Erro ao atualizar senha", 500);
+        }
+    }
+
     async deletar(id: number): Promise<void> {
         try {
             await this.prisma.usuario.delete({ where: { id } });

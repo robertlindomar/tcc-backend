@@ -12,6 +12,7 @@ export function RotasAuth() {
         "/cadastro-consumidor",
         tratarAsync(controller.cadastroConsumidor.bind(controller)),
     );
+    router.post("/esqueci-senha", tratarAsync(controller.esqueciSenha.bind(controller)));
 
     return router;
 }
