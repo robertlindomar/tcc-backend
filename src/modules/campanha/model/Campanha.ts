@@ -6,6 +6,8 @@ type CampanhaProps = {
     dataInicio: Date;
     dataFim: Date;
     valorPorTicket: number;
+    ativa: boolean;
+    edicao: number;
     associacaoId: number;
     dataCriacao: Date;
     dataAtualizacao: Date;
@@ -44,6 +46,14 @@ export class Campanha {
 
     get valorPorTicket() {
         return this.props.valorPorTicket;
+    }
+
+    get ativa() {
+        return this.props.ativa;
+    }
+
+    get edicao() {
+        return this.props.edicao;
     }
 
     get associacaoId() {

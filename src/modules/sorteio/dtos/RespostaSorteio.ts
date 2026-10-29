@@ -22,7 +22,13 @@ export interface RespostaSorteio {
     id: number;
     qrcode: string | null;
     campanhaId: number;
+    edicao: number;
+    dataInicioEdicao: Date;
+    dataFimEdicao: Date;
+    valorPorTicketEdicao: number;
+    /** Tickets da edição deste sorteio. */
     totalTickets: number;
+    /** A edição deste sorteio já terminou (`agora > dataFimEdicao`). */
     campanhaEncerrada: boolean;
     resultadoAtual: RespostaResultadoSorteio | null;
     historico: RespostaResultadoSorteio[];

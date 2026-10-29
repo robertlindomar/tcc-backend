@@ -50,6 +50,10 @@ export function RotasNfce(controller: ControladorNfce = criarControladorNfce()) 
         "/campanhas-vigentes",
         tratarAsync(controller.listarCampanhasVigentes.bind(controller)),
     );
+    router.get(
+        "/campanhas/:id/meu-extrato",
+        tratarAsync(controller.extratoDaCampanha.bind(controller)),
+    );
     router.post(
         "/processar",
         rateLimitProcessarNfce,

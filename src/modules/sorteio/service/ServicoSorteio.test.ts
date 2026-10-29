@@ -26,15 +26,21 @@ function associacaoFake(id = 3): Associacao {
     });
 }
 
-function campanhaFake(associacaoId: number, id = 10): Campanha {
+function campanhaFake(
+    associacaoId: number,
+    id = 10,
+    atual: { edicao?: number; dataFim?: Date } = {},
+): Campanha {
     return new Campanha({
         id,
         nome: "Campanha Base",
         descricao: null,
         qrcode: null,
         dataInicio: new Date("2026-09-01T00:00:00.000Z"),
-        dataFim: FIM_PASSADO,
+        dataFim: atual.dataFim ?? FIM_PASSADO,
         valorPorTicket: 10,
+        ativa: true,
+        edicao: atual.edicao ?? 1,
         associacaoId,
         dataCriacao: AGORA,
         dataAtualizacao: AGORA,
@@ -67,7 +73,8 @@ function resultadoFake(
 
 function sorteioFake(
     opcoes: {
-        dataFimCampanha?: Date;
+        dataFimEdicao?: Date;
+        edicao?: number;
         totalTickets?: number;
         resultados?: ResultadoSorteio[];
     } = {},
@@ -76,7 +83,10 @@ function sorteioFake(
         id: 1,
         qrcode: null,
         campanhaId: 10,
-        dataFimCampanha: opcoes.dataFimCampanha ?? FIM_PASSADO,
+        edicao: opcoes.edicao ?? 1,
+        dataInicioEdicao: new Date("2026-09-01T00:00:00.000Z"),
+        dataFimEdicao: opcoes.dataFimEdicao ?? FIM_PASSADO,
+        valorPorTicketEdicao: 10,
         totalTickets: opcoes.totalTickets ?? 5,
         resultados: opcoes.resultados ?? [],
         dataCriacao: AGORA,
@@ -86,9 +96,7 @@ function sorteioFake(
 
 describe("ServicoSorteio", () => {
     let repositorioSorteioMock: {
-        criar: ReturnType<typeof vi.fn>;
         buscar: ReturnType<typeof vi.fn>;
-        deletar: ReturnType<typeof vi.fn>;
         buscarTicketIdPorNumero: ReturnType<typeof vi.fn>;
         registrarResultado: ReturnType<typeof vi.fn>;
         confirmarEntrega: ReturnType<typeof vi.fn>;
@@ -100,10 +108,10 @@ describe("ServicoSorteio", () => {
 
     beforeEach(() => {
         repositorioSorteioMock = {
-            criar: vi.fn(),
             buscar: vi.fn(),
-            deletar: vi.fn(),
-            buscarTicketIdPorNumero: vi.fn(async (_campanhaId: number, numero: number) => 100 + numero),
+            buscarTicketIdPorNumero: vi.fn(
+                async (_campanhaId: number, _edicao: number, numero: number) => 100 + numero,
+            ),
             registrarResultado: vi.fn(),
             confirmarEntrega: vi.fn().mockResolvedValue(true),
         };
@@ -123,19 +131,24 @@ describe("ServicoSorteio", () => {
         );
     });
 
-    it("cria sorteio quando campanha pertence a associacao logada", async () => {
-        repositorioSorteioMock.criar.mockResolvedValue(sorteioFake());
+    it("nao expoe CRUD manual: sorteio nasce com a edicao da campanha", () => {
+        const metodos = servico as unknown as Record<string, unknown>;
+        expect(metodos.criar).toBeUndefined();
+        expect(metodos.atualizar).toBeUndefined();
+        expect(metodos.deletar).toBeUndefined();
+    });
 
-        const resultado = await servico.criar(20, { campanhaId: 10, qrcode: "qr-sorteio" });
+    it("busca retorna a edicao e os snapshots do sorteio", async () => {
+        repositorioSorteioMock.buscar.mockResolvedValue(sorteioFake({ edicao: 2 }));
 
-        expect(repositorioCampanhaMock.buscar).toHaveBeenCalledWith(10);
-        expect(repositorioSorteioMock.criar).toHaveBeenCalledWith({
-            campanhaId: 10,
-            qrcode: "qr-sorteio",
-        });
+        const resultado = await servico.buscar(20, "1");
+
         expect(resultado).toMatchObject({
             id: 1,
             campanhaId: 10,
+            edicao: 2,
+            dataFimEdicao: FIM_PASSADO,
+            valorPorTicketEdicao: 10,
             totalTickets: 5,
             campanhaEncerrada: true,
             resultadoAtual: null,
@@ -143,17 +156,14 @@ describe("ServicoSorteio", () => {
         });
     });
 
-    it("retorna 404 quando campanha pertence a outra associacao", async () => {
+    it("sorteio de outra associacao → 404 (ErroAplicacao)", async () => {
+        repositorioSorteioMock.buscar.mockResolvedValue(sorteioFake());
         repositorioCampanhaMock.buscar.mockResolvedValue(campanhaFake(999, 10));
 
-        const promessa = servico.criar(20, { campanhaId: 10, qrcode: null });
+        const promessa = servico.buscar(20, "1");
 
         await expect(promessa).rejects.toBeInstanceOf(ErroAplicacao);
-        await expect(promessa).rejects.toMatchObject({
-            message: "Campanha nao encontrada",
-            statusCode: 404,
-        });
-        expect(repositorioSorteioMock.criar).not.toHaveBeenCalled();
+        await expect(promessa).rejects.toMatchObject({ statusCode: 404 });
     });
 
     describe("sortear", () => {
@@ -167,7 +177,7 @@ describe("ServicoSorteio", () => {
             const resposta = await servico.sortear(20, "1");
 
             expect(sortearNumero).toHaveBeenCalledWith(1, 5);
-            expect(repositorioSorteioMock.buscarTicketIdPorNumero).toHaveBeenCalledWith(10, 3);
+            expect(repositorioSorteioMock.buscarTicketIdPorNumero).toHaveBeenCalledWith(10, 1, 3);
             expect(repositorioSorteioMock.registrarResultado).toHaveBeenCalledWith({
                 sorteioId: 1,
                 ticketId: 103,
@@ -187,9 +197,46 @@ describe("ServicoSorteio", () => {
             });
         });
 
+        it("edicao antiga continua sorteavel depois que a campanha abriu outra edicao", async () => {
+            repositorioCampanhaMock.buscar.mockResolvedValue(
+                campanhaFake(3, 10, { edicao: 2, dataFim: FIM_FUTURO }),
+            );
+            repositorioSorteioMock.buscar.mockResolvedValue(sorteioFake({ edicao: 1 }));
+            sortearNumero.mockReturnValue(2);
+
+            await servico.sortear(20, "1");
+
+            expect(repositorioSorteioMock.buscarTicketIdPorNumero).toHaveBeenCalledWith(10, 1, 2);
+            expect(repositorioSorteioMock.registrarResultado).toHaveBeenCalledWith(
+                expect.objectContaining({ sorteioId: 1, ticketId: 102, numeroSorteado: 2 }),
+            );
+        });
+
+        it("usa o fim da edicao do sorteio, nao o periodo atual da campanha", async () => {
+            repositorioCampanhaMock.buscar.mockResolvedValue(
+                campanhaFake(3, 10, { dataFim: FIM_PASSADO }),
+            );
+            repositorioSorteioMock.buscar.mockResolvedValue(
+                sorteioFake({ dataFimEdicao: FIM_FUTURO }),
+            );
+
+            await expect(servico.sortear(20, "1")).rejects.toMatchObject({
+                detalhes: { codigo: "CAMPANHA_NAO_ENCERRADA" },
+            });
+        });
+
+        it("ticket do numero sorteado ausente na edicao → 500 sem registrar", async () => {
+            repositorioSorteioMock.buscar.mockResolvedValue(sorteioFake());
+            repositorioSorteioMock.buscarTicketIdPorNumero.mockResolvedValue(null);
+            sortearNumero.mockReturnValue(4);
+
+            await expect(servico.sortear(20, "1")).rejects.toMatchObject({ statusCode: 500 });
+            expect(repositorioSorteioMock.registrarResultado).not.toHaveBeenCalled();
+        });
+
         it("campanha ainda nao terminou → 409", async () => {
             repositorioSorteioMock.buscar.mockResolvedValue(
-                sorteioFake({ dataFimCampanha: FIM_FUTURO }),
+                sorteioFake({ dataFimEdicao: FIM_FUTURO }),
             );
 
             await expect(servico.sortear(20, "1")).rejects.toMatchObject({
@@ -335,14 +382,5 @@ describe("ServicoSorteio", () => {
                 detalhes: { codigo: "SORTEIO_NAO_REALIZADO" },
             });
         });
-    });
-
-    it("nao exclui sorteio ja realizado", async () => {
-        repositorioSorteioMock.buscar.mockResolvedValue(
-            sorteioFake({ resultados: [resultadoFake(1, 2, "CANCELADO")] }),
-        );
-
-        await expect(servico.deletar(20, "1")).rejects.toMatchObject({ statusCode: 409 });
-        expect(repositorioSorteioMock.deletar).not.toHaveBeenCalled();
     });
 });

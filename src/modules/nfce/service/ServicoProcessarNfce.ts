@@ -6,6 +6,7 @@ import { RepositorioCampanha } from "../../campanha/repository/RepositorioCampan
 import { RepositorioLojista } from "../../lojista/repository/RepositorioLojista";
 import { AdaptadorNfce, NfceConsultada } from "../adaptador/AdaptadorNfce";
 import { RespostaCampanhaVigente } from "../dtos/RespostaCampanhaVigente";
+import { RespostaExtratoCampanha } from "../dtos/RespostaExtratoCampanha";
 import {
     RepositorioProcessamentoNfce,
     ResultadoCreditoNfce,
@@ -47,6 +48,32 @@ export class ServicoProcessarNfce {
     async listarCampanhasVigentes(agora: Date = new Date()): Promise<RespostaCampanhaVigente[]> {
         const vigentes = await this.repositorioCampanha.listarVigentesEm(agora);
         return vigentes.map((campanha) => this.paraCampanhaVigente(campanha));
+    }
+
+    /** Extrato do consumidor na edição atual da campanha (só os dados dele). */
+    async extratoDaCampanha(consumidorId: number, campanhaId: number): Promise<RespostaExtratoCampanha> {
+        if (!Number.isInteger(campanhaId) || campanhaId <= 0) {
+            throw new ErroAplicacao("ID da campanha invalido", 400);
+        }
+        const campanha = await this.repositorioCampanha.buscar(campanhaId);
+        if (!campanha) {
+            throw new ErroAplicacao("Campanha nao encontrada", 404);
+        }
+        const extrato = await this.repositorioProcessamento.buscarExtratoConsumidor(
+            consumidorId,
+            campanha.id,
+            campanha.edicao,
+        );
+        const faltaEmCentavos = Math.round(campanha.valorPorTicket * 100) - Math.round(extrato.valorResidual * 100);
+        return {
+            campanhaId: campanha.id,
+            edicao: campanha.edicao,
+            valorPorTicket: campanha.valorPorTicket,
+            totalTickets: extrato.totalTickets,
+            valorResidual: extrato.valorResidual,
+            faltaParaProximoTicket: Math.max(0, faltaEmCentavos) / 100,
+            notas: extrato.notas,
+        };
     }
 
     async processar(entrada: EntradaProcessarNfce): Promise<ResultadoProcessarNfce> {
@@ -153,7 +180,7 @@ export class ServicoProcessarNfce {
             lojistaId: lojista.id,
             valorNota: dadosNfce.valorTotal,
             dataEmissao: dadosNfce.dataEmissao,
-            valorPorTicket: campanha.valorPorTicket,
+            agora,
         });
 
         return {
@@ -182,6 +209,17 @@ export class ServicoProcessarNfce {
             const campanha = await this.repositorioCampanha.buscar(campanhaId);
             if (!campanha) {
                 throw new ErroAplicacao("Campanha nao encontrada", 404);
+            }
+            if (!campanha.ativa) {
+                throw new ErroAplicacao("Campanha inativa", 400, { codigo: "CAMPANHA_INATIVA" });
+            }
+            if (
+                agora.getTime() < campanha.dataInicio.getTime() ||
+                agora.getTime() > campanha.dataFim.getTime()
+            ) {
+                throw new ErroAplicacao("Campanha fora do periodo vigente", 400, {
+                    codigo: "CAMPANHA_NAO_VIGENTE",
+                });
             }
             return campanha;
         }

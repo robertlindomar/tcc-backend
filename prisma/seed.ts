@@ -6,6 +6,8 @@ import { PrismaClient } from "../src/generated/prisma/client.js";
 import { FrequenciaMissao, Role, StatusLojista } from "../src/generated/prisma/enums.js";
 import { fimDoDiaCivilNoFuso } from "../src/shared/tempo/fusoNegocio";
 import { RepositorioMissao } from "../src/modules/missao/repository/RepositorioMissao";
+import { normalizarNomeCampanha } from "../src/modules/campanha/utils/normalizarNomeCampanha";
+import { snapshotSorteioEdicao } from "../src/modules/campanha/utils/snapshotSorteioEdicao";
 import { EMAILS_DEMO, SENHA_DEMO } from "./contas-demo";
 
 const connectionString = process.env.DATABASE_URL;
@@ -450,7 +452,7 @@ async function garantirCampanhasDemo(associacaoId: number) {
             where: { nome: campanha.nome, associacaoId },
         });
         if (existente) {
-            await prisma.campanha.update({
+            const sincronizada = await prisma.campanha.update({
                 where: { id: existente.id },
                 data: {
                     dataInicio: campanha.dataInicio,
@@ -458,19 +460,23 @@ async function garantirCampanhasDemo(associacaoId: number) {
                     valorPorTicket: campanha.valorPorTicket,
                 },
             });
+            const { campanhaId: _campanhaId, edicao: _edicao, ...snapshot } =
+                snapshotSorteioEdicao(sincronizada);
+            await prisma.sorteio.updateMany({
+                where: { campanhaId: sincronizada.id, edicao: sincronizada.edicao },
+                data: snapshot,
+            });
             console.log(
                 `Campanha demo sincronizada: ${existente.nome} (id=${existente.id}) — vigência cobre 2026-08-15`,
             );
             continue;
         }
         const criada = await prisma.campanha.create({
-            data: { ...campanha, associacaoId },
+            data: { ...campanha, nomeNormalizado: normalizarNomeCampanha(campanha.nome), associacaoId },
         });
         console.log(`Campanha demo criada: ${criada.nome} (id=${criada.id})`);
 
-        await prisma.sorteio.create({
-            data: { campanhaId: criada.id, qrcode: null },
-        });
+        await prisma.sorteio.create({ data: snapshotSorteioEdicao(criada) });
     }
 }
 

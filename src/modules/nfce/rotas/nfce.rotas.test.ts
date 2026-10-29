@@ -57,6 +57,9 @@ describe("POST /nfce/processar (rotas)", () => {
             listarCampanhasVigentes: vi.fn(async (_req, res) => {
                 res.status(200).json([{ id: 1, nome: "Natal" }]);
             }),
+            extratoDaCampanha: vi.fn(async (req, res) => {
+                res.status(200).json({ campanhaId: Number(req.params.id), totalTickets: 3 });
+            }),
         } as unknown as ControladorNfce;
         const app = express();
         app.use(express.json());
@@ -74,6 +77,22 @@ describe("POST /nfce/processar (rotas)", () => {
             expect(resposta.status).toBe(200);
             const body = await resposta.json();
             expect(body).toEqual([{ id: 1, nome: "Natal" }]);
+        });
+    });
+
+    it("GET /nfce/campanhas/:id/meu-extrato só para CONSUMIDOR", async () => {
+        const app = criarApp();
+        await comServidor(app, async (baseUrl) => {
+            const resposta = await fetch(`${baseUrl}/nfce/campanhas/7/meu-extrato`, {
+                headers: { Authorization: `Bearer ${tokenPara(Role.CONSUMIDOR)}` },
+            });
+            expect(resposta.status).toBe(200);
+            expect(await resposta.json()).toEqual({ campanhaId: 7, totalTickets: 3 });
+
+            const lojista = await fetch(`${baseUrl}/nfce/campanhas/7/meu-extrato`, {
+                headers: { Authorization: `Bearer ${tokenPara(Role.LOJISTA)}` },
+            });
+            expect(lojista.status).toBe(403);
         });
     });
 

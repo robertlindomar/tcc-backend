@@ -15,6 +15,7 @@
     "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:banco": "RODAR_TESTES_BANCO=1 vitest run src/integracao",
     "nfce:teste:sefaz": "tsx scripts/nfce-teste-sefaz.ts",
     "db:demo:completa": "tsx prisma/scripts/preparar-demo-completa.ts"
   },

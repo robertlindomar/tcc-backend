@@ -4056,7 +4056,9 @@
                   "const body = pm.response.json();",
                   "pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
                   "pm.test('associacaoId', () => pm.expect(body.associacaoId).to.be.a('number'));",
-                  "pm.collectionVariables.set('campanhaId', body.id);"
+                  "pm.collectionVariables.set('campanhaId', body.id);",
+                  "pm.test('Sorteio automático da edição 1', () => { pm.expect(body.sorteioId).to.be.a('number'); pm.expect(body.edicao).to.eql(1); pm.expect(body.ativa).to.eql(true); });",
+                  "pm.collectionVariables.set('sorteioId', body.sorteioId);"
                 ]
               }
             }
@@ -4222,13 +4224,131 @@
           }
         },
         {
+          "name": "Listar Edições da Campanha",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Histórico por edição', () => { pm.expect(body).to.be.an('array'); pm.expect(body[0]).to.have.property('situacaoSorteio'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/campanha/{{campanhaId}}/edicoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "campanha",
+                "{{campanhaId}}",
+                "edicoes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Inativar Campanha",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Inativa', () => pm.expect(pm.response.json().ativa).to.eql(false));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/campanha/{{campanhaId}}/inativar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "campanha",
+                "{{campanhaId}}",
+                "inativar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reativar Campanha (nova edição)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ou 409 com código', () => {",
+                  "  pm.expect([200, 409]).to.include(pm.response.code);",
+                  "  const body = pm.response.json();",
+                  "  if (pm.response.code === 200) { pm.expect(body.ativa).to.eql(true); pm.collectionVariables.set('sorteioId', body.sorteioId); }",
+                  "  else pm.expect(['CAMPANHA_AINDA_VIGENTE','SORTEIO_PENDENTE','CAMPANHA_JA_ATIVA','CAMPANHA_PERIODO_OCUPADO','OPERACAO_CONCORRENTE']).to.include(body.codigo);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAssociacao}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/campanha/{{campanhaId}}/reativar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "campanha",
+                "{{campanhaId}}",
+                "reativar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataInicio\": \"2027-09-01\",\n  \"dataFim\": \"2027-12-31\",\n  \"valorPorTicket\": 10\n}"
+            }
+          }
+        },
+        {
           "name": "Deletar Campanha",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                  "pm.test('204 ou 409 com código', () => {",
+                  "  pm.expect([204, 409]).to.include(pm.response.code);",
+                  "  if (pm.response.code === 409) pm.expect(['CAMPANHA_COM_TICKETS','CAMPANHA_COM_HISTORICO']).to.include(pm.response.json().codigo);",
+                  "});"
                 ]
               }
             }
@@ -4292,6 +4412,43 @@
               ]
             },
             "description": "Lista campanhas vigentes para o consumidor escolher ao processar NFC-e."
+          }
+        },
+        {
+          "name": "Meu extrato da campanha (NFC-e)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Extrato da edição atual', () => { pm.expect(body).to.have.property('totalTickets'); pm.expect(body).to.have.property('edicao'); pm.expect(body.notas).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenConsumidor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/nfce/campanhas/{{campanhaId}}/meu-extrato",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "nfce",
+                "campanhas",
+                "{{campanhaId}}",
+                "meu-extrato"
+              ]
+            },
+            "description": "Tickets, saldo residual e NFC-e lidas pelo consumidor logado na edição atual da campanha (loja, valor, tickets gerados)."
           }
         },
         {
@@ -4472,7 +4629,9 @@
               "script": {
                 "exec": [
                   "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set('campanhaId', pm.response.json().id);"
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('campanhaId', body.id);",
+                  "pm.collectionVariables.set('sorteioId', body.sorteioId);"
                 ]
               }
             }
@@ -4500,50 +4659,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nome\": \"Campanha Sorteio\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Criar Sorteio",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "const body = pm.response.json();",
-                  "pm.test('Retorna id', () => pm.expect(body.id).to.be.a('number'));",
-                  "pm.test('campanhaId', () => pm.expect(body.campanhaId).to.be.a('number'));",
-                  "pm.collectionVariables.set('sorteioId', body.id);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{tokenAssociacao}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/sorteio",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "sorteio"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"campanhaId\": {{campanhaId}},\n  \"qrcode\": null\n}"
+              "raw": "{\n  \"nome\": \"Campanha Sorteio\",\n  \"dataInicio\": \"2027-01-10\",\n  \"dataFim\": \"2027-01-20\",\n  \"valorPorTicket\": 10\n}"
             }
           }
         },
@@ -4610,47 +4726,6 @@
                 "sorteio",
                 "{{sorteioId}}"
               ]
-            }
-          }
-        },
-        {
-          "name": "Atualizar Sorteio",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('qrcode', () => pm.expect(pm.response.json().qrcode).to.eql('QR-SORTEIO-1'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{tokenAssociacao}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/sorteio/{{sorteioId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "sorteio",
-                "{{sorteioId}}"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"qrcode\": \"QR-SORTEIO-1\"\n}"
             }
           }
         },
@@ -4782,38 +4857,6 @@
               ]
             },
             "description": "O ganhador confirma a leitura no app. A associação registra a retirada até 7 dias desde o sorteio. Sem leitura retorna 409 LEITURA_NAO_CONFIRMADA; após prazo, 409 PRAZO_RETIRADA_ENCERRADO."
-          }
-        },
-        {
-          "name": "Deletar Sorteio",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"204 excluido ou 409 (sorteio ja realizado)\", () => pm.expect([204, 409]).to.include(pm.response.code));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{tokenAssociacao}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/sorteio/{{sorteioId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "sorteio",
-                "{{sorteioId}}"
-              ]
-            }
           }
         },
         {

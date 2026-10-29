@@ -25,6 +25,25 @@ export class ControladorNfce {
         response.status(200).json(lista);
     }
 
+    async extratoDaCampanha(
+        request: Request,
+        response: Response,
+        _next: NextFunction,
+    ): Promise<void> {
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
+        const { consumidorId } = await resolverConsumidorLogado(
+            this.repositorioConsumidor,
+            request.usuario.id,
+        );
+        const extrato = await this.servicoProcessarNfce.extratoDaCampanha(
+            consumidorId,
+            Number(request.params.id),
+        );
+        response.status(200).json(extrato);
+    }
+
     async processar(
         request: Request,
         response: Response,

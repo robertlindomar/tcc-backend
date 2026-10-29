@@ -10,3 +10,4 @@ node_modules
 
 # Backups locais de banco (nunca no Git)
 /backups/
+/prisma/backups/

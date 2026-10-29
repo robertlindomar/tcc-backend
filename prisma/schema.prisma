@@ -377,6 +377,13 @@ model Campanha {
   /// Reais por 1 ticket (ex.: 10.00). Sempre > 0. Decimal(10,2) como produto/promoção.
   valorPorTicket Decimal @map("valor_por_ticket_campanha") @db.Decimal(10, 2)
 
+  /// Inativa = fora das vigentes e sem novos créditos; histórico preservado.
+  ativa  Boolean @default(true) @map("ativa_campanha")
+  /// Edição atual (1..N). Reativar incrementa; tickets/residual/sorteio são por edição.
+  edicao Int     @default(1) @map("edicao_campanha")
+  /// Chave de unicidade gerada pelo backend (normalizarNomeCampanha).
+  nomeNormalizado String @map("nome_normalizado_campanha") @db.VarChar(255)
+
   associacaoId Int        @map("id_associacao")
   associacao   Associacao @relation(fields: [associacaoId], references: [id])
 
@@ -388,6 +395,7 @@ model Campanha {
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
+  @@unique([associacaoId, nomeNormalizado])
   @@index([associacaoId])
   @@index([dataFim])
   @@map("campanha")
@@ -402,6 +410,8 @@ model ProcessamentoNfce {
 
   campanhaId Int      @map("id_campanha")
   campanha   Campanha @relation(fields: [campanhaId], references: [id], onDelete: Restrict)
+  /// Edição da campanha em que a nota foi creditada.
+  edicao     Int      @default(1) @map("edicao_campanha")
 
   consumidorId Int        @map("id_consumidor")
   consumidor   Consumidor @relation(fields: [consumidorId], references: [id], onDelete: Restrict)
@@ -426,13 +436,14 @@ model ProcessamentoNfce {
   @@map("processamento_nfce")
 }
 
-/// 1 linha por ticket (G17). `numero` sequencial por campanha (1..N), base do sorteio.
+/// 1 linha por ticket (G17). `numero` sequencial por campanha + edição (1..N), base do sorteio.
 model Ticket {
   id     Int @id @default(autoincrement()) @map("id_ticket")
   numero Int @map("numero_ticket")
 
   campanhaId Int      @map("id_campanha")
   campanha   Campanha @relation(fields: [campanhaId], references: [id], onDelete: Restrict)
+  edicao     Int      @default(1) @map("edicao_campanha")
 
   consumidorId Int        @map("id_consumidor")
   consumidor   Consumidor @relation(fields: [consumidorId], references: [id], onDelete: Restrict)
@@ -444,13 +455,13 @@ model Ticket {
 
   dataCriacao DateTime @default(now()) @map("data_criacao")
 
-  @@unique([campanhaId, numero])
+  @@unique([campanhaId, edicao, numero])
   @@index([consumidorId])
   @@index([processamentoNfceId])
   @@map("ticket")
 }
 
-/// Saldo residual + total de tickets do consumidor em uma campanha (não cruza campanhas).
+/// Saldo residual + total de tickets do consumidor em uma campanha + edição (não cruza edições).
 model ResidualTicketCampanha {
   id Int @id @default(autoincrement()) @map("id_residual_ticket_campanha")
 
@@ -459,6 +470,7 @@ model ResidualTicketCampanha {
 
   campanhaId Int      @map("id_campanha")
   campanha   Campanha @relation(fields: [campanhaId], references: [id], onDelete: Restrict)
+  edicao     Int      @default(1) @map("edicao_campanha")
 
   valorResidual Decimal @default(0) @map("valor_residual") @db.Decimal(10, 2)
   ticketsTotais Int     @default(0) @map("tickets_totais")
@@ -466,7 +478,7 @@ model ResidualTicketCampanha {
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
-  @@unique([consumidorId, campanhaId])
+  @@unique([consumidorId, campanhaId, edicao])
   @@index([campanhaId])
   @@map("residual_ticket_campanha")
 }
@@ -478,11 +490,19 @@ model Sorteio {
   campanhaId Int      @map("id_campanha")
   campanha   Campanha @relation(fields: [campanhaId], references: [id])
 
+  /// 1 sorteio por campanha + edição, criado junto com a edição (sem CRUD manual).
+  edicao               Int      @default(1) @map("edicao_campanha")
+  /// Snapshot do período/valor da edição (a Campanha é sobrescrita ao reativar).
+  dataInicioEdicao     DateTime @map("data_inicio_edicao")
+  dataFimEdicao        DateTime @map("data_fim_edicao")
+  valorPorTicketEdicao Decimal  @map("valor_por_ticket_edicao") @db.Decimal(10, 2)
+
   resultados ResultadoSorteio[]
 
   dataCriacao     DateTime @default(now()) @map("data_criacao")
   dataAtualizacao DateTime @updatedAt @map("data_atualizacao")
 
+  @@unique([campanhaId, edicao])
   @@index([campanhaId])
   @@map("sorteio")
 }

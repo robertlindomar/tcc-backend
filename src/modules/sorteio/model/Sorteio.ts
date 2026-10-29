@@ -23,7 +23,12 @@ type SorteioProps = {
     id: number;
     qrcode: string | null;
     campanhaId: number;
-    dataFimCampanha: Date;
+    edicao: number;
+    dataInicioEdicao: Date;
+    /** Snapshot do fim da edição: base para liberar o sorteio. */
+    dataFimEdicao: Date;
+    valorPorTicketEdicao: number;
+    /** Tickets da edição deste sorteio. */
     totalTickets: number;
     /** Mais recente primeiro. */
     resultados: ResultadoSorteio[];
@@ -50,8 +55,20 @@ export class Sorteio {
         return this.props.campanhaId;
     }
 
-    get dataFimCampanha() {
-        return this.props.dataFimCampanha;
+    get edicao() {
+        return this.props.edicao;
+    }
+
+    get dataInicioEdicao() {
+        return this.props.dataInicioEdicao;
+    }
+
+    get dataFimEdicao() {
+        return this.props.dataFimEdicao;
+    }
+
+    get valorPorTicketEdicao() {
+        return this.props.valorPorTicketEdicao;
     }
 
     get totalTickets() {

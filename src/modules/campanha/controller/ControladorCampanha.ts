@@ -45,11 +45,40 @@ export class ControladorCampanha {
         response.status(200).json(atualizado);
     }
 
+    async inativar(request: Request, response: Response, _next: NextFunction): Promise<void> {
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
+        const campanha = await this.servicoCampanha.inativar(request.usuario.id, request.params.id);
+        response.status(200).json(campanha);
+    }
+
+    async reativar(request: Request, response: Response, _next: NextFunction): Promise<void> {
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
+        const campanha = await this.servicoCampanha.reativar(
+            request.usuario.id,
+            request.params.id,
+            request.body,
+        );
+        response.status(200).json(campanha);
+    }
+
+    async listarEdicoes(request: Request, response: Response, _next: NextFunction): Promise<void> {
+        if (!request.usuario) {
+            throw new ErroAplicacao("Usuario nao autenticado", 401);
+        }
+        const edicoes = await this.servicoCampanha.listarEdicoes(request.usuario.id, request.params.id);
+        response.status(200).json(edicoes);
+    }
+
     async deletar(request: Request, response: Response, _next: NextFunction): Promise<void> {
         if (!request.usuario) {
             throw new ErroAplicacao("Usuario nao autenticado", 401);
         }
-        await this.servicoCampanha.deletar(request.usuario.id, request.params.id);
+        const forcar = request.query.forcar === "true";
+        await this.servicoCampanha.deletar(request.usuario.id, request.params.id, forcar);
         response.status(204).send();
     }
 }

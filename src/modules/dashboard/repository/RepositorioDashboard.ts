@@ -77,12 +77,14 @@ export class RepositorioDashboard {
                     take: LIMITE_CANDIDATOS,
                     select: { id: true, nome: true, dataCriacao: true },
                 }),
+                // A edição 1 nasce junto com a campanha; só reaberturas viram atividade.
                 this.prisma.sorteio.findMany({
-                    where: { campanha: { associacaoId } },
+                    where: { campanha: { associacaoId }, edicao: { gt: 1 } },
                     orderBy: { dataCriacao: "desc" },
                     take: LIMITE_CANDIDATOS,
                     select: {
                         id: true,
+                        edicao: true,
                         dataCriacao: true,
                         campanha: { select: { nome: true } },
                     },
@@ -111,7 +113,7 @@ export class RepositorioDashboard {
                 ...sorteios.map((item) => ({
                     tipo: "SORTEIO_CRIADO" as const,
                     entidadeId: item.id,
-                    titulo: `Sorteio da campanha "${item.campanha.nome}" foi criado`,
+                    titulo: `Campanha "${item.campanha.nome}" reativada (edição ${item.edicao})`,
                     ocorridoEm: item.dataCriacao,
                 })),
             ];

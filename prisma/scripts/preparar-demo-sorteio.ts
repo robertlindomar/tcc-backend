@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import prisma from "../../src/prisma";
 import { RepositorioAssociacao } from "../../src/modules/associacao/repository/RepositorioAssociacao";
 import { RepositorioCampanha } from "../../src/modules/campanha/repository/RepositorioCampanha";
+import { normalizarNomeCampanha } from "../../src/modules/campanha/utils/normalizarNomeCampanha";
+import { snapshotSorteioEdicao } from "../../src/modules/campanha/utils/snapshotSorteioEdicao";
 import { RepositorioSorteio } from "../../src/modules/sorteio/repository/RepositorioSorteio";
 import { ServicoSorteio } from "../../src/modules/sorteio/service/ServicoSorteio";
 
@@ -34,8 +36,10 @@ async function preparar() {
         const loja = await tx.lojista.findFirstOrThrow({
             where: { status: "APROVADO" }, orderBy: { id: "asc" }, include: { associacao: true },
         });
+        const nomeCampanha = `DEMO — Modal do ganhador (${agora.toISOString()})`;
         const campanha = await tx.campanha.create({ data: {
-            nome: `DEMO — Modal do ganhador (${agora.toISOString()})`,
+            nome: nomeCampanha,
+            nomeNormalizado: normalizarNomeCampanha(nomeCampanha),
             descricao: "Demonstração solicitada para revisar o modal: consumidores, compras e tickets fictícios. Não representa NFC-e real nem validação fiscal.",
             associacaoId: loja.associacaoId, valorPorTicket: 10,
             dataInicio: new Date(agora.getTime() - 3 * 86400000),
@@ -68,7 +72,7 @@ async function preparar() {
             await tx.residualTicketCampanha.create({ data: { campanhaId: campanha.id, consumidorId, ticketsTotais: 1, valorResidual: 0 } });
             contas.push({ ...conta, consumidorId });
         }
-        const sorteio = await tx.sorteio.create({ data: { campanhaId: campanha.id } });
+        const sorteio = await tx.sorteio.create({ data: snapshotSorteioEdicao(campanha) });
         return { campanha, sorteio, contas, usuarioAssociacaoId: loja.associacao.usuarioId };
     });
 

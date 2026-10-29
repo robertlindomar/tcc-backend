@@ -3,8 +3,6 @@ import { resolverAssociacaoLogada } from "../../../shared/authz/resolverAssociac
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
 import { RepositorioAssociacao } from "../../associacao/repository/RepositorioAssociacao";
 import { RepositorioCampanha } from "../../campanha/repository/RepositorioCampanha";
-import { DTOAtualizarSorteio } from "../dto/DTOAtualizarSorteio";
-import { DTOCriarSorteio } from "../dto/DTOCriarSorteio";
 import { RespostaResultadoSorteio, RespostaSorteio } from "../dtos/RespostaSorteio";
 import { ResultadoSorteio, Sorteio } from "../model/Sorteio";
 import { RepositorioSorteio } from "../repository/RepositorioSorteio";
@@ -18,22 +16,6 @@ export class ServicoSorteio {
         private readonly sortearNumero: SortearNumero = sortearNumeroAleatorio,
         private readonly agora: () => Date = () => new Date(),
     ) {}
-
-    async criar(usuarioId: number, request: DTOCriarSorteio): Promise<RespostaSorteio> {
-        const { associacaoId } = await resolverAssociacaoLogada(
-            this.repositorioAssociacao,
-            usuarioId,
-        );
-
-        const campanhaId = await this.validarCampanhaDaAssociacao(
-            request.campanhaId,
-            associacaoId,
-        );
-        const qrcode = this.validarQrcodeOpcional(request.qrcode);
-
-        const criado = await this.repositorioSorteio.criar({ campanhaId, qrcode });
-        return this.paraResposta(criado);
-    }
 
     async listar(usuarioId: number): Promise<RespostaSorteio[]> {
         const { associacaoId } = await resolverAssociacaoLogada(
@@ -53,56 +35,7 @@ export class ServicoSorteio {
         return this.paraResposta(sorteio);
     }
 
-    async atualizar(
-        usuarioId: number,
-        idParam: string,
-        request: DTOAtualizarSorteio,
-    ): Promise<RespostaSorteio> {
-        const { associacaoId } = await resolverAssociacaoLogada(
-            this.repositorioAssociacao,
-            usuarioId,
-        );
-        const existente = await this.obterDaAssociacao(idParam, associacaoId);
-
-        const dados: {
-            campanhaId?: number;
-            qrcode?: string | null;
-        } = {};
-
-        if (request.campanhaId !== undefined) {
-            dados.campanhaId = await this.validarCampanhaDaAssociacao(
-                request.campanhaId,
-                associacaoId,
-            );
-            if (dados.campanhaId !== existente.campanhaId && existente.resultados.length > 0) {
-                throw new ErroAplicacao("Sorteio ja realizado nao pode trocar de campanha", 409);
-            }
-        }
-        if (request.qrcode !== undefined) {
-            dados.qrcode = this.validarQrcodeOpcional(request.qrcode);
-        }
-
-        if (Object.keys(dados).length === 0) {
-            throw new ErroAplicacao("Nenhum campo para atualizar", 400);
-        }
-
-        const atualizado = await this.repositorioSorteio.atualizar(existente.id, dados);
-        return this.paraResposta(atualizado);
-    }
-
-    async deletar(usuarioId: number, idParam: string): Promise<void> {
-        const { associacaoId } = await resolverAssociacaoLogada(
-            this.repositorioAssociacao,
-            usuarioId,
-        );
-        const existente = await this.obterDaAssociacao(idParam, associacaoId);
-        if (existente.resultados.length > 0) {
-            throw new ErroAplicacao("Sorteio ja realizado nao pode ser excluido", 409);
-        }
-        await this.repositorioSorteio.deletar(existente.id);
-    }
-
-    /** G17: sorteia 1..N tickets da campanha encerrada. */
+    /** G17: sorteia 1..N tickets da edição encerrada deste sorteio. */
     async sortear(usuarioId: number, idParam: string): Promise<RespostaSorteio> {
         const { associacaoId } = await resolverAssociacaoLogada(
             this.repositorioAssociacao,
@@ -174,7 +107,7 @@ export class ServicoSorteio {
         sorteio: Sorteio,
         resultadoACancelar?: ResultadoSorteio,
     ): Promise<void> {
-        if (this.agora().getTime() <= sorteio.dataFimCampanha.getTime()) {
+        if (this.agora().getTime() <= sorteio.dataFimEdicao.getTime()) {
             throw new ErroAplicacao("Campanha ainda nao terminou", 409, {
                 codigo: "CAMPANHA_NAO_ENCERRADA",
             });
@@ -202,6 +135,7 @@ export class ServicoSorteio {
 
         const ticketId = await this.repositorioSorteio.buscarTicketIdPorNumero(
             sorteio.campanhaId,
+            sorteio.edicao,
             numero,
         );
         if (ticketId === null) {
@@ -245,33 +179,18 @@ export class ServicoSorteio {
         return sorteio;
     }
 
-    private async validarCampanhaDaAssociacao(
-        campanhaIdRaw: unknown,
-        associacaoId: number,
-    ): Promise<number> {
-        const campanhaId =
-            typeof campanhaIdRaw === "number" ? campanhaIdRaw : Number(campanhaIdRaw);
-
-        if (!Number.isInteger(campanhaId) || campanhaId <= 0) {
-            throw new ErroAplicacao("campanhaId invalido", 400);
-        }
-
-        const campanha = await this.repositorioCampanha.buscar(campanhaId);
-        if (!campanha || campanha.associacaoId !== associacaoId) {
-            throw new ErroAplicacao("Campanha nao encontrada", 404);
-        }
-
-        return campanhaId;
-    }
-
     private paraResposta(sorteio: Sorteio): RespostaSorteio {
         const atual = sorteio.resultadoAtual;
         return {
             id: sorteio.id,
             qrcode: sorteio.qrcode,
             campanhaId: sorteio.campanhaId,
+            edicao: sorteio.edicao,
+            dataInicioEdicao: sorteio.dataInicioEdicao,
+            dataFimEdicao: sorteio.dataFimEdicao,
+            valorPorTicketEdicao: sorteio.valorPorTicketEdicao,
             totalTickets: sorteio.totalTickets,
-            campanhaEncerrada: this.agora().getTime() > sorteio.dataFimCampanha.getTime(),
+            campanhaEncerrada: this.agora().getTime() > sorteio.dataFimEdicao.getTime(),
             resultadoAtual: atual ? this.paraRespostaResultado(atual) : null,
             historico: sorteio.resultados.map((item) => this.paraRespostaResultado(item)),
             dataCriacao: sorteio.dataCriacao,
@@ -305,16 +224,6 @@ export class ServicoSorteio {
             return "***";
         }
         return `***.${digitos.slice(3, 6)}.${digitos.slice(6, 9)}-**`;
-    }
-
-    private validarQrcodeOpcional(valor: unknown): string | null {
-        if (valor === undefined || valor === null || valor === "") {
-            return null;
-        }
-        if (typeof valor !== "string") {
-            throw new ErroAplicacao("Qrcode do sorteio invalido", 400);
-        }
-        return valor.trim() || null;
     }
 
     private parseId(idParam: string, rotulo: string): number {

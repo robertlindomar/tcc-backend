@@ -47,7 +47,10 @@ describe("NFC-e TESTE: QR → lojista → XML → crédito", () => {
             return { ticketsTotais: tickets };
         });
         // Só a fronteira Prisma é substituída: adaptador, arquivo, serviço e motor são reais.
+        const campanha = { id: 1, associacaoId: 1, valorPorTicket: 10, ativa: true, edicao: 1,
+            dataInicio: new Date("2026-08-01"), dataFim: new Date("2026-12-31") };
         const tx = {
+            campanha: { findUnique: async () => campanha },
             residualTicketCampanha: {
                 createMany: vi.fn(),
                 findUnique: async () => ({ id: 1, valorResidual: residual, ticketsTotais: tickets }),
@@ -64,8 +67,7 @@ describe("NFC-e TESTE: QR → lojista → XML → crédito", () => {
             $transaction: async (executar: (cliente: typeof tx) => Promise<unknown>) => executar(tx),
         } as never);
         const servico = new ServicoProcessarNfce(criarAdaptadorNfce(), {
-            buscar: async () => ({ id: 1, associacaoId: 1, valorPorTicket: 10,
-                dataInicio: new Date("2026-08-01"), dataFim: new Date("2026-12-31") }),
+            buscar: async () => campanha,
         } as never, { buscarPorCnpjNormalizado } as never, repositorio);
         const processar = (acesso = chave(), consumidorId = 9, campanhaId = 1) => servico.processar({
             consumidorId, campanhaId,

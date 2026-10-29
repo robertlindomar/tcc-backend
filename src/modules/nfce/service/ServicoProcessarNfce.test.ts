@@ -15,6 +15,7 @@ function campanha(overrides: Partial<{
     dataFim: Date;
     valorPorTicket: number;
     associacaoId: number;
+    ativa: boolean;
 }> = {}) {
     return new Campanha({
         id: overrides.id ?? 1,
@@ -24,6 +25,8 @@ function campanha(overrides: Partial<{
         dataInicio: overrides.dataInicio ?? new Date("2026-01-01T00:00:00.000Z"),
         dataFim: overrides.dataFim ?? new Date("2027-12-31T23:59:59.999Z"),
         valorPorTicket: overrides.valorPorTicket ?? 10,
+        ativa: overrides.ativa ?? true,
+        edicao: 1,
         associacaoId: overrides.associacaoId ?? 1,
         dataCriacao: new Date(),
         dataAtualizacao: new Date(),
@@ -59,7 +62,10 @@ function criarServico(deps: {
         listarVigentesEm?: ReturnType<typeof vi.fn>;
     };
     lojistaRepo?: { buscarPorCnpj?: ReturnType<typeof vi.fn> };
-    processamentoRepo?: { processarComCredito?: ReturnType<typeof vi.fn> };
+    processamentoRepo?: {
+        processarComCredito?: ReturnType<typeof vi.fn>;
+        buscarExtratoConsumidor?: ReturnType<typeof vi.fn>;
+    };
 }) {
     const adaptador: AdaptadorLeituraNfce = {
         consultar: vi.fn().mockResolvedValue({
@@ -135,9 +141,41 @@ describe("ServicoProcessarNfce", () => {
                 campanhaId: 1,
                 lojistaId: 2,
                 valorNota: 669.86,
-                valorPorTicket: 10,
+                agora: expect.any(Date),
             }),
         );
+    });
+
+    it("campanha inativa informada explicitamente → 400 sem consultar a nota", async () => {
+        const { servico, adaptador, repositorioProcessamento } = criarServico({
+            campanhaRepo: { buscar: vi.fn().mockResolvedValue(campanha({ ativa: false })) },
+        });
+
+        await expect(
+            servico.processar({ consumidorId: 9, payloadQr: "qr", campanhaId: 1 }),
+        ).rejects.toMatchObject({ statusCode: 400, detalhes: { codigo: "CAMPANHA_INATIVA" } });
+        expect(adaptador.consultar).not.toHaveBeenCalled();
+        expect(repositorioProcessamento.processarComCredito).not.toHaveBeenCalled();
+    });
+
+    it("campanha encerrada informada explicitamente → 400 CAMPANHA_NAO_VIGENTE", async () => {
+        const { servico, repositorioProcessamento } = criarServico({
+            campanhaRepo: {
+                buscar: vi.fn().mockResolvedValue(
+                    campanha({ dataFim: new Date("2026-08-31T23:59:59.999Z") }),
+                ),
+            },
+        });
+
+        await expect(
+            servico.processar({
+                consumidorId: 9,
+                payloadQr: "qr",
+                campanhaId: 1,
+                agora: new Date("2026-09-10T12:00:00.000Z"),
+            }),
+        ).rejects.toMatchObject({ statusCode: 400, detalhes: { codigo: "CAMPANHA_NAO_VIGENTE" } });
+        expect(repositorioProcessamento.processarComCredito).not.toHaveBeenCalled();
     });
 
     it("replay da mesma chave propaga 409 do repositorio", async () => {
@@ -293,5 +331,49 @@ describe("ServicoProcessarNfce", () => {
         expect(repositorioProcessamento.processarComCredito).toHaveBeenCalledWith(
             expect.objectContaining({ campanhaId: 2, consumidorId: 9 }),
         );
+    });
+
+    describe("extratoDaCampanha", () => {
+        it("busca o extrato do consumidor na edição atual e calcula quanto falta para o próximo ticket", async () => {
+            const extrato = {
+                totalTickets: 66,
+                valorResidual: 9.86,
+                notas: [{ id: 11, valorNota: 669.86, ticketsGerados: 66 }],
+            };
+            const { servico, repositorioProcessamento } = criarServico({
+                campanhaRepo: {
+                    buscar: vi.fn().mockResolvedValue(
+                        new Campanha({
+                            id: 4, nome: "Natal", descricao: null, qrcode: null,
+                            dataInicio: new Date("2026-01-01T00:00:00.000Z"),
+                            dataFim: new Date("2026-12-31T23:59:59.999Z"),
+                            valorPorTicket: 10, ativa: false, edicao: 3, associacaoId: 1,
+                            dataCriacao: new Date(), dataAtualizacao: new Date(),
+                        }),
+                    ),
+                },
+                processamentoRepo: { buscarExtratoConsumidor: vi.fn().mockResolvedValue(extrato) },
+            });
+
+            const resultado = await servico.extratoDaCampanha(9, 4);
+
+            expect(repositorioProcessamento.buscarExtratoConsumidor).toHaveBeenCalledWith(9, 4, 3);
+            expect(resultado).toEqual({
+                campanhaId: 4,
+                edicao: 3,
+                valorPorTicket: 10,
+                totalTickets: 66,
+                valorResidual: 9.86,
+                faltaParaProximoTicket: 0.14,
+                notas: extrato.notas,
+            });
+        });
+
+        it("retorna 404 para campanha inexistente e 400 para ID inválido", async () => {
+            const { servico } = criarServico({ campanhaRepo: { buscar: vi.fn().mockResolvedValue(null) } });
+
+            await expect(servico.extratoDaCampanha(9, 99)).rejects.toMatchObject({ statusCode: 404 });
+            await expect(servico.extratoDaCampanha(9, Number.NaN)).rejects.toMatchObject({ statusCode: 400 });
+        });
     });
 });

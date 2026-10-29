@@ -9,6 +9,8 @@ import { calcularChavePeriodoMissao } from "../../src/shared/tempo/calcularChave
 import { calcularTicketsEResidual } from "../../src/modules/nfce/utils/calcularTicketsEResidual";
 import { RepositorioAssociacao } from "../../src/modules/associacao/repository/RepositorioAssociacao";
 import { RepositorioCampanha } from "../../src/modules/campanha/repository/RepositorioCampanha";
+import { normalizarNomeCampanha } from "../../src/modules/campanha/utils/normalizarNomeCampanha";
+import { snapshotSorteioEdicao } from "../../src/modules/campanha/utils/snapshotSorteioEdicao";
 import { RepositorioSorteio } from "../../src/modules/sorteio/repository/RepositorioSorteio";
 import { ServicoSorteio } from "../../src/modules/sorteio/service/ServicoSorteio";
 import {
@@ -132,7 +134,8 @@ async function preparar() {
                 await tx.consumidor.update({ where: { id: consumidor.id }, data: { pontos, nivel: Math.floor(pontos / 100) + 1 } });
             }
             for (let c = 0; c < 2; c++) {
-                const campanha = await tx.campanha.create({ data: { nome: c === 0 ? MARCADOR : `${MARCADOR} — apuração`, descricao: "DEMO: consumidores, documentos, endereços, compras e tickets fictícios. R$ 10 = 1 ticket. Nenhuma NFC-e desta seed foi validada na SEFAZ.", associacaoId: associacao.id, valorPorTicket: 10, dataInicio: new Date(agora.getTime() - 7 * DIA), dataFim: c === 0 ? futuro : ontem } });
+                const nomeCampanha = c === 0 ? MARCADOR : `${MARCADOR} — apuração`;
+                const campanha = await tx.campanha.create({ data: { nome: nomeCampanha, nomeNormalizado: normalizarNomeCampanha(nomeCampanha), descricao: "DEMO: consumidores, documentos, endereços, compras e tickets fictícios. R$ 10 = 1 ticket. Nenhuma NFC-e desta seed foi validada na SEFAZ.", associacaoId: associacao.id, valorPorTicket: 10, dataInicio: new Date(agora.getTime() - 7 * DIA), dataFim: c === 0 ? futuro : ontem } });
                 let numero = 0;
                 for (const [i, consumidor] of consumidores.entries()) {
                     let residual = 0;
@@ -147,8 +150,7 @@ async function preparar() {
                     }
                     await tx.residualTicketCampanha.create({ data: { campanhaId: campanha.id, consumidorId: consumidor.id, valorResidual: residual, ticketsTotais: total } });
                 }
-                await tx.sorteio.create({ data: { campanhaId: campanha.id } });
-                if (c === 1) await tx.sorteio.create({ data: { campanhaId: campanha.id } });
+                await tx.sorteio.create({ data: snapshotSorteioEdicao(campanha) });
             }
         }, { timeout: 60000 });
         const usuariosDepois = await prisma.usuario.findMany({ where: { id: { in: usuariosAntes.map(u => u.id) } }, orderBy: { id: "asc" } });

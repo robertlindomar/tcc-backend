@@ -14,8 +14,11 @@ export function RotasCampanha() {
 
     router.get("/", tratarAsync(controller.listar.bind(controller)));
     router.get("/:id", tratarAsync(controller.buscar.bind(controller)));
+    router.get("/:id/edicoes", tratarAsync(controller.listarEdicoes.bind(controller)));
     router.post("/", tratarAsync(controller.criar.bind(controller)));
     router.put("/:id", tratarAsync(controller.atualizar.bind(controller)));
+    router.patch("/:id/inativar", tratarAsync(controller.inativar.bind(controller)));
+    router.patch("/:id/reativar", tratarAsync(controller.reativar.bind(controller)));
     router.delete("/:id", tratarAsync(controller.deletar.bind(controller)));
 
     return router;

@@ -9,6 +9,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../../src/generated/prisma/client.js";
 import { Role } from "../../src/generated/prisma/enums.js";
 import { fimDoDiaCivilNoFuso, instanteCivilNoFuso } from "../../src/shared/tempo/fusoNegocio";
+import { normalizarNomeCampanha } from "../../src/modules/campanha/utils/normalizarNomeCampanha";
+import { snapshotSorteioEdicao } from "../../src/modules/campanha/utils/snapshotSorteioEdicao";
 
 const EMAIL_ASSOCIACAO = "associacao@gmail.com";
 const EMAIL_CONSUMIDOR = "usuario1@gmail.com";
@@ -140,9 +142,11 @@ async function main() {
         });
         const dataFim = fimDoDiaCivilNoFuso({ ano: 2026, mes: 12, dia: 31 });
 
+        const nomeCampanha = "Campanha Comércio Local 2026";
         const campanha = await tx.campanha.create({
             data: {
-                nome: "Campanha Comércio Local 2026",
+                nome: nomeCampanha,
+                nomeNormalizado: normalizarNomeCampanha(nomeCampanha),
                 descricao:
                     "Compre no comércio local e receba tickets para a campanha de 2026.",
                 valorPorTicket: 10,
@@ -151,6 +155,7 @@ async function main() {
                 associacaoId,
             },
         });
+        await tx.sorteio.create({ data: snapshotSorteioEdicao(campanha) });
 
         const contagens = {
             usuarios: await tx.usuario.groupBy({ by: ["role"], _count: true }),

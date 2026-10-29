@@ -9,9 +9,16 @@ import {
 import { RepositorioAssociacao } from "../../associacao/repository/RepositorioAssociacao";
 import { DTOAtualizarCampanha } from "../dto/DTOAtualizarCampanha";
 import { DTOCriarCampanha } from "../dto/DTOCriarCampanha";
-import { RespostaCampanha } from "../dtos/RespostaCampanha";
-import { Campanha } from "../model/Campanha";
-import { RepositorioCampanha } from "../repository/RepositorioCampanha";
+import { DTOReativarCampanha } from "../dto/DTOReativarCampanha";
+import { RespostaCampanha, RespostaEdicaoCampanha } from "../dtos/RespostaCampanha";
+import {
+    DadosAtualizarCampanha,
+    EdicaoCampanha,
+    RepositorioCampanha,
+    ResumoCampanha,
+} from "../repository/RepositorioCampanha";
+import { normalizarNomeCampanha } from "../utils/normalizarNomeCampanha";
+import { situacaoSorteioEdicao } from "../utils/situacaoSorteioEdicao";
 
 function dataCivilIso(data: Date): string {
     const civil = civilNoFuso(data);
@@ -22,6 +29,7 @@ export class ServicoCampanha {
     constructor(
         private readonly repositorioCampanha: RepositorioCampanha,
         private readonly repositorioAssociacao: RepositorioAssociacao,
+        private readonly agora: () => Date = () => new Date(),
     ) {}
 
     async criar(usuarioId: number, request: DTOCriarCampanha): Promise<RespostaCampanha> {
@@ -31,18 +39,21 @@ export class ServicoCampanha {
         );
 
         const nome = this.validarNome(request.nome);
+        const nomeNormalizado = normalizarNomeCampanha(nome);
         const descricao = this.validarTextoOpcional(request.descricao, "Descricao");
         const qrcode = this.validarTextoOpcional(request.qrcode, "Qrcode");
         const dataInicio = this.validarDataInicio(request.dataInicio);
         const dataFim = this.validarDataFim(request.dataFim);
         const valorPorTicket = this.validarValorPorTicket(request.valorPorTicket);
-        garantirDataNaoPassada(dataInicio, "dataInicio");
-        garantirDataNaoPassada(dataFim, "dataFim");
+        garantirDataNaoPassada(dataInicio, "dataInicio", undefined, this.agora());
+        garantirDataNaoPassada(dataFim, "dataFim", undefined, this.agora());
         this.validarPeriodo(dataInicio, dataFim);
+        await this.garantirNomeLivre(associacaoId, nomeNormalizado);
         await this.garantirPeriodoLivre(dataInicio, dataFim);
 
-        const criado = await this.repositorioCampanha.criar({
+        const criado = await this.repositorioCampanha.criarComSorteio({
             nome,
+            nomeNormalizado,
             descricao,
             qrcode,
             dataInicio,
@@ -59,17 +70,13 @@ export class ServicoCampanha {
             this.repositorioAssociacao,
             usuarioId,
         );
-        const lista = await this.repositorioCampanha.listarPorAssociacaoId(associacaoId);
+        const lista = await this.repositorioCampanha.listarResumoPorAssociacaoId(associacaoId);
         return lista.map((item) => this.paraResposta(item));
     }
 
     async buscar(usuarioId: number, idParam: string): Promise<RespostaCampanha> {
-        const { associacaoId } = await resolverAssociacaoLogada(
-            this.repositorioAssociacao,
-            usuarioId,
-        );
-        const campanha = await this.obterDaAssociacao(idParam, associacaoId);
-        return this.paraResposta(campanha);
+        const resumo = await this.obterDaAssociacaoLogada(usuarioId, idParam);
+        return this.paraResposta(resumo);
     }
 
     async atualizar(
@@ -77,23 +84,14 @@ export class ServicoCampanha {
         idParam: string,
         request: DTOAtualizarCampanha,
     ): Promise<RespostaCampanha> {
-        const { associacaoId } = await resolverAssociacaoLogada(
-            this.repositorioAssociacao,
-            usuarioId,
-        );
-        const existente = await this.obterDaAssociacao(idParam, associacaoId);
+        const existente = (await this.obterDaAssociacaoLogada(usuarioId, idParam)).campanha;
+        const agora = this.agora();
 
-        const dados: {
-            nome?: string;
-            descricao?: string | null;
-            qrcode?: string | null;
-            dataInicio?: Date;
-            dataFim?: Date;
-            valorPorTicket?: number;
-        } = {};
+        const dados: DadosAtualizarCampanha = {};
 
         if (request.nome !== undefined) {
             dados.nome = this.validarNome(request.nome);
+            dados.nomeNormalizado = normalizarNomeCampanha(dados.nome);
         }
         if (request.descricao !== undefined) {
             dados.descricao = this.validarTextoOpcional(request.descricao, "Descricao");
@@ -103,11 +101,11 @@ export class ServicoCampanha {
         }
         if (request.dataInicio !== undefined) {
             dados.dataInicio = this.validarDataInicio(request.dataInicio);
-            garantirDataNaoPassada(dados.dataInicio, "dataInicio", existente.dataInicio);
+            garantirDataNaoPassada(dados.dataInicio, "dataInicio", existente.dataInicio, agora);
         }
         if (request.dataFim !== undefined) {
             dados.dataFim = this.validarDataFim(request.dataFim);
-            garantirDataNaoPassada(dados.dataFim, "dataFim", existente.dataFim);
+            garantirDataNaoPassada(dados.dataFim, "dataFim", existente.dataFim, agora);
         }
         if (request.valorPorTicket !== undefined) {
             dados.valorPorTicket = this.validarValorPorTicket(request.valorPorTicket);
@@ -117,6 +115,11 @@ export class ServicoCampanha {
             throw new ErroAplicacao("Nenhum campo para atualizar", 400);
         }
 
+        this.descartarCamposInalterados(dados, existente);
+
+        if (dados.nomeNormalizado !== undefined) {
+            await this.garantirNomeLivre(existente.associacaoId, dados.nomeNormalizado, existente.id);
+        }
         const dataInicio = dados.dataInicio ?? existente.dataInicio;
         const dataFim = dados.dataFim ?? existente.dataFim;
         this.validarPeriodo(dataInicio, dataFim);
@@ -126,30 +129,94 @@ export class ServicoCampanha {
         return this.paraResposta(atualizado);
     }
 
-    async deletar(usuarioId: number, idParam: string): Promise<void> {
+    async inativar(usuarioId: number, idParam: string): Promise<RespostaCampanha> {
+        const { campanha } = await this.obterDaAssociacaoLogada(usuarioId, idParam);
+        const atualizado = await this.repositorioCampanha.inativar(campanha.id);
+        return this.paraResposta(atualizado);
+    }
+
+    /** Abre a próxima edição com novo período (tickets recomeçam do 1). */
+    async reativar(
+        usuarioId: number,
+        idParam: string,
+        request: DTOReativarCampanha,
+    ): Promise<RespostaCampanha> {
+        const { campanha } = await this.obterDaAssociacaoLogada(usuarioId, idParam);
+        const agora = this.agora();
+        const corpo = (request ?? {}) as Partial<DTOReativarCampanha>;
+
+        const dataInicio = this.validarDataInicio(corpo.dataInicio);
+        const dataFim = this.validarDataFim(corpo.dataFim);
+        const valorPorTicket =
+            corpo.valorPorTicket === undefined || corpo.valorPorTicket === null
+                ? undefined
+                : this.validarValorPorTicket(corpo.valorPorTicket);
+        garantirDataNaoPassada(dataInicio, "dataInicio", undefined, agora);
+        garantirDataNaoPassada(dataFim, "dataFim", undefined, agora);
+        this.validarPeriodo(dataInicio, dataFim);
+
+        if (campanha.ativa) {
+            throw new ErroAplicacao("Inative a campanha antes de reativar", 409, {
+                codigo: "CAMPANHA_JA_ATIVA",
+            });
+        }
+
+        const reativada = await this.repositorioCampanha.reativar(
+            campanha.id,
+            { dataInicio, dataFim, valorPorTicket },
+            agora,
+        );
+        return this.paraResposta(reativada);
+    }
+
+    async listarEdicoes(usuarioId: number, idParam: string): Promise<RespostaEdicaoCampanha[]> {
+        const { campanha } = await this.obterDaAssociacaoLogada(usuarioId, idParam);
+        const edicoes = await this.repositorioCampanha.listarEdicoes(campanha.id);
+        return edicoes.map((edicao) => this.paraRespostaEdicao(edicao, campanha.edicao));
+    }
+
+    async deletar(usuarioId: number, idParam: string, forcar = false): Promise<void> {
+        const { campanha } = await this.obterDaAssociacaoLogada(usuarioId, idParam);
+        await this.repositorioCampanha.deletar(campanha.id, forcar);
+    }
+
+    private async obterDaAssociacaoLogada(
+        usuarioId: number,
+        idParam: string,
+    ): Promise<ResumoCampanha> {
         const { associacaoId } = await resolverAssociacaoLogada(
             this.repositorioAssociacao,
             usuarioId,
         );
-        const existente = await this.obterDaAssociacao(idParam, associacaoId);
-        await this.repositorioCampanha.deletar(existente.id);
-    }
-
-    private async obterDaAssociacao(
-        idParam: string,
-        associacaoId: number,
-    ): Promise<Campanha> {
         const id = this.parseId(idParam);
-        const campanha = await this.repositorioCampanha.buscar(id);
+        const resumo = await this.repositorioCampanha.buscarResumo(id);
 
-        if (!campanha || campanha.associacaoId !== associacaoId) {
+        if (!resumo || resumo.campanha.associacaoId !== associacaoId) {
             throw new ErroAplicacao("Campanha nao encontrada", 404);
         }
 
-        return campanha;
+        return resumo;
     }
 
-    private paraResposta(campanha: Campanha): RespostaCampanha {
+    /** Evita bloquear (edição em uso) quando o front reenvia o mesmo período/valor. */
+    private descartarCamposInalterados(
+        dados: DadosAtualizarCampanha,
+        existente: ResumoCampanha["campanha"],
+    ): void {
+        if (dados.dataInicio?.getTime() === existente.dataInicio.getTime()) {
+            delete dados.dataInicio;
+        }
+        if (dados.dataFim?.getTime() === existente.dataFim.getTime()) {
+            delete dados.dataFim;
+        }
+        if (dados.valorPorTicket === existente.valorPorTicket) {
+            delete dados.valorPorTicket;
+        }
+    }
+
+    private paraResposta(resumo: ResumoCampanha): RespostaCampanha {
+        const { campanha } = resumo;
+        const periodoEncerrado = this.agora().getTime() > campanha.dataFim.getTime();
         return {
             id: campanha.id,
             nome: campanha.nome,
@@ -163,6 +230,38 @@ export class ServicoCampanha {
             associacaoId: campanha.associacaoId,
             dataCriacao: campanha.dataCriacao,
             dataAtualizacao: campanha.dataAtualizacao,
+            ativa: campanha.ativa,
+            edicao: campanha.edicao,
+            totalTickets: resumo.totalTickets,
+            sorteioId: resumo.sorteioId,
+            periodoEncerrado,
+            situacaoSorteio: situacaoSorteioEdicao({
+                periodoEncerrado,
+                totalTickets: resumo.totalTickets,
+                situacaoResultado: resumo.situacaoResultado,
+            }),
+        };
+    }
+
+    private paraRespostaEdicao(edicao: EdicaoCampanha, edicaoAtual: number): RespostaEdicaoCampanha {
+        const periodoEncerrado = this.agora().getTime() > edicao.dataFim.getTime();
+        return {
+            edicao: edicao.edicao,
+            atual: edicao.edicao === edicaoAtual,
+            dataInicio: edicao.dataInicio,
+            dataFim: edicao.dataFim,
+            dataInicioCivil: dataCivilIso(edicao.dataInicio),
+            dataFimCivil: dataCivilIso(edicao.dataFim),
+            valorPorTicket: edicao.valorPorTicket,
+            totalTickets: edicao.totalTickets,
+            sorteioId: edicao.sorteioId,
+            periodoEncerrado,
+            situacaoSorteio: situacaoSorteioEdicao({
+                periodoEncerrado,
+                totalTickets: edicao.totalTickets,
+                situacaoResultado: edicao.situacaoResultado,
+            }),
+            dataSorteio: edicao.dataSorteio,
         };
     }
 
@@ -170,7 +269,11 @@ export class ServicoCampanha {
         if (typeof nome !== "string" || !nome.trim()) {
             throw new ErroAplicacao("Nome da campanha e obrigatorio", 400);
         }
-        return nome.trim();
+        const limpo = nome.trim().replace(/\s+/g, " ");
+        if (limpo.length > 255) {
+            throw new ErroAplicacao("Nome da campanha deve ter no maximo 255 caracteres", 400);
+        }
+        return limpo;
     }
 
     private validarTextoOpcional(valor: unknown, rotulo: string): string | null {
@@ -213,7 +316,25 @@ export class ServicoCampanha {
         }
     }
 
-    /** Regra: só pode existir uma campanha por período (sem sobreposição de datas). */
+    private async garantirNomeLivre(
+        associacaoId: number,
+        nomeNormalizado: string,
+        ignorarId?: number,
+    ): Promise<void> {
+        const existente = await this.repositorioCampanha.buscarPorNomeNormalizado(
+            associacaoId,
+            nomeNormalizado,
+            ignorarId,
+        );
+        if (existente) {
+            throw new ErroAplicacao(`Ja existe a campanha "${existente.nome}" com esse nome`, 409, {
+                codigo: "CAMPANHA_NOME_DUPLICADO",
+                campanhaConflitanteId: existente.id,
+            });
+        }
+    }
+
+    /** Regra: só uma campanha ATIVA por período (sem sobreposição de datas). */
     private async garantirPeriodoLivre(
         dataInicio: Date,
         dataFim: Date,

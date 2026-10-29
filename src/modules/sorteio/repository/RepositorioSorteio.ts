@@ -1,15 +1,11 @@
 import { PRAZO_SORTEIO_MS } from "../utils/prazoSorteio";
 import { PrismaClient } from "../../../generated/prisma/client";
 import { ErroAplicacao } from "../../../shared/erros/ErroAplicacao";
+import { ehViolacaoUnica } from "../../../shared/erros/errosPrisma";
+import { decimalParaNumero } from "../../../shared/utils/decimalParaNumero";
 import { SituacaoResultadoSorteio, Sorteio } from "../model/Sorteio";
 
-const incluirDetalhes = {
-    campanha: {
-        select: {
-            dataFim: true,
-            _count: { select: { tickets: true } },
-        },
-    },
+const incluirResultados = {
     resultados: {
         orderBy: { id: "desc" as const },
         include: {
@@ -32,9 +28,12 @@ type RegistroSorteio = {
     id: number;
     qrcode: string | null;
     campanhaId: number;
+    edicao: number;
+    dataInicioEdicao: Date;
+    dataFimEdicao: Date;
+    valorPorTicketEdicao: { toString(): string } | number;
     dataCriacao: Date;
     dataAtualizacao: Date;
-    campanha: { dataFim: Date; _count: { tickets: number } };
     resultados: {
         id: number;
         ticketId: number;
@@ -54,41 +53,28 @@ type RegistroSorteio = {
     }[];
 };
 
-function ehViolacaoUnica(erro: unknown): boolean {
-    return (
-        typeof erro === "object" &&
-        erro !== null &&
-        "code" in erro &&
-        (erro as { code: unknown }).code === "P2002"
-    );
-}
-
+/** Sorteio nasce com a edição da campanha (RepositorioCampanha); aqui não há criação/exclusão. */
 export class RepositorioSorteio {
     constructor(private readonly prisma: PrismaClient) {}
-
-    async criar(dados: {
-        campanhaId: number;
-        qrcode: string | null;
-    }): Promise<Sorteio> {
-        try {
-            const criado = await this.prisma.sorteio.create({
-                data: dados,
-                include: incluirDetalhes,
-            });
-            return this.paraDominio(criado);
-        } catch {
-            throw new ErroAplicacao("Erro ao criar sorteio", 500);
-        }
-    }
 
     async listarPorAssociacaoId(associacaoId: number): Promise<Sorteio[]> {
         try {
             const lista = await this.prisma.sorteio.findMany({
                 where: { campanha: { associacaoId } },
-                orderBy: { id: "asc" },
-                include: incluirDetalhes,
+                orderBy: [{ campanhaId: "asc" }, { edicao: "asc" }],
+                include: incluirResultados,
             });
-            return lista.map((item) => this.paraDominio(item));
+            const contagens = await this.prisma.ticket.groupBy({
+                by: ["campanhaId", "edicao"],
+                where: { campanha: { associacaoId } },
+                _count: { _all: true },
+            });
+            const tickets = new Map(
+                contagens.map((c) => [`${c.campanhaId}:${c.edicao}`, c._count._all]),
+            );
+            return lista.map((item) =>
+                this.paraDominio(item, tickets.get(`${item.campanhaId}:${item.edicao}`) ?? 0),
+            );
         } catch {
             throw new ErroAplicacao("Erro ao listar sorteios", 500);
         }
@@ -98,45 +84,28 @@ export class RepositorioSorteio {
         try {
             const item = await this.prisma.sorteio.findUnique({
                 where: { id },
-                include: incluirDetalhes,
+                include: incluirResultados,
             });
-            return item ? this.paraDominio(item) : null;
+            if (!item) {
+                return null;
+            }
+            const totalTickets = await this.prisma.ticket.count({
+                where: { campanhaId: item.campanhaId, edicao: item.edicao },
+            });
+            return this.paraDominio(item, totalTickets);
         } catch {
             throw new ErroAplicacao("Erro ao buscar sorteio por ID", 500);
         }
     }
 
-    async atualizar(
-        id: number,
-        dados: {
-            campanhaId?: number;
-            qrcode?: string | null;
-        },
-    ): Promise<Sorteio> {
-        try {
-            const atualizado = await this.prisma.sorteio.update({
-                where: { id },
-                data: dados,
-                include: incluirDetalhes,
-            });
-            return this.paraDominio(atualizado);
-        } catch {
-            throw new ErroAplicacao("Erro ao atualizar sorteio", 500);
-        }
-    }
-
-    async deletar(id: number): Promise<void> {
-        try {
-            await this.prisma.sorteio.delete({ where: { id } });
-        } catch {
-            throw new ErroAplicacao("Erro ao deletar sorteio", 500);
-        }
-    }
-
-    async buscarTicketIdPorNumero(campanhaId: number, numero: number): Promise<number | null> {
+    async buscarTicketIdPorNumero(
+        campanhaId: number,
+        edicao: number,
+        numero: number,
+    ): Promise<number | null> {
         try {
             const ticket = await this.prisma.ticket.findUnique({
-                where: { campanhaId_numero: { campanhaId, numero } },
+                where: { campanhaId_edicao_numero: { campanhaId, edicao, numero } },
                 select: { id: true },
             });
             return ticket?.id ?? null;
@@ -148,6 +117,7 @@ export class RepositorioSorteio {
     /**
      * Grava um novo resultado `AGUARDANDO_ENTREGA`. Com `cancelarResultadoId`,
      * cancela o resultado pendente na mesma transação (refazer sorteio).
+     * O ticket vencedor precisa ser da mesma campanha + edição do sorteio.
      * O índice único parcial garante 1 resultado ativo por sorteio (409 em corrida).
      */
     async registrarResultado(dados: {
@@ -160,6 +130,28 @@ export class RepositorioSorteio {
     }): Promise<void> {
         try {
             await this.prisma.$transaction(async (tx) => {
+                const [sorteio, ticket] = await Promise.all([
+                    tx.sorteio.findUnique({
+                        where: { id: dados.sorteioId },
+                        select: { campanhaId: true, edicao: true },
+                    }),
+                    tx.ticket.findUnique({
+                        where: { id: dados.ticketId },
+                        select: { campanhaId: true, edicao: true, numero: true },
+                    }),
+                ]);
+                if (
+                    !sorteio ||
+                    !ticket ||
+                    ticket.campanhaId !== sorteio.campanhaId ||
+                    ticket.edicao !== sorteio.edicao ||
+                    ticket.numero !== dados.numeroSorteado
+                ) {
+                    throw new ErroAplicacao("Ticket sorteado nao pertence a edicao do sorteio", 409, {
+                        codigo: "TICKET_EDICAO_INVALIDA",
+                    });
+                }
+
                 if (dados.cancelarResultadoId !== undefined) {
                     const cancelados = await tx.resultadoSorteio.updateMany({
                         where: {
@@ -214,13 +206,16 @@ export class RepositorioSorteio {
         }
     }
 
-    private paraDominio(item: RegistroSorteio): Sorteio {
+    private paraDominio(item: RegistroSorteio, totalTickets: number): Sorteio {
         return new Sorteio({
             id: item.id,
             qrcode: item.qrcode,
             campanhaId: item.campanhaId,
-            dataFimCampanha: item.campanha.dataFim,
-            totalTickets: item.campanha._count.tickets,
+            edicao: item.edicao,
+            dataInicioEdicao: item.dataInicioEdicao,
+            dataFimEdicao: item.dataFimEdicao,
+            valorPorTicketEdicao: decimalParaNumero(item.valorPorTicketEdicao),
+            totalTickets,
             resultados: item.resultados.map((resultado) => ({
                 id: resultado.id,
                 ticketId: resultado.ticketId,
